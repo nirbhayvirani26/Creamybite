@@ -28,16 +28,16 @@ if ($isLocal) {
     // ── LOCAL / MAMP Credentials ──────────────────────────────
     define('DB_HOST', 'localhost');
     define('DB_PORT', '3306');
-    define('DB_NAME', 'creamybite');
-    define('DB_USER', 'root');
-    define('DB_PASS', 'root');
+    define('DB_NAME', 'u167013900_creamybite');
+    define('DB_USER', 'u167013900_creamyuser');
+    define('DB_PASS', 'Creamyorder@2026*');
 } else {
     // ── LIVE Database (Hostinger / cPanel) ───────────────────
     define('DB_HOST', 'localhost');
     define('DB_PORT', '3306');
-    define('DB_NAME', 'u167013900_creamybite');
-    define('DB_USER', 'u167013900_creamyuser');
-    define('DB_PASS', 'Creamyorder@2026*');
+    define('DB_NAME', 'creamybite');
+    define('DB_USER', 'root');
+    define('DB_PASS', 'root');
 }
 
 // ── Stripe Payment Keys ──────────────────────────────────────
