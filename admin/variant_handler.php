@@ -1,0 +1,75 @@
+<?php
+// ============================================================
+//  Creamy Bite – Admin: Variant Handler
+//  Actions: list | add | update | delete
+// ============================================================
+session_start();
+if (empty($_SESSION['admin_logged_in'])) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Not authorised']);
+    exit;
+}
+
+require_once '../config.php';
+require_once '../db.php';
+
+header('Content-Type: application/json');
+
+$action    = $_POST['action'] ?? $_GET['action'] ?? '';
+$productId = (int)($_POST['product_id'] ?? $_GET['product_id'] ?? 0);
+
+// ── LIST all variants for a product ──────────────────────────
+if ($action === 'list') {
+    if ($productId <= 0) { echo json_encode(['success' => false]); exit; }
+    $rows = $pdo->prepare("SELECT * FROM product_variants WHERE product_id = :pid ORDER BY sort_order ASC, id ASC");
+    $rows->execute(['pid' => $productId]);
+    echo json_encode(['success' => true, 'variants' => $rows->fetchAll()]);
+    exit;
+}
+
+// ── ADD variant ───────────────────────────────────────────────
+if ($action === 'add') {
+    $name           = trim($_POST['name']  ?? '');
+    $price          = (float)($_POST['price'] ?? 0);
+    $wholesalePrice = (float)($_POST['wholesale_price'] ?? 0);
+    if ($productId <= 0 || strlen($name) < 1 || $price <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Name and a valid price are required.']);
+        exit;
+    }
+    $maxOrder = (int)$pdo->prepare("SELECT COALESCE(MAX(sort_order),0) FROM product_variants WHERE product_id = :pid")
+        ->execute(['pid' => $productId]) ? $pdo->query("SELECT COALESCE(MAX(sort_order),0) FROM product_variants WHERE product_id = $productId")->fetchColumn() : 0;
+
+    $stmt = $pdo->prepare("INSERT INTO product_variants (product_id, name, price, wholesale_price, sort_order) VALUES (:pid, :name, :price, :wp, :sort_order)");
+    $stmt->execute(['pid' => $productId, 'name' => $name, 'price' => $price, 'wp' => $wholesalePrice, 'sort_order' => $maxOrder + 1]);
+    echo json_encode(['success' => true, 'id' => $pdo->lastInsertId(), 'name' => $name, 'price' => number_format($price, 2), 'wholesale_price' => number_format($wholesalePrice, 2)]);
+    exit;
+}
+
+// ── UPDATE variant ───────────────────────────────────────────
+if ($action === 'update') {
+    $id             = (int)($_POST['id']    ?? 0);
+    $name           = trim($_POST['name']   ?? '');
+    $price          = (float)($_POST['price'] ?? 0);
+    $wholesalePrice = (float)($_POST['wholesale_price'] ?? 0);
+    $avail          = isset($_POST['available']) ? 1 : 0;
+    if ($id <= 0 || strlen($name) < 1 || $price <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid data.']);
+        exit;
+    }
+    $pdo->prepare("UPDATE product_variants SET name=:name, price=:price, wholesale_price=:wp, available=:available WHERE id=:id AND product_id=:pid")
+        ->execute(['name' => $name, 'price' => $price, 'wp' => $wholesalePrice, 'available' => $avail, 'id' => $id, 'pid' => $productId]);
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+// ── DELETE variant ───────────────────────────────────────────
+if ($action === 'delete') {
+    $id = (int)($_POST['id'] ?? 0);
+    if ($id <= 0) { echo json_encode(['success' => false]); exit; }
+    $pdo->prepare("DELETE FROM product_variants WHERE id=:id AND product_id=:pid")
+        ->execute(['id' => $id, 'pid' => $productId]);
+    echo json_encode(['success' => true]);
+    exit;
+}
+
+echo json_encode(['success' => false, 'message' => 'Unknown action']);

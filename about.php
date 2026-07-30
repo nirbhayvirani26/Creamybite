@@ -1,0 +1,365 @@
+<?php
+// ============================================================
+//  Creamy Bite – About Us Page
+// ============================================================
+session_start();
+require_once 'db.php';
+require_once 'config.php';
+require_once 'mailer.php';
+
+// ── Ensure inquiries table exists (auto-create) ───────────
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `inquiries` (
+        `id`         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        `name`       VARCHAR(120) NOT NULL,
+        `email`      VARCHAR(180) NOT NULL,
+        `phone`      VARCHAR(30)  NOT NULL DEFAULT '',
+        `message`    TEXT         NOT NULL,
+        `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `is_read`    TINYINT(1)   NOT NULL DEFAULT 0
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (PDOException $e) { /* table already exists or DB issue */ }
+
+$formSuccess = false;
+$formError   = '';
+
+// Handle contact form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
+    $fname   = trim($_POST['contact_name']    ?? '');
+    $femail  = trim($_POST['contact_email']   ?? '');
+    $fphone  = trim($_POST['contact_phone']   ?? '');
+    $fmsg    = trim($_POST['contact_message'] ?? '');
+
+    if (strlen($fname) < 2)               { $formError = 'Please enter your name.'; }
+    elseif (!filter_var($femail, FILTER_VALIDATE_EMAIL)) { $formError = 'Please enter a valid email address.'; }
+    elseif (strlen($fphone) < 7)          { $formError = 'Please enter your phone number.'; }
+    elseif (strlen($fmsg) < 10)           { $formError = 'Please enter a message (at least 10 characters).'; }
+    else {
+        // Save to database
+        try {
+            $ins = $pdo->prepare("INSERT INTO inquiries (name, email, phone, message) VALUES (:n, :e, :p, :m)");
+            $ins->execute(['n' => $fname, 'e' => $femail, 'p' => $fphone, 'm' => $fmsg]);
+        } catch (PDOException $e) { /* ignore DB save failure; email still goes */ }
+
+        // Send email via PHPMailer
+        $subject = 'Enquiry from ' . $fname . ' – Creamy Bite Website';
+        $body    = "
+            <h2 style='font-family:sans-serif;color:#ff4d6d;'>New Enquiry – Creamy Bite</h2>
+            <table style='font-family:sans-serif;font-size:14px;width:100%;'>
+                <tr><td style='padding:6px 0;color:#6b4c5e;font-weight:600;'>Name:</td><td>" . htmlspecialchars($fname) . "</td></tr>
+                <tr><td style='padding:6px 0;color:#6b4c5e;font-weight:600;'>Email:</td><td>" . htmlspecialchars($femail) . "</td></tr>
+                <tr><td style='padding:6px 0;color:#6b4c5e;font-weight:600;'>Phone:</td><td>" . htmlspecialchars($fphone) . "</td></tr>
+                <tr><td style='padding:6px 0;color:#6b4c5e;font-weight:600;'>Message:</td><td>" . nl2br(htmlspecialchars($fmsg)) . "</td></tr>
+            </table>
+        ";
+        try {
+            sendGenericEmail(ADMIN_EMAIL, $subject, $body);
+            $formSuccess = true;
+        } catch (Exception $e) {
+            // Email failed but DB save succeeded – still show success
+            $formSuccess = true;
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us – <?= SHOP_NAME ?></title>
+    <meta name="description" content="Learn the story behind <?= SHOP_NAME ?> — our passion for handcrafted ice cream and cocoa drinks. Contact us, find us on the map, and follow us on social media.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="responsive.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="about-page">
+
+<!-- ══ Navbar ══════════════════════════════════════════════ -->
+<header class="navbar">
+    <div class="container nav-container-centered">
+        <nav class="nav-left">
+            <ul class="nav-links">
+                <li><a href="index.php">Home</a></li>
+                <li><a href="order.php">Order</a></li>
+                <li><a href="gallery.php">Gallery</a></li>
+                <li><a href="about.php" class="active">About Us</a></li>
+            </ul>
+        </nav>
+
+        <a href="index.php" class="logo logo-center">
+            <img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
+        </a>
+
+        <div class="nav-actions nav-right">
+            <a href="order.php" class="btn-primary" style="padding:10px 22px; font-size:14px;">
+                <i class="fa-solid fa-bolt"></i> Order Now
+            </a>
+            <button class="nav-hamburger" id="navHamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
+        </div>
+    </div>
+</header>
+
+<!-- ══ Mobile Nav Drawer ══════════════════════════════════ -->
+<div class="mobile-drawer" id="mobileDrawer">
+    <div class="mobile-nav-panel">
+        <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Close menu">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <ul class="mobile-nav-links">
+            <li><a href="index.php">Home</a></li>
+            <li><a href="order.php">Order</a></li>
+            <li><a href="gallery.php">Gallery</a></li>
+            <li><a href="about.php" class="active">About Us</a></li>
+        </ul>
+        <div class="mobile-nav-actions">
+            <a href="order.php" class="btn-primary" style="justify-content:center; display:flex;">
+                <i class="fa-solid fa-bolt"></i> Order Now
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ══ About Hero ══════════════════════════════════════════ -->
+<section class="about-hero">
+    <div class="container" style="position:relative;z-index:1;">
+        <div class="about-hero-eyebrow">🍦 Who We Are</div>
+        <h1>About Creamy Bite</h1>
+        <p>Passionate about flavour, obsessed with quality, and devoted to making every bite a moment worth remembering.</p>
+    </div>
+</section>
+
+<!-- ══ Our Story ═══════════════════════════════════════════ -->
+<section class="about-story-section">
+    <div class="container">
+        <div class="about-story-grid">
+            <div class="about-story-img">
+                <img src="assets/images/about_story.jpg" alt="About Creamy Bite Artisanal Ice Cream" loading="lazy">
+            </div>
+            <div class="about-story-content">
+                <span class="section-label">Our Story</span>
+                <h2>Made with Love,<br>Served with Joy</h2>
+                <p>
+                    Creamy Bite started from a simple love of real, honest ice cream — the kind
+                    that brings you back to summer days and childhood memories. We believed the
+                    world needed more flavour and fewer shortcuts.
+                </p>
+                <p>
+                    Everything we make begins with quality: fresh dairy, real fruits, natural
+                    cocoa, and genuine passion. No artificial shortcuts, no mass production.
+                    Just small-batch, handcrafted goodness made for you.
+                </p>
+                <p>
+                    Whether it's a classic vanilla scoop on a sunny afternoon or a warming
+                    Belgian cocoa drink on a winter evening — we're here to make every moment
+                    a little sweeter.
+                </p>
+                <div class="story-highlights" style="margin-top:24px;">
+                    <div class="story-highlight">
+                        <span class="story-highlight-icon">🌿</span>
+                        <span class="story-highlight-text">Natural Ingredients</span>
+                    </div>
+                    <div class="story-highlight">
+                        <span class="story-highlight-icon">🤍</span>
+                        <span class="story-highlight-text">Handcrafted Daily</span>
+                    </div>
+                    <div class="story-highlight">
+                        <span class="story-highlight-icon">🇬🇧</span>
+                        <span class="story-highlight-text">Based in the UK</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ Contact & Map ════════════════════════════════════════ -->
+<section class="contact-map-section">
+    <div class="container">
+        <div class="section-header" style="margin-bottom:44px;">
+            <span class="section-label">Get In Touch</span>
+            <h2 class="section-title">We'd Love to Hear from You</h2>
+            <p class="section-subtitle">Have a question, a special request, or just want to say hello? Drop us a message below.</p>
+        </div>
+
+        <div class="contact-grid">
+            <!-- Contact Form -->
+            <div>
+                <?php if ($formSuccess): ?>
+                <div class="alert alert-success" style="margin-bottom:28px; font-size:15px;">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <div>
+                        <strong>Message sent!</strong><br>
+                        Thank you for getting in touch. We'll get back to you as soon as possible. 🍦
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($formError): ?>
+                <div class="alert alert-danger" style="margin-bottom:20px;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div><?= htmlspecialchars($formError) ?></div>
+                </div>
+                <?php endif; ?>
+
+                <div class="glass-panel" style="padding:32px;">
+                    <h3 style="font-size:19px; margin-bottom:24px; display:flex; align-items:center; gap:10px; color:var(--color-primary);">
+                        <i class="fa-solid fa-envelope"></i> Send an Enquiry
+                    </h3>
+                    <form action="about.php" method="POST" id="contactForm">
+                        <input type="hidden" name="contact_submit" value="1">
+
+                        <div class="form-group">
+                            <label for="contact_name" class="form-label">Your Name *</label>
+                            <input type="text" id="contact_name" name="contact_name" class="form-control"
+                                placeholder="e.g. Jane Smith" required
+                                value="<?= htmlspecialchars($_POST['contact_name'] ?? '') ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact_email" class="form-label">Email Address *</label>
+                            <input type="email" id="contact_email" name="contact_email" class="form-control"
+                                placeholder="you@example.com" required
+                                value="<?= htmlspecialchars($_POST['contact_email'] ?? '') ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact_phone" class="form-label">Phone Number *</label>
+                            <input type="tel" id="contact_phone" name="contact_phone" class="form-control"
+                                placeholder="e.g. +44 7700 900 123" required
+                                value="<?= htmlspecialchars($_POST['contact_phone'] ?? '') ?>">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact_message" class="form-label">Your Message *</label>
+                            <textarea id="contact_message" name="contact_message" class="form-control" rows="5"
+                                placeholder="Tell us what you'd like to know, order, or arrange…" required><?= htmlspecialchars($_POST['contact_message'] ?? '') ?></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-primary" style="width:100%; justify-content:center; font-size:15px; padding:15px;">
+                            <i class="fa-solid fa-paper-plane"></i> Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Map & Address -->
+            <div>
+                <div class="glass-panel" style="padding:28px; margin-bottom:20px;">
+                    <h3 style="font-size:17px; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--color-primary);">
+                        <i class="fa-solid fa-location-dot"></i> Find Us
+                    </h3>
+                    <p style="font-size:14px; color:var(--text-secondary); line-height:1.7; margin-bottom:18px;">
+                        <strong>Creamy Bite</strong><br>
+                        Unit E5 Phoenix Business Centre<br>
+                        HA1 2SP<br>
+                        United Kingdom
+                    </p>
+                    <div class="alert alert-info" style="font-size:13px; margin-bottom:0;">
+                        <i class="fa-solid fa-clock"></i>
+                        <span><strong>Open:</strong> Every day: 11 AM – 8 PM</span>
+                    </div>
+                </div>
+
+                <!-- Google Map Embed – Creamy Bite, Unit E5 Phoenix Business Centre, HA1 2SP -->
+                <div class="map-container">
+                    <iframe
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2479.7282738316826!2d-0.3380253232421889!3d51.57290517180947!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x487613c3e826b3c5%3A0x9f44e8a9cceacc1a!2sPhoenix%20Business%20Centre%2C%20Harrow%20HA1%202SP!5e0!3m2!1sen!2suk!4v1750514400000!5m2!1sen!2suk"
+                        allowfullscreen="" loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        title="Creamy Bite – Unit E5 Phoenix Business Centre HA1 2SP">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══ Social Links ════════════════════════════════════════ -->
+<section class="social-links-section">
+    <div class="container" style="text-align:center;">
+        <span class="section-label">Follow Us</span>
+        <h2 class="section-title" style="margin-bottom:10px;">Find Us on Social Media</h2>
+        <p class="section-subtitle">Follow along for the latest flavours, behind-the-scenes moments, and sweet inspiration!</p>
+
+        <div class="social-buttons-grid">
+            <a href="https://www.instagram.com/creamybiteicecream" class="social-btn social-btn-instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <i class="fa-brands fa-instagram" style="font-size:20px;"></i>
+                Follow on Instagram
+            </a>
+            <a href="https://wa.me/447497779997" class="social-btn social-btn-whatsapp" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+                <i class="fa-brands fa-whatsapp" style="font-size:20px;"></i>
+                Chat on WhatsApp
+            </a>
+            <a href="#" class="social-btn social-btn-tiktok" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+                <i class="fa-brands fa-tiktok" style="font-size:20px;"></i>
+                Follow on TikTok
+            </a>
+            <a href="https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr" class="social-btn social-btn-facebook" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                <i class="fa-brands fa-facebook" style="font-size:20px;"></i>
+                Like on Facebook
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ══ Footer ══════════════════════════════════════════════ -->
+<footer class="footer-enhanced">
+    <div class="container">
+        <div class="footer-top">
+            <div class="footer-brand">
+                <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img"></a>
+                <p>Handcrafted ice cream and cocoa drinks made fresh daily with the finest ingredients.</p>
+                <div class="footer-social">
+                    <a href="https://www.instagram.com/creamybiteicecream" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
+                    <a href="#" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+                    <a href="https://wa.me/447497779997" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Pages</h4>
+                <ul>
+                    <li><a href="index.php">Home</a></li>
+                    <li><a href="order.php">Order</a></li>
+                    <li><a href="gallery.php">Gallery</a></li>
+                    <li><a href="about.php">About Us</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Order</h4>
+                <ul>
+                    <li><a href="order.php">Browse Menu</a></li>
+                    <li><a href="checkout.php">Checkout</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>B2B Trade</h4>
+                <ul>
+                    <li><a href="trade_register.php">Apply for Trade</a></li>
+                    <li><a href="trade_login.php">Trade Login</a></li>
+                    <li><a href="admin/login.php">Admin Login</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom-bar">
+            <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img" style="height:32px;"></a>
+            <span class="footer-copy-text">&copy; <?= date('Y') ?> CreamyBite.com &mdash; Made with ❤️</span>
+        </div>
+    </div>
+</footer>
+
+<script>
+// ── Mobile nav ─────────────────────────────────────────────
+const ham = document.getElementById('navHamburger');
+const drawer = document.getElementById('mobileDrawer');
+const drawerClose = document.getElementById('mobileDrawerClose');
+function openMobileMenu()  { ham.classList.add('open'); drawer.classList.add('open'); document.body.style.overflow='hidden'; }
+function closeMobileMenu() { ham.classList.remove('open'); drawer.classList.remove('open'); document.body.style.overflow=''; }
+ham.addEventListener('click', openMobileMenu);
+drawerClose.addEventListener('click', closeMobileMenu);
+drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMobileMenu(); });
+</script>
+</body>
+</html>
