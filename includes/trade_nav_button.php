@@ -11,7 +11,7 @@
 if (!empty($_SESSION['trade_user'])):
     $tradeNavName = trim((string)($_SESSION['trade_user']['business_name'] ?? 'My Account'));
 ?>
-<a href="trade_profile.php" class="trade-nav-btn"
+<a href="<?= SITE_BASE ?>/pages/trade_profile.php" class="trade-nav-btn"
    title="My Trade Account — <?= htmlspecialchars($tradeNavName) ?>"
    aria-label="My trade account">
     <span class="trade-nav-avatar"><i class="fa-solid fa-user"></i></span>

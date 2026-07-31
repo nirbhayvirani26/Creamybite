@@ -54,6 +54,20 @@ $isLocal = $isCli
 
 $db = $isLocal ? $secrets['db_local'] : $secrets['db_live'];
 
+// ── URL path to the project root ─────────────────────────────
+//  "/orders" under MAMP, "" when the site is the domain root.
+//
+//  Shared partials (the header/nav) are included from pages at DIFFERENT
+//  depths — index.php at the root and pages/*.php one level down — so a
+//  relative "trade_profile.php" in a partial would resolve to a different
+//  place depending on who included it. Links in shared markup are built
+//  from this instead, which is correct from any depth.
+$docRoot  = rtrim(str_replace('\\', '/', $_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+$projRoot = str_replace('\\', '/', dirname(__DIR__));   // includes/ -> project root
+define('SITE_BASE', ($docRoot !== '' && str_starts_with($projRoot, $docRoot))
+    ? rtrim(substr($projRoot, strlen($docRoot)), '/')
+    : '');
+
 define('IS_LOCAL', $isLocal);
 define('DB_HOST', $db['host']);
 define('DB_PORT', $db['port']);

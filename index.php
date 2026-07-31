@@ -36,9 +36,9 @@ try {
         <nav class="nav-left">
             <ul class="nav-links">
                 <li><a href="index.php" class="active">Home</a></li>
-                <li><a href="order.php">Order</a></li>
-                <li><a href="gallery.php">Gallery</a></li>
-                <li><a href="about.php">About Us</a></li>
+                <li><a href="pages/order.php">Order</a></li>
+                <li><a href="pages/gallery.php">Gallery</a></li>
+                <li><a href="pages/about.php">About Us</a></li>
             </ul>
         </nav>
 
@@ -48,7 +48,7 @@ try {
 
         <div class="nav-actions nav-right">
             <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
-            <a href="order.php" class="btn-primary cbhm-btn-nav">
+            <a href="pages/order.php" class="btn-primary cbhm-btn-nav">
                 <i class="fa-solid fa-bolt"></i> Order Now
             </a>
             <button class="nav-hamburger" id="navHamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
@@ -64,12 +64,12 @@ try {
         </button>
         <ul class="mobile-nav-links">
             <li><a href="index.php" class="active">Home</a></li>
-            <li><a href="order.php">Order</a></li>
-            <li><a href="gallery.php">Gallery</a></li>
-            <li><a href="about.php">About Us</a></li>
+            <li><a href="pages/order.php">Order</a></li>
+            <li><a href="pages/gallery.php">Gallery</a></li>
+            <li><a href="pages/about.php">About Us</a></li>
         </ul>
         <div class="mobile-nav-actions">
-            <a href="order.php" class="btn-primary cbhm-btn-drawer">
+            <a href="pages/order.php" class="btn-primary cbhm-btn-drawer">
                 <i class="fa-solid fa-bolt"></i> Order Now
             </a>
         </div>
@@ -86,10 +86,10 @@ try {
             From classic vanilla scoops to rich Belgian cocoa drinks — pure joy in every bite. 🍦
         </p>
         <div class="landing-cta-group">
-            <a href="order.php" class="btn-hero-primary">
+            <a href="pages/order.php" class="btn-hero-primary">
                 🍦 Explore Our Menu
             </a>
-            <a href="about.php" class="btn-hero-secondary">
+            <a href="pages/about.php" class="btn-hero-secondary">
                 Our Story
             </a>
         </div>
@@ -168,7 +168,7 @@ try {
         </div>
 
         <div class="cbhm-flavours-cta">
-            <a href="order.php" class="btn-primary cbhm-btn-wide">
+            <a href="pages/order.php" class="btn-primary cbhm-btn-wide">
                 <i class="fa-solid fa-arrow-right"></i> See Full Menu & Order
             </a>
         </div>
@@ -227,7 +227,7 @@ try {
         <span class="section-label cbhm-label-on-dark">Treat Yourself Today</span>
         <h2>Ready for a Scoop of Happiness?</h2>
         <p>Browse our menu, pick your favourites, and get them delivered fresh to your doorstep.</p>
-        <a href="order.php" class="btn-cta-white">
+        <a href="pages/order.php" class="btn-cta-white">
             <i class="fa-solid fa-bag-shopping"></i> Order Online Now
         </a>
     </div>
@@ -244,10 +244,10 @@ try {
             </p>
         </div>
         <div class="cbhm-trade-actions">
-            <a href="trade_register.php" class="btn-primary cbhm-btn-trade">
+            <a href="pages/trade_register.php" class="btn-primary cbhm-btn-trade">
                 <i class="fa-solid fa-store"></i> Apply for Trade Account
             </a>
-            <a href="trade_login.php" class="btn-secondary cbhm-btn-trade-alt">
+            <a href="pages/trade_login.php" class="btn-secondary cbhm-btn-trade-alt">
                 <i class="fa-solid fa-right-to-bracket"></i> Trade Login
             </a>
         </div>
@@ -272,23 +272,23 @@ try {
                 <h4>Pages</h4>
                 <ul>
                     <li><a href="index.php">Home</a></li>
-                    <li><a href="order.php">Order</a></li>
-                    <li><a href="gallery.php">Gallery</a></li>
-                    <li><a href="about.php">About Us</a></li>
+                    <li><a href="pages/order.php">Order</a></li>
+                    <li><a href="pages/gallery.php">Gallery</a></li>
+                    <li><a href="pages/about.php">About Us</a></li>
                 </ul>
             </div>
             <div class="footer-col">
                 <h4>Order</h4>
                 <ul>
-                    <li><a href="order.php">Browse Menu</a></li>
-                    <li><a href="checkout.php">Checkout</a></li>
+                    <li><a href="pages/order.php">Browse Menu</a></li>
+                    <li><a href="pages/checkout.php">Checkout</a></li>
                 </ul>
             </div>
             <div class="footer-col">
                 <h4>B2B Trade</h4>
                 <ul>
-                    <li><a href="trade_register.php">Apply for Trade</a></li>
-                    <li><a href="trade_login.php">Trade Login</a></li>
+                    <li><a href="pages/trade_register.php">Apply for Trade</a></li>
+                    <li><a href="pages/trade_login.php">Trade Login</a></li>
                     <li><a href="admin/login.php">Admin Login</a></li>
                 </ul>
             </div>

@@ -4,8 +4,8 @@
 // URL: /trade_register or /trade_register.php
 // ============================================================
 session_start();
-require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 $successMsg = '';
 $errorMsg   = '';
@@ -86,11 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trade Account Application – <?= SHOP_NAME ?></title>
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <link rel="stylesheet" href="assets/css/animations.css">
-    <link rel="stylesheet" href="assets/css/components.css">
-    <link rel="stylesheet" href="assets/css/modal.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="trade-page">
@@ -100,14 +100,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="container nav-container-centered">
         <nav class="nav-left">
             <ul class="nav-links">
-                <li><a href="index.php">Home</a></li>
+                <li><a href="../index.php">Home</a></li>
                 <li><a href="order.php">Order</a></li>
                 <li><a href="gallery.php">Gallery</a></li>
                 <li><a href="about.php">About Us</a></li>
             </ul>
         </nav>
-        <a href="index.php" class="logo logo-center">
-            <img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
+        <a href="../index.php" class="logo logo-center">
+            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
         </a>
         <div class="nav-actions nav-right">
             <a href="trade_login.php" class="btn-secondary cbtr-nav-login-btn">
@@ -208,8 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         &copy; <?= date('Y') ?> CreamyBite.com — Wholesale Trade Portal
     </div>
 </footer>
-<script src="assets/js/modal.js" defer></script>
-<script src="assets/js/animations.js" defer></script>
+<script src="../assets/js/modal.js" defer></script>
+<script src="../assets/js/animations.js" defer></script>
 
 </body>
 </html>

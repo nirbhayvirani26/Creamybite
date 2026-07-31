@@ -3,10 +3,10 @@
 //  Creamy Bite – Order / Product Page (with Variant Support)
 // ============================================================
 session_start();
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/config.php';
 
-require_once __DIR__ . '/includes/trade_cart.php';
+require_once __DIR__ . '/../includes/trade_cart.php';
 // A revoked trade account must stop seeing wholesale prices immediately.
 tradeSessionRevalidate($pdo);
 
@@ -104,11 +104,11 @@ if (!empty($products)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order – <?= SHOP_NAME ?></title>
     <meta name="description" content="Browse and order handcrafted ice cream and cocoa drinks at <?= SHOP_NAME ?>. Fresh flavours made daily, delivered to your door.">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <link rel="stylesheet" href="assets/css/animations.css">
-    <link rel="stylesheet" href="assets/css/components.css">
-    <link rel="stylesheet" href="assets/css/modal.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -118,19 +118,19 @@ if (!empty($products)) {
     <div class="container nav-container-centered">
         <nav class="nav-left">
             <ul class="nav-links">
-                <li><a href="index.php">Home</a></li>
+                <li><a href="../index.php">Home</a></li>
                 <li><a href="order.php" class="active">Order</a></li>
                 <li><a href="gallery.php">Gallery</a></li>
                 <li><a href="about.php">About Us</a></li>
             </ul>
         </nav>
 
-        <a href="index.php" class="logo logo-center">
-            <img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
+        <a href="../index.php" class="logo logo-center">
+            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/../includes/trade_nav_button.php'; ?>
             <button class="btn-view-cart" id="cartToggle" onclick="openCart()" aria-label="View cart">
                 <i class="fa-solid fa-bag-shopping"></i> <span class="cart-btn-text">View Cart</span>
                 <span class="cart-badge" id="cartBadge">0</span>
@@ -147,7 +147,7 @@ if (!empty($products)) {
             <i class="fa-solid fa-xmark"></i>
         </button>
         <ul class="mobile-nav-links">
-            <li><a href="index.php">Home</a></li>
+            <li><a href="../index.php">Home</a></li>
             <li><a href="order.php" class="active">Order</a></li>
             <li><a href="gallery.php">Gallery</a></li>
             <li><a href="about.php">About Us</a></li>
@@ -257,7 +257,7 @@ if (!empty($products)) {
                 elseif ($badgeLabel === 'Hot')      $badgeClass = 'badge-hot';
                 elseif ($badgeLabel === 'Best Seller') $badgeClass = 'badge-best-seller';
 
-                $imgSrc = !empty($product['image']) ? 'assets/images/products/' . htmlspecialchars($product['image']) : '';
+                $imgSrc = !empty($product['image']) ? '../assets/images/products/' . htmlspecialchars($product['image']) : '';
 
                 $isOutOfStock = ($product['track_stock'] ?? 0) && ($product['stock_qty'] ?? 1) <= 0;
                 $stockLow     = ($product['track_stock'] ?? 0) && ($product['stock_qty'] ?? 0) > 0 && ($product['stock_qty'] ?? 0) <= 5;
@@ -391,7 +391,7 @@ if (!empty($products)) {
     <div class="container">
         <div class="footer-top">
             <div class="footer-brand">
-                <a href="index.php" class="footer-logo-link"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img"></a>
+                <a href="../index.php" class="footer-logo-link"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img"></a>
                 <p>Handcrafted ice cream and cocoa drinks made fresh daily with the finest ingredients.</p>
                 <div class="footer-social">
                     <a href="https://www.instagram.com/creamybiteicecream" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
@@ -403,7 +403,7 @@ if (!empty($products)) {
             <div class="footer-col">
                 <h4>Pages</h4>
                 <ul>
-                    <li><a href="index.php">Home</a></li>
+                    <li><a href="../index.php">Home</a></li>
                     <li><a href="order.php">Order</a></li>
                     <li><a href="gallery.php">Gallery</a></li>
                     <li><a href="about.php">About Us</a></li>
@@ -421,12 +421,12 @@ if (!empty($products)) {
                 <ul>
                     <li><a href="trade_register.php">Apply for Trade Account</a></li>
                     <li><a href="trade_login.php">Trade Partner Login</a></li>
-                    <li><a href="admin/login.php">Admin Login</a></li>
+                    <li><a href="../admin/login.php">Admin Login</a></li>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom-bar">
-            <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbor-footer-logo-sm"></a>
+            <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbor-footer-logo-sm"></a>
             <span class="footer-copy-text">&copy; <?= date('Y') ?> CreamyBite.com &mdash; Made with ❤️</span>
         </div>
     </div>
@@ -516,7 +516,7 @@ function addToCart(productId, variantId, name, emoji, variantName, variantPrice)
     let body = 'action=add&product_id=' + productId;
     if (variantId > 0) body += '&variant_id=' + variantId;
 
-    fetch('cart_handler.php', {
+    fetch('../cart_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body,
@@ -547,7 +547,7 @@ function addToCart(productId, variantId, name, emoji, variantName, variantPrice)
 
 // ── Remove item ──────────────────────────────────────────────
 function removeItem(cartKey) {
-    fetch('cart_handler.php', {
+    fetch('../cart_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=remove&cart_key=' + encodeURIComponent(cartKey),
@@ -557,7 +557,7 @@ function removeItem(cartKey) {
 
 // ── Update quantity ───────────────────────────────────────────
 function updateQty(cartKey, qty) {
-    fetch('cart_handler.php', {
+    fetch('../cart_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=update&cart_key=' + encodeURIComponent(cartKey) + '&quantity=' + qty,
@@ -567,7 +567,7 @@ function updateQty(cartKey, qty) {
 
 // ── Clear cart ───────────────────────────────────────────────
 function clearCart() {
-    fetch('cart_handler.php', {
+    fetch('../cart_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=clear',
@@ -594,7 +594,7 @@ function renderCart() {
         const cartKey   = item.cart_key || item.product_id;
         const safeKey   = encodeURIComponent(cartKey);
         const imgHtml   = item.image
-            ? `<img class="cart-item-img" src="assets/images/products/${escHtml(item.image)}" alt="${escHtml(item.name)}">`
+            ? `<img class="cart-item-img" src="../assets/images/products/${escHtml(item.image)}" alt="${escHtml(item.name)}">`
             : `<div class="cart-item-img-placeholder">${escHtml(item.emoji)}</div>`;
         const variantLabel = item.variant_name ? `<span style="font-size:11px;color:var(--text-muted);font-weight:500;">${escHtml(item.variant_name)}</span>` : '';
         html += `
@@ -696,7 +696,7 @@ drawerClose.addEventListener('click', closeMobileMenu);
 drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
 
 // ── Load cart on page start ──────────────────────────────────
-fetch('cart_handler.php?action=get')
+fetch('../cart_handler.php?action=get')
     .then(r => r.json())
     .then(data => { cartState = data; renderCart(); updateBadge(); updateInCartIndicators(); });
 
@@ -731,7 +731,7 @@ function closeDeliveryPopup() {
         </button>
     </div>
 </div>
-<script src="assets/js/modal.js" defer></script>
-<script src="assets/js/animations.js" defer></script>
+<script src="../assets/js/modal.js" defer></script>
+<script src="../assets/js/animations.js" defer></script>
 </body>
 </html>

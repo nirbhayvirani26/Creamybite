@@ -3,9 +3,9 @@
 //  Creamy Bite – About Us Page
 // ============================================================
 session_start();
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/mailer.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/mailer.php';
 
 // ── Ensure inquiries table exists (auto-create) ───────────
 try {
@@ -77,11 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Us – <?= SHOP_NAME ?></title>
     <meta name="description" content="Learn the story behind <?= SHOP_NAME ?> — our passion for handcrafted ice cream and cocoa drinks. Contact us, find us on the map, and follow us on social media.">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <link rel="stylesheet" href="assets/css/animations.css">
-    <link rel="stylesheet" href="assets/css/components.css">
-    <link rel="stylesheet" href="assets/css/modal.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="about-page">
@@ -91,19 +91,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     <div class="container nav-container-centered">
         <nav class="nav-left">
             <ul class="nav-links">
-                <li><a href="index.php">Home</a></li>
+                <li><a href="../index.php">Home</a></li>
                 <li><a href="order.php">Order</a></li>
                 <li><a href="gallery.php">Gallery</a></li>
                 <li><a href="about.php" class="active">About Us</a></li>
             </ul>
         </nav>
 
-        <a href="index.php" class="logo logo-center">
-            <img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
+        <a href="../index.php" class="logo logo-center">
+            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/../includes/trade_nav_button.php'; ?>
             <a href="order.php" class="btn-primary cbab-nav-order-btn">
                 <i class="fa-solid fa-bolt"></i> Order Now
             </a>
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
             <i class="fa-solid fa-xmark"></i>
         </button>
         <ul class="mobile-nav-links">
-            <li><a href="index.php">Home</a></li>
+            <li><a href="../index.php">Home</a></li>
             <li><a href="order.php">Order</a></li>
             <li><a href="gallery.php">Gallery</a></li>
             <li><a href="about.php" class="active">About Us</a></li>
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     <div class="container">
         <div class="about-story-grid">
             <div class="about-story-img">
-                <img src="assets/images/about_story.jpg" alt="About Creamy Bite Artisanal Ice Cream" loading="lazy">
+                <img src="../assets/images/about_story.jpg" alt="About Creamy Bite Artisanal Ice Cream" loading="lazy">
             </div>
             <div class="about-story-content">
                 <span class="section-label">Our Story</span>
@@ -325,7 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     <div class="container">
         <div class="footer-top">
             <div class="footer-brand">
-                <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img"></a>
+                <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img"></a>
                 <p>Handcrafted ice cream and cocoa drinks made fresh daily with the finest ingredients.</p>
                 <div class="footer-social">
                     <a href="https://www.instagram.com/creamybiteicecream" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
@@ -337,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
             <div class="footer-col">
                 <h4>Pages</h4>
                 <ul>
-                    <li><a href="index.php">Home</a></li>
+                    <li><a href="../index.php">Home</a></li>
                     <li><a href="order.php">Order</a></li>
                     <li><a href="gallery.php">Gallery</a></li>
                     <li><a href="about.php">About Us</a></li>
@@ -355,12 +355,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                 <ul>
                     <li><a href="trade_register.php">Apply for Trade</a></li>
                     <li><a href="trade_login.php">Trade Login</a></li>
-                    <li><a href="admin/login.php">Admin Login</a></li>
+                    <li><a href="../admin/login.php">Admin Login</a></li>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom-bar">
-            <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbab-footer-bottom-logo"></a>
+            <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbab-footer-bottom-logo"></a>
             <span class="footer-copy-text">&copy; <?= date('Y') ?> CreamyBite.com &mdash; Made with ❤️</span>
         </div>
     </div>
@@ -378,7 +378,7 @@ drawerClose.addEventListener('click', closeMobileMenu);
 drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMobileMenu(); });
 </script>
-<script src="assets/js/modal.js" defer></script>
-<script src="assets/js/animations.js" defer></script>
+<script src="../assets/js/modal.js" defer></script>
+<script src="../assets/js/animations.js" defer></script>
 </body>
 </html>

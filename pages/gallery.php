@@ -3,8 +3,8 @@
 //  Creamy Bite – Gallery Page
 // ============================================================
 session_start();
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/config.php';
 
 $gallery = [];
 try {
@@ -18,11 +18,11 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gallery – <?= SHOP_NAME ?></title>
     <meta name="description" content="Browse our gallery of handcrafted ice cream and cocoa drinks at <?= SHOP_NAME ?>.">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <link rel="stylesheet" href="assets/css/animations.css">
-    <link rel="stylesheet" href="assets/css/components.css">
-    <link rel="stylesheet" href="assets/css/modal.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -32,19 +32,19 @@ try {
     <div class="container nav-container-centered">
         <nav class="nav-left">
             <ul class="nav-links">
-                <li><a href="index.php">Home</a></li>
+                <li><a href="../index.php">Home</a></li>
                 <li><a href="order.php">Order</a></li>
                 <li><a href="gallery.php" class="active">Gallery</a></li>
                 <li><a href="about.php">About Us</a></li>
             </ul>
         </nav>
 
-        <a href="index.php" class="logo logo-center">
-            <img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
+        <a href="../index.php" class="logo logo-center">
+            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/../includes/trade_nav_button.php'; ?>
             <a href="order.php" class="btn-primary cb-gal-cta" >
                 <i class="fa-solid fa-bolt"></i> Order Now
             </a>
@@ -60,7 +60,7 @@ try {
             <i class="fa-solid fa-xmark"></i>
         </button>
         <ul class="mobile-nav-links">
-            <li><a href="index.php">Home</a></li>
+            <li><a href="../index.php">Home</a></li>
             <li><a href="order.php">Order</a></li>
             <li><a href="gallery.php" class="active">Gallery</a></li>
             <li><a href="about.php">About Us</a></li>
@@ -97,9 +97,9 @@ try {
         <?php else: ?>
         <div class="gallery-grid" id="galleryGrid">
             <?php foreach ($gallery as $img): ?>
-            <div class="gallery-item" onclick="openLightbox('assets/images/gallery/<?= htmlspecialchars($img['filename']) ?>', '<?= addslashes(htmlspecialchars($img['caption'])) ?>')">
+            <div class="gallery-item" onclick="openLightbox('../assets/images/gallery/<?= htmlspecialchars($img['filename']) ?>', '<?= addslashes(htmlspecialchars($img['caption'])) ?>')">
                 <img
-                    src="assets/images/gallery/<?= htmlspecialchars($img['filename']) ?>"
+                    src="../assets/images/gallery/<?= htmlspecialchars($img['filename']) ?>"
                     alt="<?= htmlspecialchars($img['caption'] ?: 'Creamy Bite') ?>"
                     loading="lazy">
                 <div class="gallery-item-overlay">
@@ -131,7 +131,7 @@ try {
     <div class="container">
         <div class="footer-top">
             <div class="footer-brand">
-                <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img"></a>
+                <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img"></a>
                 <p>Handcrafted ice cream and cocoa drinks made fresh daily with the finest ingredients.</p>
                 <div class="footer-social">
                     <a href="https://www.instagram.com/creamybiteicecream" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
@@ -143,7 +143,7 @@ try {
             <div class="footer-col">
                 <h4>Pages</h4>
                 <ul>
-                    <li><a href="index.php">Home</a></li>
+                    <li><a href="../index.php">Home</a></li>
                     <li><a href="order.php">Order</a></li>
                     <li><a href="gallery.php">Gallery</a></li>
                     <li><a href="about.php">About Us</a></li>
@@ -161,12 +161,12 @@ try {
                 <ul>
                     <li><a href="trade_register.php">Apply for Trade</a></li>
                     <li><a href="trade_login.php">Trade Login</a></li>
-                    <li><a href="admin/login.php">Admin Login</a></li>
+                    <li><a href="../admin/login.php">Admin Login</a></li>
                 </ul>
             </div>
         </div>
         <div class="footer-bottom-bar">
-            <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cb-gal-logo" ></a>
+            <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cb-gal-logo" ></a>
             <span class="footer-copy-text">&copy; <?= date('Y') ?> CreamyBite.com &mdash; Made with ❤️</span>
         </div>
     </div>
@@ -198,7 +198,7 @@ ham.addEventListener('click', openMobileMenu);
 drawerClose.addEventListener('click', closeMobileMenu);
 drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
 </script>
-<script src="assets/js/modal.js" defer></script>
-<script src="assets/js/animations.js" defer></script>
+<script src="../assets/js/modal.js" defer></script>
+<script src="../assets/js/animations.js" defer></script>
 </body>
 </html>

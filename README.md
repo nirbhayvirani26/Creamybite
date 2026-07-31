@@ -6,17 +6,19 @@ Plain PHP + MySQL (no framework), served by Apache. PHP 8.3 on MAMP locally.
 
 ```
 orders/
-├── index.php                  Home page
-├── order.php                  Menu / ordering
-├── checkout.php               Checkout
-├── gallery.php  about.php     Content pages
-├── order_confirmation.php     Post-order page
-├── trade_*.php                B2B trade portal (login/register/profile/invoice/logout)
-├── cart_handler.php           AJAX + form endpoints, called by the pages above
+├── index.php                  Home page (site entry point — stays at the root)
+├── cart_handler.php           AJAX + form endpoints, called by the pages
 ├── checkout_handler.php
 ├── promo_handler.php
 ├── stripe_intent.php
-├── shop.php  admin.php  login.php  trade_history.php
+│
+├── pages/                     Every other public page
+│   ├── order.php              Menu / ordering
+│   ├── checkout.php           Checkout
+│   ├── gallery.php  about.php Content pages
+│   ├── order_confirmation.php Post-order page
+│   ├── trade_*.php            B2B portal (login/register/profile/invoice/logout)
+│   └── shop.php  admin.php  login.php  trade_history.php
 │                              Retired URLs kept as redirects — do not delete
 │
 ├── includes/                  Server-side only, never a URL (HTTP-blocked)
@@ -56,10 +58,16 @@ orders/
 
 ## Conventions
 
-- **Public pages live at the web root.** They *are* the site's URLs
-  (`/order.php`, `/checkout.php`), so moving them into a subfolder would change
-  every live URL and break existing links. Anything that is *not* a URL lives in
-  `includes/` instead.
+- **Public pages live in `pages/`; the old flat URLs still work.** `/order.php`
+  and friends were already live and indexed, so `.htaccess` 301-redirects them
+  to `/pages/order.php`. It is a redirect, not an internal rewrite, so the
+  browser lands on the real URL and each page's `../assets/...` links resolve.
+- **`index.php` and the four handlers stay at the root.** `index.php` is the
+  site entry point, and the handlers are endpoints the pages POST/fetch to.
+- **Links in shared partials use `SITE_BASE`.** A partial included by both
+  `index.php` (root) and `pages/*.php` (one level down) cannot use a relative
+  link — it would resolve to two different places. `SITE_BASE` is the URL path
+  to the project root (`/orders` locally, `` at a domain root).
 - **`includes/` is unreachable over HTTP** (`includes/.htaccess` denies all).
   `require`/`include` are filesystem reads and are unaffected.
 - **Paths are written as `__DIR__ . '/...'`**, so a file works regardless of

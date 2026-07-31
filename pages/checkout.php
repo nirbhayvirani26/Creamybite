@@ -3,10 +3,10 @@
 //  Creamy Bite – Checkout Page
 // ============================================================
 session_start();
-require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/db.php';
-require_once __DIR__ . '/includes/pricing.php';
-require_once __DIR__ . '/includes/trade_cart.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/pricing.php';
+require_once __DIR__ . '/../includes/trade_cart.php';
 tradeSessionRevalidate($pdo);
 
 // Load cart
@@ -55,11 +55,11 @@ $grandTotal     = $totals['total'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout – <?= SHOP_NAME ?></title>
     <meta name="description" content="Complete your ice cream order at <?= SHOP_NAME ?>.">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <link rel="stylesheet" href="assets/css/animations.css">
-    <link rel="stylesheet" href="assets/css/components.css">
-    <link rel="stylesheet" href="assets/css/modal.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://js.stripe.com/v3/"></script>
 </head>
@@ -70,19 +70,19 @@ $grandTotal     = $totals['total'];
     <div class="container nav-container-centered">
         <nav class="nav-left">
             <ul class="nav-links">
-                <li><a href="index.php">Home</a></li>
+                <li><a href="../index.php">Home</a></li>
                 <li><a href="order.php">Order</a></li>
                 <li><a href="gallery.php">Gallery</a></li>
                 <li><a href="about.php">About Us</a></li>
             </ul>
         </nav>
 
-        <a href="index.php" class="logo logo-center">
-            <img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
+        <a href="../index.php" class="logo logo-center">
+            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/../includes/trade_nav_button.php'; ?>
             <a href="order.php" class="btn-secondary cbco-nav-back-btn">
                 <i class="fa-solid fa-arrow-left"></i> Back to Menu
             </a>
@@ -98,7 +98,7 @@ $grandTotal     = $totals['total'];
             <i class="fa-solid fa-xmark"></i>
         </button>
         <ul class="mobile-nav-links">
-            <li><a href="index.php">Home</a></li>
+            <li><a href="../index.php">Home</a></li>
             <li><a href="order.php">Order</a></li>
             <li><a href="gallery.php">Gallery</a></li>
             <li><a href="about.php">About Us</a></li>
@@ -155,7 +155,7 @@ $grandTotal     = $totals['total'];
 
                     <h2><i class="fa-solid fa-user-check cbco-icon-primary"></i> Contact & Delivery Instructions</h2>
 
-                    <form action="checkout_handler.php" method="POST" id="checkoutForm">
+                    <form action="../checkout_handler.php" method="POST" id="checkoutForm">
 
                         <!-- Bot protection (honeypot) -->
                         <input type="text" name="website" id="hp_website" tabindex="-1" autocomplete="off" aria-hidden="true" class="cbco-honeypot">
@@ -229,7 +229,7 @@ $grandTotal     = $totals['total'];
                     <!-- ── RETAIL CUSTOMER CHECKOUT ────────────────────────── -->
                     <h2><i class="fa-solid fa-user cbco-icon-primary"></i> Delivery Details</h2>
 
-                    <form action="checkout_handler.php" method="POST" id="checkoutForm">
+                    <form action="../checkout_handler.php" method="POST" id="checkoutForm">
 
                         <!-- ── Bot protection (honeypot) ─────────── -->
                         <input type="text" name="website" id="hp_website" tabindex="-1" autocomplete="off"
@@ -418,7 +418,7 @@ $grandTotal     = $totals['total'];
                     <div id="summaryItems">
                         <?php foreach ($cart as $cartKey => $item):
                             $lineTotal = $item['price'] * $item['quantity'];
-                            $imgSrc = !empty($item['image']) ? 'assets/images/products/' . htmlspecialchars($item['image']) : '';
+                            $imgSrc = !empty($item['image']) ? '../assets/images/products/' . htmlspecialchars($item['image']) : '';
                             $safeKey = htmlspecialchars($cartKey, ENT_QUOTES);
                             $domKey  = preg_replace('/[^a-z0-9]/i', '-', $cartKey);
                         ?>
@@ -539,7 +539,7 @@ $grandTotal     = $totals['total'];
 <footer class="footer-enhanced">
     <div class="container">
         <div class="footer-bottom-bar cbco-footer-bar">
-            <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbco-footer-logo"></a>
+            <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbco-footer-logo"></a>
             <span class="footer-copy-text">© <?= date('Y') ?> <?= SHOP_NAME ?>. All rights reserved.</span>
         </div>
     </div>
@@ -639,7 +639,7 @@ function applyPromo() {
 }
 
 function removePromo() {
-    fetch('promo_handler.php?action=remove').then(() => location.reload());
+    fetch('../promo_handler.php?action=remove').then(() => location.reload());
 }
 
 function showPromoMsg(msg, type) {
@@ -668,7 +668,7 @@ function reEvaluateCharges() {
             appliedPromo = null;
 
             // Remove from session silently
-            fetch('promo_handler.php?action=remove');
+            fetch('../promo_handler.php?action=remove');
 
             // Restore input field with code pre-filled + warning
             const inputRow    = document.getElementById('promoInputRow');
@@ -716,7 +716,7 @@ function summaryUpdateQty(cartKey, domKey, price, delta) {
 
     if (qty <= 0) { summaryRemoveItem(cartKey, domKey); return; }
 
-    fetch('cart_handler.php', {
+    fetch('../cart_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=update&cart_key=' + encodeURIComponent(cartKey) + '&quantity=' + qty,
@@ -738,7 +738,7 @@ function summaryUpdateQty(cartKey, domKey, price, delta) {
 }
 
 function summaryRemoveItem(cartKey, domKey) {
-    fetch('cart_handler.php', {
+    fetch('../cart_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=remove&cart_key=' + encodeURIComponent(cartKey),
@@ -784,7 +784,7 @@ let currentPaymentMethod = 'online';
 // Initialise Stripe on page load
 (async () => {
     try {
-        const res  = await fetch('stripe_intent.php');
+        const res  = await fetch('../stripe_intent.php');
         const data = await res.json();
 
         if (data.error) {
@@ -1191,7 +1191,7 @@ function triggerStripeAmountUpdate() {
     const isCollection = document.querySelector('input[name="order_type"]:checked')?.value === 'collection';
     const pc = document.getElementById('delivery_postcode')?.value || '';
     
-    fetch('stripe_intent.php', {
+    fetch('../stripe_intent.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `order_type=${isCollection ? 'collection' : 'delivery'}&postcode=${encodeURIComponent(pc)}`
@@ -1234,8 +1234,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 </script>
-<script src="assets/js/modal.js" defer></script>
-<script src="assets/js/animations.js" defer></script>
+<script src="../assets/js/modal.js" defer></script>
+<script src="../assets/js/animations.js" defer></script>
 
 </body>
 </html>

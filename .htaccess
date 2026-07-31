@@ -17,3 +17,29 @@
 
 # Never list a directory that has no index file.
 Options -Indexes
+
+# ── Old flat URLs -> pages/ ──────────────────────────────────
+#  The public pages used to sit at the web root (/order.php,
+#  /checkout.php, …) and those URLs are already live, bookmarked and
+#  indexed. They now live in pages/, so redirect rather than 404.
+#
+#  301 (not an internal rewrite) on purpose: the browser ends up on the
+#  real /pages/... URL, so the "../assets/..." links inside each page
+#  resolve correctly. An internal rewrite would keep the old URL in the
+#  address bar and every relative asset path would break.
+#
+#  Only fires when the request does not match a real file or directory,
+#  so index.php and the handlers at the root are untouched. The pattern
+#  has no slash in it, so an already-rewritten /pages/x.php cannot loop.
+#  The target is built from REQUEST_URI rather than written as a bare
+#  "pages/$1" so it stays a URL path. A bare relative target makes Apache
+#  resolve it against the filesystem and emit the server's absolute disk
+#  path in the Location header. Deriving the prefix (%1) also keeps this
+#  working whether the site is served from /orders/ or from the domain root.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} ^(.*/)[^/]+\.php$
+    RewriteRule ^([A-Za-z0-9_-]+\.php)$ %1pages/$1 [R=301,L]
+</IfModule>

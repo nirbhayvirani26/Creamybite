@@ -3,8 +3,8 @@
 //  Sweet Scoops – Order Confirmation Page
 // ============================================================
 session_start();
-require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 $code = trim($_GET['code'] ?? '');
 if (empty($code)) { header('Location: order.php'); exit; }
@@ -42,20 +42,20 @@ $items = json_decode($order['items_json'], true) ?? [];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Confirmed! – <?= SHOP_NAME ?></title>
     <meta name="description" content="Your ice cream order has been confirmed at <?= SHOP_NAME ?>.">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/responsive.css">
-    <link rel="stylesheet" href="assets/css/animations.css">
-    <link rel="stylesheet" href="assets/css/components.css">
-    <link rel="stylesheet" href="assets/css/modal.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
 <header class="navbar">
     <div class="container nav-container">
-        <a href="index.php" class="logo"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img"></a>
+        <a href="../index.php" class="logo"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img"></a>
         <nav><ul class="nav-links">
-            <li><a href="index.php">Home</a></li>
+            <li><a href="../index.php">Home</a></li>
             <li><a href="order.php">Order</a></li>
             <li><a href="gallery.php">Gallery</a></li>
             <li><a href="about.php">About Us</a></li>
@@ -187,12 +187,12 @@ $items = json_decode($order['items_json'], true) ?? [];
 
 <footer class="footer">
     <div class="container footer-inner">
-        <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cboc-footer-logo-sm"></a>
+        <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cboc-footer-logo-sm"></a>
         <span class="footer-copy">© <?= date('Y') ?> <?= SHOP_NAME ?>. Thank you for your order!</span>
     </div>
 </footer>
-<script src="assets/js/modal.js" defer></script>
-<script src="assets/js/animations.js" defer></script>
+<script src="../assets/js/modal.js" defer></script>
+<script src="../assets/js/animations.js" defer></script>
 
 </body>
 </html>
