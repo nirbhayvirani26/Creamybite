@@ -77,11 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About Us – <?= SHOP_NAME ?></title>
     <meta name="description" content="Learn the story behind <?= SHOP_NAME ?> — our passion for handcrafted ice cream and cocoa drinks. Contact us, find us on the map, and follow us on social media.">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="responsive.css">
-    <link rel="stylesheet" href="animations.css">
-    <link rel="stylesheet" href="components.css">
-    <link rel="stylesheet" href="modal.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/animations.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="about-page">
@@ -378,7 +378,7 @@ drawerClose.addEventListener('click', closeMobileMenu);
 drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMobileMenu(); });
 </script>
-<script src="modal.js" defer></script>
-<script src="animations.js" defer></script>
+<script src="assets/js/modal.js" defer></script>
+<script src="assets/js/animations.js" defer></script>
 </body>
 </html>

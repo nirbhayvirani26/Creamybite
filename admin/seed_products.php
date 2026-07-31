@@ -117,10 +117,10 @@ endif;   // $seedRequested
 <head>
     <meta charset="UTF-8">
     <title>Seed Authentic Creamy Bite Products</title>
-    <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="setup.css">
-<link rel="stylesheet" href="../modal.css">
-<script src="../modal.js" defer></script>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/setup.css">
+<link rel="stylesheet" href="../assets/css/modal.css">
+<script src="../assets/js/modal.js" defer></script>
 </head>
 <body class="admin-wrapper su-page" >
 <div class="su-wrap-md glass-panel" >

@@ -61,7 +61,7 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
     <!-- This page carried no stylesheet link; the .cbdn-* classes extracted from the
          former inline styles live in admin.css. Linked before the <style> block below
          so the page's own rules keep winning any equal-specificity tie. -->
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;

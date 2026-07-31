@@ -51,8 +51,8 @@ $locked = ($inv['status'] === 'void');
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Edit <?= htmlspecialchars($inv['invoice_number']) ?> – <?= SHOP_NAME ?></title>
-<link rel="stylesheet" href="../style.css">
-<link rel="stylesheet" href="../responsive.css">
+<link rel="stylesheet" href="../assets/css/style.css">
+<link rel="stylesheet" href="../assets/css/responsive.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     .inv-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; }
@@ -74,8 +74,8 @@ $locked = ($inv['status'] === 'void');
             font-size:14px; font-weight:600; }
 </style>
 <?php include __DIR__ . '/_csrf_js.php'; ?>
-<link rel="stylesheet" href="../modal.css">
-<script src="../modal.js" defer></script>
+<link rel="stylesheet" href="../assets/css/modal.css">
+<script src="../assets/js/modal.js" defer></script>
 </head>
 <body class="admin-wrapper cbie-page">
 <div class="container cbie-shell">

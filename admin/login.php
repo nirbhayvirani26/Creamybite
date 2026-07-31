@@ -63,12 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login – <?= SHOP_NAME ?></title>
-    <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="setup.css">
-    <link rel="stylesheet" href="../responsive.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/setup.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="../modal.css">
-<script src="../modal.js" defer></script>
+<link rel="stylesheet" href="../assets/css/modal.css">
+<script src="../assets/js/modal.js" defer></script>
 </head>
 <body>
 <header class="navbar">

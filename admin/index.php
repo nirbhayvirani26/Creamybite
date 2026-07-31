@@ -356,14 +356,14 @@ if ($activeTab === 'revenue') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard – <?= SHOP_NAME ?></title>
-    <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="../responsive.css">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .expand-btn { cursor: pointer; background: none; border: none; color: var(--color-secondary); font-size: 13px; display: flex; align-items: center; gap: 4px; }
         .expand-btn:hover { color: var(--color-primary); }
     </style>
-<link rel="stylesheet" href="admin.css">
+<link rel="stylesheet" href="assets/css/admin.css">
 <?php include __DIR__ . '/_csrf_js.php'; ?>
 </head>
 <body class="admin-wrapper has-sidebar">

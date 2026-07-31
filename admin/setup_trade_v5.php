@@ -54,10 +54,10 @@ $allOk = array_reduce($results, fn($c, $r) => $c && $r['ok'], true);
 <head>
     <meta charset="UTF-8">
     <title>Setup v5 – Trade & B2B Database Migration</title>
-    <link rel="stylesheet" href="../style.css">
-    <link rel="stylesheet" href="setup.css">
-<link rel="stylesheet" href="../modal.css">
-<script src="../modal.js" defer></script>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/setup.css">
+<link rel="stylesheet" href="../assets/css/modal.css">
+<script src="../assets/js/modal.js" defer></script>
 </head>
 <body class="admin-wrapper su-page-warm" >
 <div class="su-wrap">
