@@ -4,9 +4,9 @@
 // URL: /trade_login or /trade_login.php
 // ============================================================
 session_start();
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/trade_cart.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/trade_cart.php';
 
 $errorMsg = '';
 

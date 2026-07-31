@@ -3,8 +3,8 @@
 //  Creamy Bite – Gallery Page
 // ============================================================
 session_start();
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/config.php';
 
 $gallery = [];
 try {
@@ -44,7 +44,7 @@ try {
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
             <a href="order.php" class="btn-primary cb-gal-cta" >
                 <i class="fa-solid fa-bolt"></i> Order Now
             </a>

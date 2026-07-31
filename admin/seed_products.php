@@ -7,7 +7,7 @@
 // image, so an unauthenticated visitor reaching it could rewrite the whole
 // catalogue. It previously had no check whatsoever.
 require_once __DIR__ . '/_guard.php';
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/config.php';
 
 $error = null;
 $count = 0;
@@ -21,7 +21,7 @@ if ($seedRequested) {
 
 if ($seedRequested):
 try {
-    require_once __DIR__ . '/../db.php';
+    require_once __DIR__ . '/../includes/db.php';
 
     // 1. Auto-create/repair categories table structure
     $pdo->exec("CREATE TABLE IF NOT EXISTS `categories` (

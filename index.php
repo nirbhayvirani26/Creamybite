@@ -3,8 +3,8 @@
 //  Creamy Bite – Home / Landing Page
 // ============================================================
 session_start();
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/config.php';
 
 // Load a few featured products for the flavour showcase
 $featured = [];
@@ -47,7 +47,7 @@ try {
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
             <a href="order.php" class="btn-primary cbhm-btn-nav">
                 <i class="fa-solid fa-bolt"></i> Order Now
             </a>

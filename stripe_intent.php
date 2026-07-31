@@ -6,10 +6,10 @@
 session_start();
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/pricing.php';
-require_once __DIR__ . '/stock.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/pricing.php';
+require_once __DIR__ . '/includes/stock.php';
 
 // Only load vendor if fully installed
 if (file_exists(__DIR__ . '/vendor/composer/autoload_real.php')) {

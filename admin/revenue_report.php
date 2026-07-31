@@ -8,8 +8,8 @@ if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 $from = $_GET['from'] ?? date('Y-m-01');
 $to   = $_GET['to']   ?? date('Y-m-d');

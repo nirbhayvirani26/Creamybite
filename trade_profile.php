@@ -17,8 +17,8 @@
 // ============================================================
 session_start();
 
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/db.php';
 
 if (empty($_SESSION['trade_user'])) {
     header('Location: trade_login.php');

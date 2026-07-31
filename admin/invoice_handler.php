@@ -19,9 +19,9 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once __DIR__ . '/_guard.php';
 csrfCheck();
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
-require_once __DIR__ . '/../invoice.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/invoice.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 

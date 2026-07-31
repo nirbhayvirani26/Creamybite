@@ -5,8 +5,8 @@
 // ============================================================
 require_once __DIR__ . '/_guard.php';   // session, admin check, CSRF helpers
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 $successMsg = '';
 $errorMsg   = '';
@@ -151,7 +151,7 @@ $promoCodes = [];
 try { $promoCodes = $pdo->query("SELECT * FROM promo_codes ORDER BY created_at DESC")->fetchAll(); } catch (PDOException $e) {}
 
 // ── Invoices ────────────────────────────────────────────
-require_once __DIR__ . '/../invoice.php';
+require_once __DIR__ . '/../includes/invoice.php';
 $invoices        = [];
 $invoiceSettings = [];
 $invoiceOutstanding = 0.0;

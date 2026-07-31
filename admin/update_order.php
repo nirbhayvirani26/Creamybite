@@ -7,10 +7,10 @@ require_once __DIR__ . '/_guard.php';
 header('Content-Type: application/json');
 csrfCheckJson();
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
-require_once __DIR__ . '/../mailer.php';
-require_once __DIR__ . '/../stock.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/stock.php';
 
 // ── Delete Order ──────────────────────────────────────────
 if (isset($_POST['action']) && $_POST['action'] === 'delete_order') {

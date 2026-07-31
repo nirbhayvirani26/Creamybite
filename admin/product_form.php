@@ -7,8 +7,8 @@ if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 $isEdit  = isset($_GET['id']) || (isset($_POST['product_id']) && (int)$_POST['product_id'] > 0);
 $product = null;

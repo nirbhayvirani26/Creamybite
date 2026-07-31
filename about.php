@@ -3,9 +3,9 @@
 //  Creamy Bite – About Us Page
 // ============================================================
 session_start();
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/mailer.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/mailer.php';
 
 // ── Ensure inquiries table exists (auto-create) ───────────
 try {
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
             <a href="order.php" class="btn-primary cbab-nav-order-btn">
                 <i class="fa-solid fa-bolt"></i> Order Now
             </a>

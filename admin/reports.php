@@ -15,8 +15,8 @@
 //  invoices already use.
 // ============================================================
 require_once __DIR__ . '/_guard.php';
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 // ── Resolve the reporting period ─────────────────────────────
 $period = $_GET['period'] ?? 'this_month';

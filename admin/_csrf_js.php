@@ -14,7 +14,7 @@
 //  protected. Form bodies also get a csrf_token field for handlers that
 //  prefer reading $_POST.
 // ============================================================
-require_once __DIR__ . '/../csrf.php';
+require_once __DIR__ . '/../includes/csrf.php';
 ?>
 <script>
 const CSRF_TOKEN = <?= json_encode(csrfToken()) ?>;

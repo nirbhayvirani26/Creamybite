@@ -8,8 +8,8 @@ require_once __DIR__ . '/_guard.php';
 header('Content-Type: application/json');
 csrfCheckJson();
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 $action = $_POST['action'] ?? '';
 

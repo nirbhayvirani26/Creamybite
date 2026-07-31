@@ -3,10 +3,10 @@
 //  Creamy Bite – Order / Product Page (with Variant Support)
 // ============================================================
 session_start();
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/config.php';
 
-require_once __DIR__ . '/trade_cart.php';
+require_once __DIR__ . '/includes/trade_cart.php';
 // A revoked trade account must stop seeing wholesale prices immediately.
 tradeSessionRevalidate($pdo);
 
@@ -130,7 +130,7 @@ if (!empty($products)) {
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
             <button class="btn-view-cart" id="cartToggle" onclick="openCart()" aria-label="View cart">
                 <i class="fa-solid fa-bag-shopping"></i> <span class="cart-btn-text">View Cart</span>
                 <span class="cart-badge" id="cartBadge">0</span>

@@ -6,8 +6,8 @@
 // Admins only — this runs ALTER TABLE. It previously had no session_start()
 // and no authentication check at all.
 require_once __DIR__ . '/_guard.php';
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 $results = [];
 $migrations = [

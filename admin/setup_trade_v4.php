@@ -6,12 +6,12 @@
 // Admins only — this runs CREATE TABLE / ALTER TABLE. It started a session
 // but never checked whether anyone was logged in.
 require_once __DIR__ . '/_guard.php';
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../includes/config.php';
 
 $results = [];
 
 try {
-    require_once __DIR__ . '/../db.php';
+    require_once __DIR__ . '/../includes/db.php';
 
     // 1. Create trade_users table
     try {

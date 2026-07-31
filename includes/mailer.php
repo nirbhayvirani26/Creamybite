@@ -8,13 +8,13 @@ require_once __DIR__ . '/config.php';
 // PHPMailer – safe load (manual folder OR vendor fallback)
 // ─────────────────────────────────────────────────────────────
 $_phpmailerLoaded = false;
-if (file_exists(__DIR__ . '/PHPMailer/src/PHPMailer.php')) {
-    require_once __DIR__ . '/PHPMailer/src/PHPMailer.php';
-    require_once __DIR__ . '/PHPMailer/src/SMTP.php';
-    require_once __DIR__ . '/PHPMailer/src/Exception.php';
+if (file_exists(__DIR__ . '/../PHPMailer/src/PHPMailer.php')) {
+    require_once __DIR__ . '/../PHPMailer/src/PHPMailer.php';
+    require_once __DIR__ . '/../PHPMailer/src/SMTP.php';
+    require_once __DIR__ . '/../PHPMailer/src/Exception.php';
     $_phpmailerLoaded = true;
-} elseif (file_exists(__DIR__ . '/vendor/composer/autoload_real.php')) {
-    require_once __DIR__ . '/vendor/autoload.php';
+} elseif (file_exists(__DIR__ . '/../vendor/composer/autoload_real.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
     $_phpmailerLoaded = class_exists('PHPMailer\PHPMailer\PHPMailer');
 }
 if (!$_phpmailerLoaded) {

@@ -9,9 +9,9 @@
 session_start();
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/trade_cart.php';
-require_once __DIR__ . '/stock.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/trade_cart.php';
+require_once __DIR__ . '/includes/stock.php';
 
 // A revoked trade account must stop getting wholesale prices immediately.
 tradeSessionRevalidate($pdo);

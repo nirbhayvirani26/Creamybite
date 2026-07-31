@@ -4,12 +4,12 @@
 // ============================================================
 session_start();
 
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/mailer.php';
-require_once __DIR__ . '/trade_cart.php';
-require_once __DIR__ . '/pricing.php';
-require_once __DIR__ . '/stock.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/mailer.php';
+require_once __DIR__ . '/includes/trade_cart.php';
+require_once __DIR__ . '/includes/pricing.php';
+require_once __DIR__ . '/includes/stock.php';
 // Only load vendor if fully installed (autoload.php alone is not enough)
 if (file_exists(__DIR__ . '/vendor/composer/autoload_real.php')) {
     require_once __DIR__ . '/vendor/autoload.php';

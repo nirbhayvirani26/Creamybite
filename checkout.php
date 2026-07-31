@@ -3,10 +3,10 @@
 //  Creamy Bite – Checkout Page
 // ============================================================
 session_start();
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/pricing.php';
-require_once __DIR__ . '/trade_cart.php';
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/pricing.php';
+require_once __DIR__ . '/includes/trade_cart.php';
 tradeSessionRevalidate($pdo);
 
 // Load cart
@@ -82,7 +82,7 @@ $grandTotal     = $totals['total'];
         </a>
 
         <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/trade_nav_button.php'; ?>
+            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
             <a href="order.php" class="btn-secondary cbco-nav-back-btn">
                 <i class="fa-solid fa-arrow-left"></i> Back to Menu
             </a>

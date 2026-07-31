@@ -13,9 +13,9 @@ if (empty($_SESSION['admin_logged_in'])) {
     exit;
 }
 
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../db.php';
-require_once __DIR__ . '/../invoice.php';
+require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/invoice.php';
 
 $invoiceId = (int)($_GET['id'] ?? 0);
 $inv = $invoiceId > 0 ? loadInvoice($pdo, $invoiceId) : null;

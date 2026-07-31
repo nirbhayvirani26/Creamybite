@@ -1,0 +1,10 @@
+# ============================================================
+#  Creamy Bite – includes/ is server-side only
+#
+#  Nothing in this folder is ever a URL. Every file here is reached
+#  through require/include from a page, which is a filesystem read and
+#  is NOT affected by these rules. Blocking HTTP access means a stray
+#  request for /includes/secrets.php or /includes/db.php can never
+#  return source or trigger a side effect.
+# ============================================================
+Require all denied
