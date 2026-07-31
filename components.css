@@ -1,0 +1,1032 @@
+/* ============================================================
+   Creamy Bite – component classes extracted from inline styles
+   Loaded on every public page after style.css.
+
+   Inline style="..." attributes were replaced with these classes so the
+   markup stays readable and the styling is cacheable and overridable.
+
+   NOT extracted, deliberately:
+     - mailer.php and the email body in admin/order_item_handler.php.
+       HTML email clients (Gmail, Outlook) strip <style> blocks, so inline
+       CSS is the only styling that survives. Removing it there would send
+       unstyled order confirmations.
+     - style attributes whose value is computed by PHP at runtime
+       (status colours, progress widths). Those keep only their dynamic
+       declarations; everything static around them moved here.
+   ============================================================ */
+
+/* ── shared small utilities ──────────────────────────────── */
+.cb-center      { text-align: center; }
+.cb-right       { text-align: right; }
+.cb-nowrap      { white-space: nowrap; }
+.cb-mono        { font-family: monospace; }
+.cb-full-btn    { width: 100%; justify-content: center; display: flex; }
+.cb-stack       { display: flex; flex-direction: column; }
+
+/* ── gallery ─────────────────────────────────────────────── */
+.cb-gal-cta     { padding: 10px 22px; font-size: 14px; }
+.cb-gal-drawer-cta { justify-content: center; display: flex; }
+.cb-gal-layer   { position: relative; z-index: 1; }
+.cb-gal-lead    { font-size: 16px; margin-bottom: 16px; }
+.cb-gal-logo    { height: 32px; }
+
+/* ===== extracted from checkout.php ===== */
+/* ── checkout.php ────────────────────────────────────────── */
+
+/* shared colour tokens */
+.cbco-text-primary   { color: var(--text-primary); }
+.cbco-text-secondary { color: var(--text-secondary); }
+.cbco-text-success   { color: #10b981; }
+.cbco-icon-primary   { color: var(--color-primary); }
+.cbco-icon-secondary { color: var(--color-secondary); }
+
+/* shared spacing / visibility */
+.cbco-hidden { display: none; }
+.cbco-mb-20  { margin-bottom: 20px; }
+.cbco-mb-24  { margin-bottom: 24px; }
+
+/* nav + drawer */
+.cbco-nav-back-btn    { padding: 10px 18px; font-size: 13px; }
+.cbco-drawer-back-btn { display: flex; justify-content: center; }
+
+/* page heading */
+.cbco-page-head     { text-align: center; margin-bottom: 40px; }
+.cbco-page-title    { font-size: 36px; margin-top: 12px; }
+.cbco-page-subtitle { color: var(--text-secondary); margin-top: 8px; }
+
+/* B2B trade banner */
+.cbco-trade-banner {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: white;
+    padding: 18px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-md);
+}
+.cbco-trade-banner-eyebrow { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-secondary); }
+.cbco-trade-banner-title   { font-size: 20px; margin: 4px 0 6px; color: white; }
+.cbco-trade-banner-address { font-size: 13px; margin: 0; opacity: 0.9; line-height: 1.4; }
+
+/* form bits */
+.cbco-honeypot {
+    display: none !important;
+    visibility: hidden;
+    position: absolute;
+    left: -9999px;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+/* Written at .form-row strength on purpose: responsive.css collapses
+   .form-row to a single column, and the inline style this replaced used
+   to win over it, so the trade contact row stayed 2-up at every width. */
+.form-row.cbco-trade-contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cbco-label-strong { font-weight: 700; }
+.cbco-field-hint   { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block; }
+
+/* delivery / collection selector */
+.cbco-order-type-label { font-weight: 600; display: block; margin-bottom: 8px; }
+.cbco-order-type-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cbco-order-type-option {
+    cursor: pointer;
+    padding: 14px 10px;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    display: block;
+    transition: all 0.2s ease;
+}
+.cbco-order-type-option-active { border: 2px solid var(--color-primary); background: var(--color-primary-bg); }
+.cbco-order-type-option-idle   { border: 1px solid var(--border-light); background: var(--bg-surface); }
+.cbco-order-type-icon { font-size: 20px; display: block; margin-bottom: 8px; }
+.cbco-order-type-text { font-weight: 700; font-size: 14px; display: block; }
+
+/* postcode + structured address */
+.cbco-postcode-status { margin-top: 8px; font-size: 13px; display: none; }
+.cbco-structured-address {
+    display: none;
+    border: 1px solid var(--border-light);
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.02);
+    margin-bottom: 20px;
+}
+.cbco-addr-name-grid  { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-bottom: 12px; }
+.cbco-addr-city-row   { margin-bottom: 12px; }
+.cbco-addr-label      { font-size: 13px; }
+.cbco-manual-link-row { text-align: right; }
+.cbco-manual-link     { font-size: 12px; color: var(--color-primary); text-decoration: none; font-weight: 600; }
+
+/* warehouse collection info */
+.cbco-collection-info {
+    display: none;
+    border: 1px solid var(--color-primary-light);
+    padding: 18px;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary-bg);
+    margin-bottom: 20px;
+}
+.cbco-collection-title   { font-size: 16px; margin: 0 0 10px; color: var(--color-primary); display: flex; align-items: center; gap: 8px; }
+.cbco-collection-address { font-size: 14px; margin: 0 0 8px; color: var(--text-primary); line-height: 1.5; }
+.cbco-collection-hours   { font-size: 13px; margin: 0 0 12px; color: var(--text-secondary); }
+.cbco-collection-map-row { margin-top: 10px; }
+.cbco-map-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--color-accent);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    text-decoration: none;
+    box-shadow: var(--shadow-xs);
+}
+
+/* payment method selector */
+.cbco-pay-method-label { margin-bottom: 10px; }
+.cbco-pay-method-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cbco-pay-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    background: var(--bg-surface);
+    transition: all 0.2s;
+}
+.cbco-pay-option-active { border-color: var(--color-primary); background: var(--color-primary-bg); }
+.cbco-pay-radio { width: 16px; height: 16px; }
+.cbco-pay-title { display: block; font-size: 14px; margin-top: 2px; }
+.cbco-pay-sub   { font-size: 11px; color: var(--text-muted); }
+
+/* stripe / pay-later panels */
+.cbco-stripe-panel   { margin-top: 16px; }
+.cbco-stripe-element { padding: 16px; background: var(--bg-main); border: 1px solid var(--border-light); border-radius: var(--radius-sm); min-height: 60px; }
+.cbco-stripe-loading { text-align: center; color: var(--text-muted); font-size: 13px; padding: 8px; }
+.cbco-stripe-error   { font-size: 12px; color: #ef4444; margin-top: 8px; display: none; }
+.cbco-stripe-secure-note { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--text-muted); }
+.cbco-later-panel { display: none; margin-top: 12px; }
+.cbco-later-alert { font-size: 13px; margin: 0; }
+.cbco-place-order-btn { width: 100%; justify-content: center; font-size: 16px; padding: 16px; }
+
+/* order summary panel */
+/* Deliberately out-specifies responsive.css's
+   `.checkout-grid > div:last-child .glass-panel { position: static; }`,
+   which the inline style this replaced also beat. */
+.checkout-grid > div:last-child .glass-panel.cbco-summary-panel { position: sticky; top: 88px; }
+.cbco-summary-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; margin-top: -8px; }
+.cbco-osi-variant  { display: block; font-size: 11px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+.cbco-osi-qty      { margin-top: 4px; }
+.cbco-osi-remove   { display: block; margin-top: 4px; }
+
+/* promo code */
+.cbco-promo-section { margin-bottom: 14px; }
+.cbco-promo-applied {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: var(--radius-sm);
+}
+.cbco-promo-applied-text { font-size: 13px; }
+.cbco-promo-code      { letter-spacing: 1px; }
+.cbco-promo-remove    { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px; }
+.cbco-promo-input-row { display: flex; gap: 8px; }
+.cbco-promo-input     { flex: 1; text-transform: uppercase; letter-spacing: 1px; }
+.cbco-promo-apply-btn { padding: 10px 16px; font-size: 13px; white-space: nowrap; }
+.cbco-promo-msg       { font-size: 12px; margin-top: 6px; min-height: 16px; }
+
+/* summary totals */
+.cbco-summary-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; }
+.cbco-summary-row-vat      { font-weight: 600; }
+.cbco-summary-row-discount { color: #10b981; font-weight: 600; }
+/* must stay after .cbco-summary-row: the row starts hidden and JS toggles
+   display inline */
+.cbco-summary-row-delivery { display: none; color: #f59e0b; font-weight: 600; }
+.cbco-summary-divider-tight { margin: 10px 0; }
+.cbco-vat-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; text-align: right; }
+.cbco-delivery-banner { margin-top: 20px; padding: 14px; background: rgba(0, 201, 167, 0.06); border: 1px solid rgba(0, 201, 167, 0.15); border-radius: var(--radius-sm); }
+.cbco-delivery-banner-text { font-size: 13px; color: var(--color-secondary); display: flex; align-items: center; gap: 8px; }
+.cbco-add-more-row  { margin-top: 14px; }
+.cbco-add-more-link { font-size: 13px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px; }
+
+/* footer */
+.cbco-footer-bar  { padding-top: 0; }
+.cbco-footer-logo { height: 34px; }
+
+/* ===== extracted from trade_profile.php ===== */
+/* ============================================================
+   trade_profile.php — extracted inline styles (prefix: cbtp-)
+   Every rule is scoped under .trade-page (the <body> class of
+   trade_profile.php) so the extracted declarations keep the
+   winning position the inline styles had: 2 classes (0,2,0)
+   beats .btn-primary / .btn-secondary / .form-control /
+   .container / .glass-panel (0,1,0) and .data-table td /
+   .data-table th / textarea.form-control (0,1,1) from
+   style.css no matter which stylesheet this block lands in.
+   Existing !important rules in responsive.css still win, as
+   they already did over the inline styles.
+   Verified: no .trade-page rule exists in any other stylesheet,
+   and no 2-class selector in responsive.css/components.css/
+   modal.css/animations.css touches these elements.
+   ============================================================ */
+
+/* ── shared tone + ink tokens (deduplicated colours) ───────── */
+.trade-page .cbtp-tone-success { background:#ecfdf5; border:1px solid #a7f3d0; }
+.trade-page .cbtp-tone-danger  { background:#fef2f2; border:1px solid #fecaca; }
+.trade-page .cbtp-tone-plain   { background:var(--bg-main); border:1px solid var(--border-light); }
+.trade-page .cbtp-ink-success  { color:#047857; }
+.trade-page .cbtp-ink-warn     { color:#b45309; }
+.trade-page .cbtp-ink-danger   { color:#b91c1c; }
+.trade-page .cbtp-ink-primary  { color:var(--text-primary); }
+.trade-page .cbtp-muted        { color:var(--text-muted); }
+.trade-page .cbtp-accent       { color:var(--color-primary); }
+.trade-page .cbtp-text-right   { text-align:right; }
+.trade-page .cbtp-upper        { text-transform:uppercase; }
+.trade-page .cbtp-hint         { font-size:11px; color:var(--text-muted); }
+
+/* ── navbar buttons ────────────────────────────────────────── */
+.trade-page .cbtp-nav-btn     { padding:8px 16px; font-size:13px; }
+.trade-page .cbtp-nav-btn-out { padding:8px 14px; font-size:13px; }
+
+/* ── page shell ────────────────────────────────────────────── */
+.trade-page .cbtp-main  { padding:40px 0 80px; background:var(--bg-main); min-height:85vh; }
+.trade-page .cbtp-shell { max-width:1050px; }
+
+/* ── account header card ───────────────────────────────────── */
+.trade-page .cbtp-account-card {
+    background:linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color:white;
+    padding:28px;
+    border-radius:var(--radius-lg);
+    margin-bottom:24px;
+    box-shadow:var(--shadow-md);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:20px;
+}
+.trade-page .cbtp-verified-badge {
+    font-size:11px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    color:var(--color-secondary);
+    background:rgba(255,255,255,0.1);
+    padding:4px 12px;
+    border-radius:14px;
+}
+.trade-page .cbtp-account-name { font-size:26px; margin:10px 0 6px; color:white; }
+.trade-page .cbtp-account-meta { font-size:13px; opacity:0.92; }
+.trade-page .cbtp-customer-no {
+    font-family:monospace;
+    font-size:15px;
+    letter-spacing:1px;
+    background:rgba(255,255,255,0.15);
+    padding:3px 10px;
+    border-radius:8px;
+}
+.trade-page .cbtp-stat-label { font-size:12px; opacity:0.85; }
+.trade-page .cbtp-stat-value { font-size:28px; font-weight:800; font-family:var(--font-heading); }
+.trade-page .cbtp-stat-note  { font-size:12px; opacity:0.9; margin-top:4px; }
+
+/* ── tab bar ───────────────────────────────────────────────── */
+.trade-page .cbtp-tabbar  { display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
+.trade-page .cbtp-tab-btn { padding:10px 18px; font-size:13px; font-weight:700; }
+
+/* ── flash messages ────────────────────────────────────────── */
+.trade-page .cbtp-alert {
+    padding:12px 18px;
+    border-radius:var(--radius-sm);
+    margin-bottom:18px;
+    font-size:14px;
+    font-weight:600;
+}
+
+/* ── content panel + section headings ──────────────────────── */
+.trade-page .cbtp-panel { padding:28px; border-radius:var(--radius-lg); }
+.trade-page .cbtp-section-title {
+    margin:0 0 4px;
+    font-size:20px;
+    font-family:var(--font-heading);
+    color:var(--text-primary);
+}
+/* modifiers use the base class in the selector so they win on
+   specificity, not on source order */
+.trade-page .cbtp-section-title.cbtp-section-title-spaced { margin-bottom:20px; }
+.trade-page .cbtp-section-sub { margin:0 0 20px; font-size:13px; color:var(--text-muted); }
+.trade-page .cbtp-section-sub.cbtp-section-sub-wide { margin-bottom:24px; }
+
+/* ── profile form ──────────────────────────────────────────── */
+.trade-page .cbtp-form-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+    gap:18px;
+    margin-bottom:18px;
+}
+.trade-page .cbtp-input-locked  { background:var(--bg-main); cursor:not-allowed; opacity:0.75; }
+.trade-page .cbtp-input-mono    { font-family:monospace; letter-spacing:1px; }
+.trade-page .cbtp-field-block   { margin-bottom:22px; }
+.trade-page .cbtp-label-optional { color:var(--text-muted); font-weight:600; }
+.trade-page .cbtp-vat-input     { max-width:320px; }
+.trade-page .cbtp-help-block    { display:block; margin-top:6px; font-size:12px; color:var(--text-muted); }
+.trade-page .cbtp-btn-save      { padding:12px 26px; font-size:14px; }
+
+/* ── empty states ──────────────────────────────────────────── */
+.trade-page .cbtp-empty {
+    text-align:center;
+    padding:50px 20px;
+    color:var(--text-muted);
+    background:var(--bg-main);
+    border-radius:var(--radius-md);
+    border:1px dashed var(--border-color);
+}
+.trade-page .cbtp-empty.cbtp-empty-tall { padding:60px 20px; }
+.trade-page .cbtp-empty-icon  { font-size:54px; margin-bottom:16px; opacity:0.4; }
+.trade-page .cbtp-empty-title { font-size:18px; margin:0 0 6px; color:var(--text-primary); }
+.trade-page .cbtp-empty-cta   { padding:12px 24px; font-size:14px; margin-top:14px; }
+
+/* ── order / payment tables ────────────────────────────────── */
+.trade-page .cbtp-table-full   { width:100%; }
+.trade-page .cbtp-row          { border-bottom:1px solid var(--border-light); }
+.trade-page .cbtp-cell-code    { font-weight:800; font-family:monospace; color:var(--color-primary); }
+.trade-page .cbtp-cell-date    { font-size:13px; color:var(--text-secondary); white-space:nowrap; }
+.trade-page .cbtp-cell-sm      { font-size:13px; }
+.trade-page .cbtp-cell-amount  { font-weight:800; color:var(--color-primary); font-size:15px; }
+.trade-page .cbtp-variant-name { font-weight:600; color:var(--text-secondary); }
+.trade-page .cbtp-more-count   { font-size:11px; color:var(--text-muted); font-weight:600; }
+.trade-page .cbtp-btn-xs       { padding:6px 12px; font-size:12px; }
+
+/* Order status pill — background / colour / border stay inline
+   because statusPill() computes them per row. */
+.trade-page .cbtp-status-pill {
+    font-size:12px;
+    font-weight:700;
+    padding:4px 10px;
+    border-radius:20px;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    white-space:nowrap;
+}
+
+/* ── payment summary cards ─────────────────────────────────── */
+.trade-page .cbtp-summary-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+    gap:14px;
+    margin-bottom:24px;
+}
+.trade-page .cbtp-card       { border-radius:var(--radius-md); padding:16px; }
+.trade-page .cbtp-card-label { font-size:12px; font-weight:700; }
+.trade-page .cbtp-card-value { font-size:24px; font-weight:800; font-family:var(--font-heading); }
+.trade-page .cbtp-pay-state  { font-weight:700; font-size:12px; }
+
+/* ── invoices grid ─────────────────────────────────────────── */
+.trade-page .cbtp-invoice-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));
+    gap:14px;
+}
+/* overrides .cbtp-card padding on specificity, not source order */
+.trade-page .cbtp-card.cbtp-invoice-card { padding:18px; }
+.trade-page .cbtp-invoice-head {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:8px;
+}
+.trade-page .cbtp-invoice-eyebrow {
+    font-size:11px;
+    color:var(--text-muted);
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+}
+.trade-page .cbtp-invoice-code {
+    font-family:monospace;
+    font-weight:800;
+    color:var(--color-primary);
+    font-size:15px;
+}
+.trade-page .cbtp-invoice-date  { font-size:12px; color:var(--text-muted); margin:8px 0 4px; }
+.trade-page .cbtp-invoice-total {
+    font-size:20px;
+    font-weight:800;
+    color:var(--text-primary);
+    font-family:var(--font-heading);
+    margin-bottom:14px;
+}
+/* PAID / UNPAID badge — colours stay inline, they depend on $paid. */
+.trade-page .cbtp-pay-badge {
+    font-size:11px;
+    font-weight:700;
+    padding:3px 9px;
+    border-radius:12px;
+    white-space:nowrap;
+}
+.trade-page .cbtp-btn-block { padding:8px 14px; font-size:12px; width:100%; justify-content:center; }
+
+/* ===== extracted from order.php ===== */
+/* ═══════════════════════════════════════════════════════════
+   order.php — extracted inline styles (prefix: cbor-)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Mobile drawer action buttons (full-width, centred) */
+.cbor-drawer-action-btn { width: 100%; display: flex; justify-content: center; }
+
+/* Menu section top spacing */
+.products-section.cbor-menu-section { padding-top: 48px; }
+
+/* Cart notice flash message */
+.cbor-notice-warn {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #b45309;
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Trade wholesale active banner */
+.cbor-trade-banner {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: white;
+    padding: 14px 20px;
+    border-radius: var(--radius-md);
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: var(--shadow-md);
+}
+.cbor-trade-banner-icon { font-size: 18px; margin-right: 8px; color: var(--color-secondary); }
+.cbor-trade-banner-note { font-size: 12px; opacity: 0.85; margin-left: 6px; }
+.cbor-trade-banner-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/* :hover repeated so the banner buttons keep the flat look the inline style gave them */
+.btn-secondary.cbor-trade-banner-btn,
+.btn-secondary.cbor-trade-banner-btn:hover {
+    padding: 6px 14px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+/* "Are you a trade customer?" strip */
+.cbor-trade-cta {
+    background: var(--color-primary-bg);
+    border: 1px solid rgba(199,136,41,0.25);
+    padding: 10px 18px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+}
+.cbor-trade-cta-icon  { color: var(--color-primary); margin-right: 6px; }
+.cbor-trade-cta-links { display: flex; gap: 12px; font-size: 12px; }
+.cbor-trade-cta-link  { color: var(--color-primary); font-weight: 700; text-decoration: none; }
+.cbor-trade-cta-sep   { opacity: 0.4; }
+
+/* Initially-hidden elements (JS re-shows them with an inline display) */
+.cbor-hidden { display: none; }
+
+/* Product card pricing */
+.product-price-from.cbor-price-trade-label { color: var(--color-secondary); font-weight: 700; }
+.cbor-price-strike { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+.cbor-stock-low    { font-size: 11px; color: #f59e0b; font-weight: 700; margin-top: 2px; }
+
+/* Out-of-stock add-to-cart button (:hover repeated to keep the disabled look) */
+.btn-add-cart.cbor-btn-oos,
+.btn-add-cart.cbor-btn-oos:hover {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-color);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    font-size: 10px;
+    width: auto;
+    padding: 0 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+/* Cart sidebar heading icon */
+.cbor-cart-title-icon { color: var(--color-primary); }
+
+/* Footer bottom-bar logo */
+.footer-logo-img.cbor-footer-logo-sm { height: 32px; }
+
+/* Delivery radius pop-up */
+.cbor-delivery-popup {
+    display: none;
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    max-width: 390px;
+    background: linear-gradient(135deg, #5C1D24, #3d1318);
+    color: white;
+    padding: 20px 22px;
+    border-radius: 18px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+    z-index: 99999;
+    border: 1px solid rgba(199,136,41,0.4);
+}
+.cbor-delivery-popup-row   { display: flex; align-items: flex-start; gap: 14px; }
+.cbor-delivery-popup-emoji { font-size: 32px; line-height: 1; flex-shrink: 0; }
+.cbor-delivery-popup-body  { flex: 1; }
+.cbor-delivery-popup-title {
+    font-size: 15px;
+    display: block;
+    margin-bottom: 4px;
+    color: #C78829;
+    font-weight: 800;
+}
+.cbor-delivery-popup-text {
+    font-size: 13px;
+    margin: 0 0 10px;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.92);
+}
+.cbor-delivery-popup-highlight { color: #a7f3d0; font-weight: 700; }
+.cbor-delivery-popup-foot      { font-size: 12px; opacity: 0.85; }
+.cbor-delivery-popup-foot-icon { color: #C78829; }
+.cbor-delivery-popup-close {
+    background: rgba(255,255,255,0.18);
+    border: none;
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+/* ===== extracted from trade_register.php ===== */
+/* ── Trade Register page (trade_register.php) ──────────────────
+   Selectors are scoped to body.trade-page purely for specificity:
+   these declarations previously lived in inline style attributes,
+   which outranked the single-class rules in style.css. The extra
+   class keeps them winning regardless of stylesheet order.
+   No !important on purpose — see notes. */
+
+.trade-page .cbtr-nav-login-btn { padding: 8px 16px; font-size: 13px; }
+
+.trade-page .cbtr-main      { padding: 60px 0; background: var(--bg-main); min-height: 80vh; }
+.trade-page .cbtr-container { max-width: 650px; }
+.trade-page .cbtr-panel     { padding: 40px 32px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
+
+.trade-page .cbtr-panel-head { text-align: center; margin-bottom: 28px; }
+.trade-page .cbtr-title      { font-size: 28px; margin: 8px 0 10px; }
+.trade-page .cbtr-subtitle   { color: var(--text-secondary); font-size: 14px; margin: 0; }
+
+.trade-page .cbtr-alert-success {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+    padding: 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+.trade-page .cbtr-alert-icon { font-size: 18px; vertical-align: -2px; margin-right: 6px; }
+.trade-page .cbtr-alert-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.trade-page .cbtr-success-actions { text-align: center; margin-top: 20px; }
+.trade-page .cbtr-login-btn       { padding: 12px 28px; font-size: 14px; }
+
+.trade-page .cbtr-form            { display: flex; flex-direction: column; gap: 16px; }
+.trade-page .cbtr-form-row        { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.trade-page .cbtr-field-label     { font-weight: 700; font-size: 13px; }
+.trade-page .cbtr-input-uppercase { text-transform: uppercase; }
+.trade-page .cbtr-submit-btn      { margin-top: 10px; width: 100%; justify-content: center; padding: 14px; font-size: 15px; }
+
+.trade-page .cbtr-form-footer  { text-align: center; font-size: 13px; margin-top: 12px; color: var(--text-secondary); }
+.trade-page .cbtr-login-link   { color: var(--color-primary); font-weight: 700; }
+.trade-page .cbtr-footer-inner { text-align: center; font-size: 13px; color: var(--text-muted); }
+
+/* ===== extracted from about.php ===== */
+/* ══════════════════════════════════════════════════════════════
+   about.php — extracted inline styles (prefix: cbab-)
+   Selectors are scoped with body.about-page so they reliably beat
+   the existing single-class and two-class rules in style.css /
+   animations.css regardless of stylesheet order, while still
+   yielding to the !important responsive overrides exactly as the
+   original inline styles did.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Navbar "Order Now" button */
+body.about-page .cbab-nav-order-btn {
+    padding: 10px 22px;
+    font-size: 14px;
+}
+
+/* Mobile drawer "Order Now" button */
+body.about-page .cbab-drawer-order-btn {
+    display: flex;
+    justify-content: center;
+}
+
+/* About hero — lift the container above the ::before overlay */
+body.about-page .cbab-hero-inner {
+    position: relative;
+    z-index: 1;
+}
+
+/* Our Story highlight chips */
+body.about-page .cbab-story-highlights {
+    margin-top: 24px;
+}
+
+/* "Get In Touch" section header */
+body.about-page .cbab-contact-header {
+    margin-bottom: 44px;
+}
+
+/* Contact form alerts */
+body.about-page .cbab-alert-sent {
+    margin-bottom: 28px;
+    font-size: 15px;
+}
+body.about-page .cbab-alert-error {
+    margin-bottom: 20px;
+}
+
+/* Contact / Find Us panels */
+body.about-page .cbab-contact-panel {
+    padding: 32px;
+}
+body.about-page .cbab-find-panel {
+    padding: 28px;
+    margin-bottom: 20px;
+}
+
+/* Panel headings (shared base + two sizes) */
+body.about-page .cbab-panel-title,
+body.about-page .cbab-panel-title-sm {
+    display: flex;
+    align-items: center;
+    color: var(--color-primary);
+}
+body.about-page .cbab-panel-title {
+    font-size: 19px;
+    margin-bottom: 24px;
+    gap: 10px;
+}
+body.about-page .cbab-panel-title-sm {
+    font-size: 17px;
+    margin-bottom: 16px;
+    gap: 8px;
+}
+
+/* Spam-trap field: off-screen but still focusable/fillable by bots */
+body.about-page .cbab-honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+/* Full-width "Send Message" submit button */
+body.about-page .cbab-submit-btn {
+    width: 100%;
+    justify-content: center;
+    font-size: 15px;
+    padding: 15px;
+}
+
+/* Shop address block */
+body.about-page .cbab-address {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 18px;
+}
+
+/* Opening-hours notice inside the Find Us panel */
+body.about-page .cbab-hours-alert {
+    font-size: 13px;
+    margin-bottom: 0;
+}
+
+/* Social section */
+body.about-page .cbab-social-inner {
+    text-align: center;
+}
+body.about-page .cbab-social-title {
+    margin-bottom: 10px;
+}
+body.about-page .cbab-social-icon {
+    font-size: 20px;
+}
+
+/* Small logo in the footer bottom bar */
+body.about-page .cbab-footer-bottom-logo {
+    height: 32px;
+}
+
+/* ===== extracted from order_confirmation.php ===== */
+/* ============================================================
+   order_confirmation.php – extracted inline styles (prefix: cboc-)
+   ============================================================ */
+
+/* ── Collection information panel ─────────────────────────── */
+/* Compound with .glass-panel so it also beats .glass-panel:hover
+   (border-color / box-shadow), exactly as the inline style did. */
+.glass-panel.cboc-collect-panel {
+    max-width: 540px;
+    margin: 0 auto 32px;
+    padding: 24px;
+    border: 2px solid var(--color-accent);
+    background: var(--color-accent-bg);
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+.cboc-collect-emoji {
+    font-size: 36px;
+    margin-bottom: 12px;
+}
+.cboc-collect-title {
+    font-size: 20px;
+    font-weight: 800;
+    font-family: var(--font-heading);
+    color: var(--text-primary);
+    margin: 0 0 10px;
+}
+.cboc-collect-address {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 18px;
+    font-family: var(--font-body);
+}
+
+/* Shared: bold primary-coloured text (collection hours line, Total label). */
+.cboc-text-strong,
+.conf-label.cboc-text-strong {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* "Get Directions" button. Qualified with a.btn-primary so the golden
+   background, padding, radius, shadow and transition keep winning over
+   .btn-primary and .btn-primary:hover in style.css / animations.css —
+   the same result the inline style produced. */
+a.btn-primary.cboc-directions-btn {
+    background: var(--grad-golden);
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    padding: 12px 28px;
+    border-radius: 30px;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: var(--shadow-xs);
+    transition: all 0.2s ease;
+}
+
+/* ── Order detail card ────────────────────────────────────── */
+.summary-divider.cboc-divider-tight {
+    margin: 20px 0;
+}
+.cboc-items-heading {
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+.cboc-item-variant {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.cboc-item-price {
+    color: var(--color-primary);
+    margin-left: 8px;
+    font-weight: 700;
+}
+
+/* Subtotal / promo / delivery rows */
+.cboc-summary-row {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+.cboc-summary-row-promo {
+    color: #10b981;
+}
+.cboc-summary-row-delivery {
+    color: #f59e0b;
+}
+
+/* Total row */
+.cboc-total-row {
+    margin-top: 10px;
+}
+.conf-value.cboc-total-value {
+    font-size: 22px;
+    font-weight: 800;
+    font-family: var(--font-heading);
+    color: var(--color-primary);
+}
+
+/* ── CTA buttons row ──────────────────────────────────────── */
+.cboc-cta-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.footer-logo-img.cboc-footer-logo-sm {
+    height: 34px;
+}
+
+/* ===== extracted from index.php ===== */
+/* ── Home page (index.php) – de-inlined styles ─────────────── */
+
+/* Nav / drawer / CTA button size variants */
+.btn-primary.cbhm-btn-nav      { padding: 10px 20px; font-size: 14px; }
+.btn-primary.cbhm-btn-drawer   { display: flex; justify-content: center; }
+.btn-primary.cbhm-btn-wide     { font-size: 15px; padding: 14px 32px; }
+
+/* Stats strip row */
+.cbhm-stats-row { display: flex; }
+
+/* Flavours section bottom call-to-action */
+.cbhm-flavours-cta { text-align: center; margin-top: 40px; }
+
+/* Story highlight sub-labels */
+.cbhm-highlight-sub { font-size: 12px; color: var(--text-muted); }
+
+/* Landing CTA banner */
+.cbhm-cta-inner { text-align: center; }
+.section-label.cbhm-label-on-dark { background: rgba(255,255,255,0.2); color: white; }
+
+/* B2B trade callout band */
+.cbhm-trade-band {
+    background: var(--color-primary-bg);
+    border-top: 1px solid rgba(199,136,41,0.15);
+    border-bottom: 1px solid rgba(199,136,41,0.15);
+    padding: 32px 0;
+}
+.cbhm-trade-band-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.cbhm-trade-pill {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-primary);
+    background: rgba(92,29,36,0.08);
+    padding: 4px 12px;
+    border-radius: 14px;
+}
+.cbhm-trade-heading { font-size: 20px; margin: 8px 0 4px; color: var(--text-primary); }
+.cbhm-trade-copy    { font-size: 14px; color: var(--text-secondary); margin: 0; max-width: 520px; }
+.cbhm-trade-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-primary.cbhm-btn-trade       { padding: 12px 24px; font-size: 14px; }
+.btn-secondary.cbhm-btn-trade-alt { padding: 12px 20px; font-size: 14px; }
+
+/* Footer bottom-bar logo */
+.footer-logo-img.cbhm-footer-logo-sm { height: 32px; }
+
+/* ===== extracted from trade_login.php ===== */
+/* ============================================================
+   trade_login.php — extracted inline styles (prefix: cbtl-)
+   ============================================================ */
+
+/* Navbar "Apply for Trade" button — compact variant of .btn-secondary */
+.btn-secondary.cbtl-nav-apply-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+/* Page shell */
+.cbtl-login-main {
+    padding: 60px 0;
+    background: var(--bg-main);
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+}
+
+.container.cbtl-login-container {
+    max-width: 440px;
+}
+
+/* Login card. The :hover selector is repeated so the raised shadow survives
+   .glass-panel:hover, exactly as the inline style used to. */
+.glass-panel.cbtl-login-card,
+.glass-panel.cbtl-login-card:hover {
+    padding: 40px 32px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Card heading block */
+.cbtl-login-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.cbtl-login-title {
+    font-size: 26px;
+    margin: 8px 0 10px;
+}
+
+.cbtl-login-subtitle {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 0;
+}
+
+/* Login error banner — softer/tighter than the global .alert-danger */
+.alert-danger.cbtl-login-alert {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* Form */
+.cbtl-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-label.cbtl-login-label {
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.btn-primary.cbtl-login-submit {
+    margin-top: 10px;
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+    font-size: 15px;
+}
+
+/* "Apply Here" prompt under the form */
+.cbtl-login-signup-note {
+    text-align: center;
+    font-size: 13px;
+    margin-top: 14px;
+    color: var(--text-secondary);
+}
+
+.cbtl-login-signup-link {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+/* Footer copyright line */
+.cbtl-footer-note {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+}

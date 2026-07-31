@@ -1,0 +1,129 @@
+/* ============================================================
+   Creamy Bite – in-page dialogs
+   Replaces the browser's native alert() / confirm() / prompt(), which render
+   as an OS chrome box, cannot be styled, and block the whole tab.
+
+   Loaded on both the public site and the admin panel.
+   ============================================================ */
+
+.cbm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(28, 12, 16, .55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    opacity: 0;
+    transition: opacity .18s ease;
+}
+.cbm-backdrop.is-open { opacity: 1; }
+
+.cbm {
+    width: 100%;
+    max-width: 430px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .28);
+    overflow: hidden;
+    transform: translateY(10px) scale(.97);
+    opacity: 0;
+    transition: transform .22s cubic-bezier(.16, 1, .3, 1), opacity .22s ease;
+}
+.cbm-backdrop.is-open .cbm { transform: none; opacity: 1; }
+
+.cbm-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    padding: 22px 24px 0;
+}
+
+.cbm-icon {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+}
+.cbm-icon.info    { background: #eff6ff; color: #1d4ed8; }
+.cbm-icon.warn    { background: #fffbeb; color: #b45309; }
+.cbm-icon.danger  { background: #fef2f2; color: #b91c1c; }
+.cbm-icon.success { background: #ecfdf5; color: #047857; }
+
+.cbm-title {
+    margin: 0 0 4px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #1f2937;
+    line-height: 1.3;
+}
+.cbm-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #4b5563;
+    /* Messages can legitimately contain newlines (e.g. a list of what will
+       change); keep them rather than collapsing to one paragraph. */
+    white-space: pre-line;
+    word-break: break-word;
+}
+
+.cbm-field { padding: 14px 24px 0; }
+.cbm-input {
+    width: 100%;
+    padding: 11px 13px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1f2937;
+    border: 1px solid #d9dde3;
+    border-radius: 9px;
+    background: #fff;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+.cbm-input:focus {
+    outline: none;
+    border-color: #c78829;
+    box-shadow: 0 0 0 4px rgba(199, 136, 41, .16);
+}
+
+.cbm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 20px 24px 22px;
+    flex-wrap: wrap;
+}
+
+.cbm-btn {
+    border: none;
+    border-radius: 9px;
+    padding: 10px 20px;
+    font-size: 13.5px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .18s ease, transform .15s ease, box-shadow .18s ease;
+}
+.cbm-btn:active { transform: translateY(1px); }
+.cbm-btn:focus-visible { outline: 3px solid rgba(199, 136, 41, .4); outline-offset: 2px; }
+
+.cbm-btn.ghost   { background: #f3f4f6; color: #374151; }
+.cbm-btn.ghost:hover { background: #e5e7eb; }
+.cbm-btn.primary { background: #5C1D24; color: #fff; }
+.cbm-btn.primary:hover { background: #4a161c; }
+.cbm-btn.danger  { background: #dc2626; color: #fff; }
+.cbm-btn.danger:hover { background: #b91c1c; }
+
+@media (max-width: 460px) {
+    .cbm-actions { flex-direction: column-reverse; }
+    .cbm-btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cbm-backdrop, .cbm { transition: none !important; }
+}

@@ -1,0 +1,248 @@
+/* ============================================================
+   Creamy Bite – Motion & polish
+   Loaded after style.css on every public page.
+
+   Principles used here:
+   - Motion is short (180–520ms) and eased; nothing bounces for its own sake.
+   - Nothing animates that would move text the reader is already reading.
+   - Content is VISIBLE BY DEFAULT. Reveal-on-scroll is opt-in via .reveal and
+     is switched on by animations.js only once JS confirms IntersectionObserver
+     exists — so if the script fails the page is never left blank.
+   - Every effect is disabled under prefers-reduced-motion.
+   ============================================================ */
+
+/* ── Page entrance ───────────────────────────────────────── */
+@keyframes cbFadeUp   { from { opacity:0; transform: translate3d(0,18px,0); } to { opacity:1; transform:none; } }
+@keyframes cbFadeIn   { from { opacity:0; } to { opacity:1; } }
+@keyframes cbScaleIn  { from { opacity:0; transform: scale(.96); } to { opacity:1; transform:none; } }
+@keyframes cbPop      { 0%{transform:scale(1)} 45%{transform:scale(1.22)} 100%{transform:scale(1)} }
+@keyframes cbSpin     { to { transform: rotate(360deg); } }
+@keyframes cbShimmer  { 0%{background-position:-460px 0} 100%{background-position:460px 0} }
+
+body { animation: cbFadeIn .32s ease-out both; }
+
+/* ── Sticky header: gains depth once you scroll ──────────── */
+/* .navbar is already position:sticky in style.css; this adds the scrolled state. */
+.navbar {
+    transition: padding .28s cubic-bezier(.4,0,.2,1),
+                background .28s ease,
+                box-shadow .28s ease,
+                border-color .28s ease;
+    will-change: padding, box-shadow;
+}
+.navbar.cb-scrolled {
+    padding: 8px 0;
+    background: rgba(255, 248, 242, 0.97);
+    box-shadow: 0 6px 26px rgba(92, 29, 36, 0.10);
+    border-bottom-color: rgba(199, 136, 41, 0.22);
+}
+.navbar .logo-img { transition: height .28s cubic-bezier(.4,0,.2,1); }
+.navbar.cb-scrolled .logo-img { height: 30px; }
+
+/* Thin progress bar showing how far down the page you are. */
+.cb-progress {
+    position: fixed; top: 0; left: 0; height: 3px; width: 0;
+    background: linear-gradient(90deg, var(--color-primary, #c78829), var(--color-secondary, #00c9a7));
+    z-index: 999; pointer-events: none;
+    transition: width .1s linear;
+}
+
+/* ── Reveal on scroll ────────────────────────────────────── */
+/* Only applies once JS adds .cb-motion to <html>, so no-JS users see content. */
+.cb-motion .reveal          { opacity: 0; transform: translate3d(0, 22px, 0);
+                              transition: opacity .52s cubic-bezier(.16,1,.3,1),
+                                          transform .52s cubic-bezier(.16,1,.3,1); }
+.cb-motion .reveal.is-visible { opacity: 1; transform: none; }
+
+.cb-motion .reveal-left     { opacity:0; transform: translate3d(-26px,0,0);
+                              transition: opacity .52s cubic-bezier(.16,1,.3,1),
+                                          transform .52s cubic-bezier(.16,1,.3,1); }
+.cb-motion .reveal-left.is-visible { opacity:1; transform:none; }
+
+.cb-motion .reveal-right    { opacity:0; transform: translate3d(26px,0,0);
+                              transition: opacity .52s cubic-bezier(.16,1,.3,1),
+                                          transform .52s cubic-bezier(.16,1,.3,1); }
+.cb-motion .reveal-right.is-visible { opacity:1; transform:none; }
+
+.cb-motion .reveal-zoom     { opacity:0; transform: scale(.94);
+                              transition: opacity .48s ease, transform .48s cubic-bezier(.16,1,.3,1); }
+.cb-motion .reveal-zoom.is-visible { opacity:1; transform:none; }
+
+/* Stagger children of a revealed group (product grids, feature rows). */
+.cb-motion .reveal.is-visible > *,
+.cb-motion .stagger.is-visible > * { animation: cbFadeUp .5s cubic-bezier(.16,1,.3,1) both; }
+.cb-motion .stagger.is-visible > *:nth-child(1) { animation-delay:.02s }
+.cb-motion .stagger.is-visible > *:nth-child(2) { animation-delay:.07s }
+.cb-motion .stagger.is-visible > *:nth-child(3) { animation-delay:.12s }
+.cb-motion .stagger.is-visible > *:nth-child(4) { animation-delay:.17s }
+.cb-motion .stagger.is-visible > *:nth-child(5) { animation-delay:.22s }
+.cb-motion .stagger.is-visible > *:nth-child(6) { animation-delay:.27s }
+.cb-motion .stagger.is-visible > *:nth-child(7) { animation-delay:.32s }
+.cb-motion .stagger.is-visible > *:nth-child(8) { animation-delay:.37s }
+.cb-motion .stagger.is-visible > *:nth-child(n+9){ animation-delay:.4s  }
+
+/* ── Cards & products ────────────────────────────────────── */
+.product-card,
+.glass-panel,
+.gallery-item {
+    transition: transform .3s cubic-bezier(.4,0,.2,1),
+                box-shadow .3s cubic-bezier(.4,0,.2,1),
+                border-color .3s ease;
+}
+.product-card:hover,
+.gallery-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 40px rgba(92, 29, 36, .14);
+}
+.product-card:hover .product-img,
+.product-card:hover img { transform: scale(1.06); }
+.product-card img,
+.product-img { transition: transform .5s cubic-bezier(.4,0,.2,1); }
+
+/* Keep the image zoom inside the card's rounded corners. */
+.product-card .product-image,
+.product-card .product-img-wrap,
+.gallery-item { overflow: hidden; }
+
+/* Out-of-stock cards should not invite interaction. */
+.product-card.out-of-stock:hover { transform: none; box-shadow: none; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn-primary, .btn-secondary, .btn-view-cart, .btn-sm, .btn-danger {
+    transition: transform .18s cubic-bezier(.4,0,.2,1),
+                box-shadow .22s ease, background .22s ease,
+                border-color .22s ease, color .22s ease;
+}
+.btn-primary:hover, .btn-secondary:hover, .btn-view-cart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(92, 29, 36, .18);
+}
+.btn-primary:active, .btn-secondary:active, .btn-view-cart:active,
+.btn-sm:active, .btn-danger:active { transform: translateY(0) scale(.985); }
+
+/* Sheen sweep across primary buttons on hover. */
+.btn-primary { position: relative; overflow: hidden; }
+.btn-primary::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,.28) 50%, transparent 62%);
+    transform: translateX(-120%);
+    transition: transform .6s ease;
+}
+.btn-primary:hover::after { transform: translateX(120%); }
+
+/* Busy state for buttons that trigger a request. */
+.btn-loading { pointer-events: none; opacity: .75; }
+.btn-loading i { animation: cbSpin .8s linear infinite; }
+
+/* ── Cart badge ──────────────────────────────────────────── */
+.cart-badge { transition: transform .2s cubic-bezier(.4,0,.2,1), background .2s ease; }
+.cart-badge.cb-bump { animation: cbPop .42s cubic-bezier(.4,0,.2,1); }
+
+/* Flies from the product to the cart when something is added. */
+.cb-fly {
+    position: fixed; z-index: 900; pointer-events: none;
+    font-size: 26px; line-height: 1;
+    transition: transform .72s cubic-bezier(.4,0,.35,1), opacity .72s ease;
+}
+
+/* ── Forms ───────────────────────────────────────────────── */
+.form-control {
+    transition: border-color .22s ease, box-shadow .22s ease, background .22s ease;
+}
+.form-control:focus {
+    box-shadow: 0 0 0 4px rgba(199, 136, 41, .14);
+    outline: none;
+}
+
+/* ── Links ───────────────────────────────────────────────── */
+.nav-links a {
+    position: relative;
+    transition: color .22s ease;
+}
+.nav-links a::after {
+    content: ""; position: absolute; left: 0; bottom: -4px; height: 2px; width: 100%;
+    background: var(--color-primary, #c78829);
+    transform: scaleX(0); transform-origin: right;
+    transition: transform .28s cubic-bezier(.16,1,.3,1);
+}
+.nav-links a:hover::after,
+.nav-links a.active::after { transform: scaleX(1); transform-origin: left; }
+
+/* ── Back to top ─────────────────────────────────────────── */
+.cb-top {
+    position: fixed; right: 22px; bottom: 22px; z-index: 850;
+    width: 46px; height: 46px; border-radius: 50%; border: none; cursor: pointer;
+    background: var(--color-primary, #c78829); color: #fff; font-size: 15px;
+    display: grid; place-items: center;
+    box-shadow: 0 8px 22px rgba(92, 29, 36, .26);
+    opacity: 0; visibility: hidden; transform: translateY(14px) scale(.9);
+    transition: opacity .3s ease, transform .3s cubic-bezier(.16,1,.3,1), visibility .3s;
+}
+.cb-top.is-shown { opacity: 1; visibility: visible; transform: none; }
+.cb-top:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(92, 29, 36, .34); }
+.mobile-drawer.open ~ .cb-top { opacity: 0; visibility: hidden; }
+
+@media (max-width: 480px) {
+    .cb-top {
+        width: 40px; height: 40px; right: 12px; bottom: 12px; font-size: 13px;
+        background: rgba(199, 136, 41, .78);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(3px);
+    }
+}
+
+/* ── Toast ───────────────────────────────────────────────── */
+.cb-toast-wrap {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
+    z-index: 950; display: flex; flex-direction: column; gap: 8px; align-items: center;
+    pointer-events: none;
+}
+.cb-toast {
+    background: #23252b; color: #fff; font-size: 13.5px; font-weight: 600;
+    padding: 11px 20px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,.24);
+    animation: cbFadeUp .3s cubic-bezier(.16,1,.3,1) both;
+    max-width: min(92vw, 420px); text-align: center;
+}
+.cb-toast.is-leaving { animation: cbFadeIn .28s ease reverse both; }
+.cb-toast.ok    { background: #0f7a5a; }
+.cb-toast.error { background: #a12a2a; }
+
+/* ── Image loading ───────────────────────────────────────── */
+img { transition: opacity .4s ease; }
+img.cb-img-loading {
+    opacity: 0;
+    background: linear-gradient(90deg, #f2efec 25%, #e8e3de 37%, #f2efec 63%);
+    background-size: 920px 100%;
+    animation: cbShimmer 1.4s linear infinite;
+}
+
+/* ── Modals / drawers ────────────────────────────────────── */
+.cart-drawer, .mobile-drawer, .modal, .lightbox {
+    transition: opacity .3s ease, transform .3s cubic-bezier(.16,1,.3,1), visibility .3s;
+}
+
+/* ── Accessibility ───────────────────────────────────────── */
+/* Honour the OS "reduce motion" setting. Everything still WORKS — it just
+   arrives instantly instead of animating. Note the reveal elements are forced
+   back to fully visible, so content can never be trapped invisible. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+    .cb-motion .reveal,
+    .cb-motion .reveal-left,
+    .cb-motion .reveal-right,
+    .cb-motion .reveal-zoom {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    .cb-progress { display: none; }
+}
+
+/* Smooth in-page anchor scrolling for everyone else. */
+@media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+}

@@ -1,0 +1,19 @@
+# ============================================================
+#  Creamy Bite – access rules
+# ============================================================
+
+# secrets.php holds the Stripe keys, database password and Gmail app
+# password. PHP normally executes rather than serves it, but if PHP is
+# ever misconfigured or disabled the raw file would be readable — so
+# block it at the webserver too.
+<FilesMatch "^secrets\.php$">
+    Require all denied
+</FilesMatch>
+
+# .sql migration files are served as plain text by default.
+<FilesMatch "\.(sql|log|md)$">
+    Require all denied
+</FilesMatch>
+
+# Never list a directory that has no index file.
+Options -Indexes

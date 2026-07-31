@@ -1,0 +1,353 @@
+<?php
+// ============================================================
+//  Creamy Bite – Invoicing model
+//
+//  Design notes
+//  ------------
+//  * An invoice is a SNAPSHOT. Bill-from, bill-to, rates and totals are all
+//    stored on the invoice itself, never recomputed from the order or the
+//    shop settings at display time. Changing the shop address next year must
+//    not silently rewrite last year's invoices.
+//  * Totals are recalculated from the line items whenever items change, so a
+//    hand-edited line can never leave the footer disagreeing with the table.
+//  * Balance due = total - sum(payments). Part payments are first-class.
+//
+//  Requires config.php and a $pdo from db.php.
+// ============================================================
+
+require_once __DIR__ . '/config.php';
+
+/** The single settings row, creating it if somehow absent. */
+function invoiceSettings(PDO $pdo): array
+{
+    $row = $pdo->query("SELECT * FROM invoice_settings WHERE id = 1")->fetch();
+    if ($row) {
+        return $row;
+    }
+    $pdo->exec("INSERT INTO invoice_settings (id, from_address, payment_instructions) VALUES (1, '', '')");
+    return $pdo->query("SELECT * FROM invoice_settings WHERE id = 1")->fetch();
+}
+
+/**
+ * Reserve the next invoice number, e.g. INV0226.
+ *
+ * The UPDATE ... then SELECT runs inside the caller's transaction where one
+ * exists; the unique index on invoice_number is the real backstop against two
+ * invoices claiming the same number.
+ */
+function nextInvoiceNumber(PDO $pdo): string
+{
+    $pdo->exec("UPDATE invoice_settings SET next_number = next_number + 1 WHERE id = 1");
+    $s = invoiceSettings($pdo);
+    $used = max(1, (int)$s['next_number'] - 1);
+    return $s['number_prefix'] . str_pad((string)$used, (int)$s['number_padding'], '0', STR_PAD_LEFT);
+}
+
+/** Blank invoice pre-filled from the shop settings. Returns the new id. */
+function createBlankInvoice(PDO $pdo, array $overrides = []): int
+{
+    $s = invoiceSettings($pdo);
+
+    $data = array_merge([
+        'invoice_number'       => nextInvoiceNumber($pdo),
+        'order_id'             => null,
+        'trade_user_id'        => 0,
+        'status'               => 'draft',
+        'issue_date'           => date('Y-m-d'),
+        'due_terms'            => $s['default_terms'],
+        'due_date'             => null,
+        'currency'             => 'GBP',
+        'from_name'            => $s['from_name'],
+        'from_address'         => $s['from_address'],
+        'from_phone'           => $s['from_phone'],
+        'from_email'           => $s['from_email'],
+        'from_website'         => $s['from_website'],
+        'to_name'              => '',
+        'to_address'           => '',
+        'to_email'             => '',
+        'to_phone'             => '',
+        'to_vat_number'        => '',
+        'payment_instructions' => $s['payment_instructions'],
+        'notes'                => '',
+        'vat_rate'             => $s['default_vat_rate'],
+    ], $overrides);
+
+    $cols = array_keys($data);
+    $sql  = "INSERT INTO invoices (" . implode(',', array_map(fn($c) => "`$c`", $cols)) . ")
+             VALUES (" . implode(',', array_map(fn($c) => ":$c", $cols)) . ")";
+    $pdo->prepare($sql)->execute($data);
+
+    return (int)$pdo->lastInsertId();
+}
+
+/**
+ * Raise an invoice from a placed order, copying its lines across.
+ *
+ * Descriptions follow the house style seen on the real invoices: the product
+ * name with the variant appended, e.g. "American Dry Fruit 500ml".
+ */
+function createInvoiceFromOrder(PDO $pdo, int $orderId): int
+{
+    $stmt = $pdo->prepare("SELECT * FROM orders WHERE id = :id");
+    $stmt->execute(['id' => $orderId]);
+    $order = $stmt->fetch();
+    if (!$order) {
+        throw new RuntimeException('Order not found.');
+    }
+
+    // Prefer the trade account's registered details for the bill-to block.
+    $toName    = trim((string)($order['trade_business_name'] ?? '')) ?: $order['customer_name'];
+    $toAddress = (string)$order['address'];
+    $toVat     = (string)($order['vat_number'] ?? '');
+    if ((int)$order['trade_user_id'] > 0) {
+        $t = $pdo->prepare("SELECT * FROM trade_users WHERE id = :id");
+        $t->execute(['id' => (int)$order['trade_user_id']]);
+        if ($tu = $t->fetch()) {
+            $toName    = $tu['business_name'];
+            $toAddress = rtrim($tu['address']) . "\n" . $tu['postcode'];
+            $toVat     = $tu['vat_number'];
+        }
+    }
+
+    $vatRate = 0.0;
+    if ((float)($order['vat_amount'] ?? 0) > 0) {
+        $vatRate = TRADE_VAT_RATE;
+    }
+
+    $invoiceId = createBlankInvoice($pdo, [
+        'order_id'      => $orderId,
+        'trade_user_id' => (int)$order['trade_user_id'],
+        'issue_date'    => date('Y-m-d', strtotime($order['created_at'])),
+        'to_name'       => $toName,
+        'to_address'    => $toAddress,
+        'to_email'      => (string)($order['customer_email'] ?? ''),
+        'to_phone'      => (string)($order['phone'] ?? ''),
+        'to_vat_number' => $toVat,
+        'vat_rate'      => $vatRate,
+    ]);
+
+    $items = json_decode($order['items_json'] ?? '', true) ?? [];
+    $ins = $pdo->prepare(
+        "INSERT INTO invoice_items (invoice_id, description, rate, qty, qty_unit, amount, sort_order)
+         VALUES (:inv, :desc, :rate, :qty, :unit, :amount, :sort)"
+    );
+
+    $sort = 0;
+    foreach ($items as $it) {
+        $desc = trim((string)($it['name'] ?? 'Item'));
+        if (!empty($it['variant_name'])) {
+            $desc .= ' ' . $it['variant_name'];
+        }
+        $rate = (float)($it['price'] ?? 0);
+        $qty  = (float)($it['quantity'] ?? 0);
+        $ins->execute([
+            'inv'    => $invoiceId,
+            'desc'   => $desc,
+            'rate'   => $rate,
+            'qty'    => $qty,
+            'unit'   => '',
+            'amount' => round($rate * $qty, 2),
+            'sort'   => ++$sort,
+        ]);
+    }
+
+    // Carry the order's own discount and delivery onto the invoice.
+    $pdo->prepare("UPDATE invoices SET discount = :d, delivery = :del WHERE id = :id")
+        ->execute([
+            'd'   => (float)($order['discount_amount'] ?? 0),
+            'del' => (float)($order['delivery_charge'] ?? 0),
+            'id'  => $invoiceId,
+        ]);
+
+    recalcInvoice($pdo, $invoiceId);
+    return $invoiceId;
+}
+
+/**
+ * Recompute every line amount, the subtotal, VAT and total from the stored items.
+ * Called after any edit so the footer can never drift from the table.
+ */
+function recalcInvoice(PDO $pdo, int $invoiceId): void
+{
+    $items = $pdo->prepare("SELECT * FROM invoice_items WHERE invoice_id = :id");
+    $items->execute(['id' => $invoiceId]);
+
+    $subtotal = 0.0;
+    $upd = $pdo->prepare("UPDATE invoice_items SET amount = :amt WHERE id = :id");
+    foreach ($items->fetchAll() as $it) {
+        $amount = round((float)$it['rate'] * (float)$it['qty'], 2);
+        $upd->execute(['amt' => $amount, 'id' => (int)$it['id']]);
+        $subtotal += $amount;
+    }
+    $subtotal = round($subtotal, 2);
+
+    $inv = $pdo->prepare("SELECT discount, discount_type, discount_value, delivery, vat_rate FROM invoices WHERE id = :id");
+    $inv->execute(['id' => $invoiceId]);
+    $row = $inv->fetch() ?: ['discount' => 0, 'discount_type' => 'fixed', 'discount_value' => 0, 'delivery' => 0, 'vat_rate' => 0];
+
+    // A percentage discount is recalculated against the CURRENT subtotal, so
+    // editing a line keeps "10% off" meaning 10% rather than freezing the
+    // cash figure it produced when it was first entered.
+    $discount = ($row['discount_type'] === 'percent')
+        ? round($subtotal * ((float)$row['discount_value'] / 100), 2)
+        : (float)$row['discount_value'];
+    $discount = max(0.0, min($discount, $subtotal));
+
+    $base  = max(0.0, round($subtotal - $discount + (float)$row['delivery'], 2));
+    $vat   = round($base * (float)$row['vat_rate'], 2);
+    $total = round($base + $vat, 2);
+
+    $pdo->prepare(
+        "UPDATE invoices SET subtotal = :sub, discount = :dis, vat_amount = :vat, total = :tot WHERE id = :id"
+    )->execute([
+        'sub' => $subtotal,
+        'dis' => $discount,
+        'vat' => $vat,
+        'tot' => $total,
+        'id'  => $invoiceId,
+    ]);
+
+    syncInvoicePaymentState($pdo, $invoiceId);
+}
+
+/** Recompute amount_paid from the payments table and move the status with it. */
+function syncInvoicePaymentState(PDO $pdo, int $invoiceId): void
+{
+    $p = $pdo->prepare("SELECT COALESCE(SUM(amount),0) FROM invoice_payments WHERE invoice_id = :id");
+    $p->execute(['id' => $invoiceId]);
+    $paid = round((float)$p->fetchColumn(), 2);
+
+    $i = $pdo->prepare("SELECT total, status FROM invoices WHERE id = :id");
+    $i->execute(['id' => $invoiceId]);
+    $inv = $i->fetch();
+    if (!$inv) {
+        return;
+    }
+
+    $total  = (float)$inv['total'];
+    $status = $inv['status'];
+
+    // A voided invoice stays voided; a draft stays a draft until it is sent.
+    if ($status !== 'void') {
+        if ($paid <= 0) {
+            $status = ($status === 'draft') ? 'draft' : 'sent';
+        } elseif ($paid + 0.001 < $total) {
+            $status = 'part_paid';
+        } else {
+            $status = 'paid';
+        }
+    }
+
+    $pdo->prepare("UPDATE invoices SET amount_paid = :paid, status = :st WHERE id = :id")
+        ->execute(['paid' => $paid, 'st' => $status, 'id' => $invoiceId]);
+}
+
+/** Full invoice with its items and payments. Null when not found. */
+function loadInvoice(PDO $pdo, int $invoiceId): ?array
+{
+    $s = $pdo->prepare("SELECT * FROM invoices WHERE id = :id");
+    $s->execute(['id' => $invoiceId]);
+    $inv = $s->fetch();
+    if (!$inv) {
+        return null;
+    }
+
+    $i = $pdo->prepare("SELECT * FROM invoice_items WHERE invoice_id = :id ORDER BY sort_order ASC, id ASC");
+    $i->execute(['id' => $invoiceId]);
+    $inv['items'] = $i->fetchAll();
+
+    $p = $pdo->prepare("SELECT * FROM invoice_payments WHERE invoice_id = :id ORDER BY paid_on ASC, id ASC");
+    $p->execute(['id' => $invoiceId]);
+    $inv['payments'] = $p->fetchAll();
+
+    $inv['balance_due'] = round((float)$inv['total'] - (float)$inv['amount_paid'], 2);
+    return $inv;
+}
+
+/**
+ * Every sellable line for the invoice product picker: each product, plus one
+ * entry per variant. Trade invoices get wholesale pricing where it is set.
+ *
+ * @return array{label:string,price:float,retail:float,wholesale:float}[]
+ */
+function invoiceProductOptions(PDO $pdo, bool $tradePricing = false): array
+{
+    $out = [];
+    try {
+        $products = $pdo->query(
+            "SELECT id, name, price, wholesale_price FROM products ORDER BY name ASC"
+        )->fetchAll();
+
+        $vStmt = $pdo->prepare(
+            "SELECT name, price, wholesale_price FROM product_variants
+              WHERE product_id = :pid ORDER BY sort_order ASC, id ASC"
+        );
+
+        foreach ($products as $p) {
+            $vStmt->execute(['pid' => (int)$p['id']]);
+            $variants = $vStmt->fetchAll();
+
+            if ($variants) {
+                // A product with sizes is only ever sold as a size, so list
+                // the variants rather than the bare product.
+                foreach ($variants as $v) {
+                    $retail = (float)$v['price'];
+                    $whole  = (float)$v['wholesale_price'];
+                    $out[] = [
+                        'label'     => $p['name'] . ' ' . $v['name'],
+                        'retail'    => $retail,
+                        'wholesale' => $whole,
+                        'price'     => ($tradePricing && $whole > 0) ? $whole : $retail,
+                    ];
+                }
+            } else {
+                $retail = (float)$p['price'];
+                $whole  = (float)$p['wholesale_price'];
+                $out[] = [
+                    'label'     => $p['name'],
+                    'retail'    => $retail,
+                    'wholesale' => $whole,
+                    'price'     => ($tradePricing && $whole > 0) ? $whole : $retail,
+                ];
+            }
+        }
+    } catch (PDOException $e) {
+        error_log('invoiceProductOptions failed: ' . $e->getMessage());
+    }
+    return $out;
+}
+
+/** Approved trade accounts, for the bill-to picker on a new invoice. */
+function invoiceTradeCustomers(PDO $pdo): array
+{
+    try {
+        return $pdo->query(
+            "SELECT id, business_name, contact_name, email, phone, address, postcode, vat_number
+               FROM trade_users WHERE status = 'approved' ORDER BY business_name ASC"
+        )->fetchAll();
+    } catch (PDOException $e) {
+        error_log('invoiceTradeCustomers failed: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/** Format a quantity the way the printed invoice does: "5" or "2.25 Litre". */
+function formatInvoiceQty(float $qty, string $unit = ''): string
+{
+    $n = (fmod($qty, 1.0) === 0.0)
+        ? number_format($qty, 0)
+        : rtrim(rtrim(number_format($qty, 3, '.', ''), '0'), '.');
+    return $unit !== '' ? $n . ' ' . $unit : $n;
+}
+
+/** Human label for a status. */
+function invoiceStatusLabel(string $status): array
+{
+    return match ($status) {
+        'paid'      => ['PAID',      '#ecfdf5', '#047857', '#a7f3d0'],
+        'part_paid' => ['PART PAID', '#eff6ff', '#1d4ed8', '#bfdbfe'],
+        'sent'      => ['SENT',      '#fffbeb', '#b45309', '#fde68a'],
+        'void'      => ['VOID',      '#f3f4f6', '#6b7280', '#e5e7eb'],
+        default     => ['DRAFT',     '#f9fafb', '#6b7280', '#e5e7eb'],
+    };
+}
