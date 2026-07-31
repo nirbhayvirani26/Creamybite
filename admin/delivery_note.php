@@ -94,6 +94,19 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
             color: #5C1D24;
             letter-spacing: -0.5px;
         }
+        /* Real logo. Kept in this block rather than admin.css so the printed
+           document still brands correctly if the stylesheet fails to load.
+           print-color-adjust stops it dropping out when the browser strips
+           backgrounds for printing. Logo is 994x253, so height drives it. */
+        .dn-logo-img {
+            height: 54px;
+            width: auto;
+            max-width: 240px;
+            display: block;
+            margin-bottom: 8px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
         .dn-badge {
             background: #5C1D24;
             color: #fff;
@@ -193,7 +206,16 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
 <div class="dn-container">
     <div class="dn-header">
         <div>
-            <div class="dn-logo">Creamy Bite 🍦</div>
+            <?php
+            // Logo, with the shop name as the fallback if the file is missing —
+            // same approach as the invoice (admin/invoice_view.php).
+            $dnLogo = __DIR__ . '/../assets/images/logo.png';
+            if (is_file($dnLogo)):
+            ?>
+            <img src="../assets/images/logo.png" alt="<?= htmlspecialchars(SHOP_NAME) ?>" class="dn-logo-img">
+            <?php else: ?>
+            <div class="dn-logo"><?= htmlspecialchars(SHOP_NAME) ?></div>
+            <?php endif; ?>
             <div class="cbdn-company-tagline">Authentic Artisanal Ice Cream Wholesale</div>
             <div class="cbdn-muted-note">Unit E5 Phoenix Business Centre, HA1 2SP | Tel: +44 7497 779997</div>
         </div>
