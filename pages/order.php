@@ -667,10 +667,11 @@ function showToast(title, sub) {
 }
 
 // ── Category filter ──────────────────────────────────────────
-//  Only cards that are actually ARRIVING get animated. The previous
-//  version pushed every visible card to opacity 0 and faded it back in,
-//  so cards that were already on screen and staying put blinked out and
-//  back on every tab click — that flash was the whole problem.
+//  EVERY card in the new set is animated the same way, so each tab behaves
+//  identically no matter what was on screen before. Animating only the
+//  newly-arriving cards looked inconsistent: on one tab a card faded in, on
+//  the next the same card just appeared, because it happened to be visible
+//  already. One rule for all of them keeps it predictable.
 document.querySelectorAll('.cat-tab').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
@@ -681,22 +682,19 @@ document.querySelectorAll('.cat-tab').forEach(btn => {
 
         document.querySelectorAll('.product-card').forEach(card => {
             const show = cat === 'all' || card.dataset.category === cat;
-            const wasHidden = card.classList.contains('cb-filtered-out');
 
             if (!show) {
                 card.classList.add('cb-filtered-out');
                 card.classList.remove('cb-filter-in');
+                card.style.animationDelay = '';
                 return;
             }
 
             card.classList.remove('cb-filtered-out');
-
-            if (wasHidden) {
-                card.classList.remove('cb-filter-in');
-                void card.offsetWidth;                       // restart the animation
-                card.style.animationDelay = (shown * 35) + 'ms';   // gentle stagger
-                card.classList.add('cb-filter-in');
-            }
+            card.classList.remove('cb-filter-in');
+            void card.offsetWidth;                          // restart the animation
+            card.style.animationDelay = (shown * 30) + 'ms';   // gentle cascade
+            card.classList.add('cb-filter-in');
             shown++;
         });
     });

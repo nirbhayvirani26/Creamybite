@@ -262,11 +262,18 @@ img.cb-img-loading {
     from { opacity: 0; transform: translate3d(0, 12px, 0); }
     to   { opacity: 1; transform: none; }
 }
-/*  Applied only to cards that are newly appearing (see order.php).
+/*  Applied to every card in the filtered set (see order.php).
     "both" holds the end state so nothing snaps when the run finishes. */
 .product-card.cb-filter-in {
     animation: cbFilterIn .34s cubic-bezier(.16, 1, .3, 1) both;
 }
+
+/*  While filtering, the card moves as ONE piece. Without this, the generic
+    stagger rule above also runs cbFadeUp on .product-body, so the text
+    drifted at a different rate from the card carrying it — which is why
+    different tabs appeared to use different effects. Specificity matches
+    the stagger rule and this comes later, so it wins.                     */
+.cb-motion .product-card.cb-filter-in > * { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
     .product-card.cb-filter-in { animation: none; }
