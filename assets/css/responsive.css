@@ -425,20 +425,24 @@ a, button { touch-action: manipulation; }
     }
 }
 
-    /* Ensure cart items don't overflow and hide footer */
-    .cart-sidebar {
-        display: flex;
-        flex-direction: column;
-    }
+/* ── Cart drawer: footer stays pinned, items scroll ────────
+   These are GLOBAL, not mobile-only. They were written indented inside
+   the 480px block above, but that block already closed on the line before
+   them, so they have always applied at every width — which is what the
+   cart is built around. Left global on purpose and re-indented to match;
+   a stray extra closing brace that used to follow them has been removed. */
+.cart-sidebar {
+    display: flex;
+    flex-direction: column;
+}
 
-    .cart-items {
-        flex: 1;
-        min-height: 0;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
+.cart-items {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
 
-    .cart-footer {
-        flex-shrink: 0; /* never shrink — always visible */
-    }
+.cart-footer {
+    flex-shrink: 0; /* never shrink — always visible */
 }

@@ -680,20 +680,28 @@ document.querySelectorAll('.cat-tab').forEach(btn => {
         const cat = btn.dataset.cat;
         let shown = 0;
 
+        const STEPS = 10;   // must match the .cb-step-* rules in animations.css
+        const clearSteps = card => {
+            for (let i = 0; i < STEPS; i++) card.classList.remove('cb-step-' + i);
+            card.classList.remove('cb-step-max');
+        };
+
         document.querySelectorAll('.product-card').forEach(card => {
             const show = cat === 'all' || card.dataset.category === cat;
 
             if (!show) {
                 card.classList.add('cb-filtered-out');
                 card.classList.remove('cb-filter-in');
-                card.style.animationDelay = '';
+                clearSteps(card);
                 return;
             }
 
             card.classList.remove('cb-filtered-out');
             card.classList.remove('cb-filter-in');
+            clearSteps(card);
             void card.offsetWidth;                          // restart the animation
-            card.style.animationDelay = (shown * 30) + 'ms';   // gentle cascade
+            // Cascade step is a class, never a style attribute.
+            card.classList.add(shown < STEPS ? 'cb-step-' + shown : 'cb-step-max');
             card.classList.add('cb-filter-in');
             shown++;
         });

@@ -245,17 +245,17 @@ $allOk = array_reduce($results, fn($c, $r) => $c && $r['ok'], true);
         <p class="su-lead">Environment: <strong><?= IS_LOCAL ? 'LOCAL' : 'LIVE' ?></strong> (<?= htmlspecialchars(DB_NAME) ?>). Applies every table/column from setup v6&ndash;v12 that is still missing. Safe to run again.</p>
         <table class="su-table">
             <?php foreach ($results as $r): ?>
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:10px 8px; font-weight:700; color:#5C1D24;"><?= htmlspecialchars($r['table']) ?></td>
-                <td style="padding:10px 8px; font-family:monospace;"><?= htmlspecialchars($r['col']) ?></td>
-                <td style="padding:10px 8px; color:<?= $r['ok'] ? '#10b981' : '#ef4444' ?>; font-weight:700;"><?= htmlspecialchars($r['status']) ?></td>
+            <tr class="su-row">
+                <td class="su-cell-name"><?= htmlspecialchars($r['table']) ?></td>
+                <td class="su-cell-mono"><?= htmlspecialchars($r['col']) ?></td>
+                <td class="su-cell-state <?= $r['ok'] ? 'su-ok' : 'su-err' ?>"><?= htmlspecialchars($r['status']) ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
-        <p style="color:<?= $allOk ? '#10b981' : '#ef4444' ?>; font-weight:700; font-size:15px; margin-bottom:20px;">
+        <p class="su-result <?= $allOk ? 'su-ok' : 'su-err' ?>">
             <?= $allOk ? '✅ Database schema is fully up to date.' : '❌ Some steps failed — check the messages above.' ?>
         </p>
-        <a href="../index.php" class="btn-primary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 20px;">
+        <a href="../index.php" class="btn-primary su-btn-back">
             <i class="fa-solid fa-arrow-left"></i> Back to Admin Dashboard
         </a>
     </div>

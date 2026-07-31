@@ -164,7 +164,7 @@ body.admin-wrapper.has-sidebar {
 }
 
 .admin-content { flex: 1 1 auto; padding: 26px 0 60px; }
-.admin-wrapper.has-sidebar .admin-content > .container { max-width: 1280px; padding: 0 26px; }
+.admin-wrapper.has-sidebar .admin-content > .container { max-width: 1240px; padding: 0 26px; }
 
 .admin-sidebar-backdrop {
     position: fixed; inset: 0; background: rgba(0, 0, 0, .42);
@@ -747,7 +747,7 @@ body.admin-wrapper.has-sidebar {
 
 /* ── Page shell ─────────────────────────────────────────────── */
 body.cbie-page          { padding: 28px 18px; background: var(--bg-main); }
-.container.cbie-shell   { max-width: 1080px; }
+.container.cbie-shell   { max-width: 1240px; }
 
 /* ── Header ─────────────────────────────────────────────────── */
 .cbie-page-head     { display: flex; justify-content: space-between; align-items: center;
@@ -835,7 +835,7 @@ body.cbie-page          { padding: 28px 18px; background: var(--bg-main); }
 
 /* ── Page shell ─────────────────────────────────────────── */
 .cbpf-main            { padding: 40px 0 80px; }
-div.cbpf-page-wrap    { max-width: 900px; }
+div.cbpf-page-wrap    { max-width: 1240px; }
 a.cbpf-nav-btn        { padding: 9px 16px; font-size: 13px; }
 a.cbpf-back-btn       { padding: 10px 18px; font-size: 13px; }
 div.cbpf-form-alert   { margin-bottom: 24px; }

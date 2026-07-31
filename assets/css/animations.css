@@ -275,6 +275,23 @@ img.cb-img-loading {
     the stagger rule and this comes later, so it wins.                     */
 .cb-motion .product-card.cb-filter-in > * { animation: none; }
 
+/*  Cascade steps. The delay depends on a card's position in the FILTERED
+    set, not its position in the DOM, so :nth-child cannot express it — the
+    JS applies the matching step class. Kept as classes so no style
+    attribute is ever written onto the element.                            */
+.product-card.cb-step-0  { animation-delay: 0ms;   }
+.product-card.cb-step-1  { animation-delay: 30ms;  }
+.product-card.cb-step-2  { animation-delay: 60ms;  }
+.product-card.cb-step-3  { animation-delay: 90ms;  }
+.product-card.cb-step-4  { animation-delay: 120ms; }
+.product-card.cb-step-5  { animation-delay: 150ms; }
+.product-card.cb-step-6  { animation-delay: 180ms; }
+.product-card.cb-step-7  { animation-delay: 210ms; }
+.product-card.cb-step-8  { animation-delay: 240ms; }
+.product-card.cb-step-9  { animation-delay: 270ms; }
+/* Anything beyond this holds at the last step so a long list never crawls. */
+.product-card.cb-step-max { animation-delay: 300ms; }
+
 @media (prefers-reduced-motion: reduce) {
     .product-card.cb-filter-in { animation: none; }
 }

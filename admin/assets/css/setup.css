@@ -17,6 +17,14 @@
 .su-table-mt  { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0; }
 .su-row       { border-bottom: 1px solid var(--border-light); }
 .su-err       { color: #ef4444; font-weight: 700; }
+.su-ok        { color: #10b981; font-weight: 700; }
+
+/* migration result table (update_db.php) */
+.su-cell-name  { padding: 10px 8px; font-weight: 700; color: #5C1D24; }
+.su-cell-mono  { padding: 10px 8px; font-family: monospace; }
+.su-cell-state { padding: 10px 8px; font-weight: 700; }
+.su-result     { font-size: 15px; margin-bottom: 20px; }
+.su-btn-back   { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; }
 .su-err-box   { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px;
                 font-family: monospace; font-size: 13px; }
 .su-warn-box  { background: #fffbeb; border: 1px solid #fde68a; color: #b45309;
