@@ -122,7 +122,7 @@ $locked = ($inv['status'] === 'void');
     </div>
     <?php endif; ?>
 
-    <form method="POST" action="invoice_handler.php" id="invoiceForm">
+    <form method="POST" action="handlers/invoice_handler.php" id="invoiceForm">
         <?= csrfField() ?>
         <input type="hidden" name="action" value="save">
         <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -335,7 +335,7 @@ $locked = ($inv['status'] === 'void');
                     <td class="cbie-cell-pad-top cbie-pay-cell"><?= htmlspecialchars($p['method']) ?></td>
                     <td class="cbie-cell-pad-top cbie-pay-cell"><?= htmlspecialchars($p['reference']) ?: '—' ?></td>
                     <td>
-                        <form method="POST" action="invoice_handler.php" onsubmit="return confirm('Remove this payment?')" class="cbie-form-flat">
+                        <form method="POST" action="handlers/invoice_handler.php" onsubmit="return confirm('Remove this payment?')" class="cbie-form-flat">
         <?= csrfField() ?>
                             <input type="hidden" name="action" value="delete_payment">
                             <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -349,7 +349,7 @@ $locked = ($inv['status'] === 'void');
         </table>
         <?php endif; ?>
 
-        <form method="POST" action="invoice_handler.php" class="cbie-payment-form">
+        <form method="POST" action="handlers/invoice_handler.php" class="cbie-payment-form">
         <?= csrfField() ?>
             <input type="hidden" name="action" value="add_payment">
             <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -370,7 +370,7 @@ $locked = ($inv['status'] === 'void');
         <h3>Document actions</h3>
         <div class="cbie-doc-actions">
             <?php if ($inv['status'] === 'draft'): ?>
-            <form method="POST" action="invoice_handler.php" class="cbie-form-flat">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat">
         <?= csrfField() ?>
                 <input type="hidden" name="action" value="set_status">
                 <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -380,7 +380,7 @@ $locked = ($inv['status'] === 'void');
             <?php endif; ?>
 
             <?php if ($inv['status'] === 'void'): ?>
-            <form method="POST" action="invoice_handler.php" class="cbie-form-flat">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat">
         <?= csrfField() ?>
                 <input type="hidden" name="action" value="set_status">
                 <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -388,7 +388,7 @@ $locked = ($inv['status'] === 'void');
                 <button class="btn-secondary cbie-btn-sm"><i class="fa-solid fa-rotate-left"></i> Reopen as draft</button>
             </form>
             <?php else: ?>
-            <form method="POST" action="invoice_handler.php" class="cbie-form-flat" onsubmit="return confirm('Void this invoice? It stays on record and its number is never reused.')">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat" onsubmit="return confirm('Void this invoice? It stays on record and its number is never reused.')">
         <?= csrfField() ?>
                 <input type="hidden" name="action" value="set_status">
                 <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -397,7 +397,7 @@ $locked = ($inv['status'] === 'void');
             </form>
             <?php endif; ?>
 
-            <form method="POST" action="invoice_handler.php" class="cbie-form-flat">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat">
         <?= csrfField() ?>
                 <input type="hidden" name="action" value="duplicate">
                 <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -405,7 +405,7 @@ $locked = ($inv['status'] === 'void');
             </form>
 
             <?php if ($inv['status'] === 'draft'): ?>
-            <form method="POST" action="invoice_handler.php" class="cbie-form-flat cbie-form-push-right" onsubmit="return confirm('Delete this draft permanently?')">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat cbie-form-push-right" onsubmit="return confirm('Delete this draft permanently?')">
         <?= csrfField() ?>
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">

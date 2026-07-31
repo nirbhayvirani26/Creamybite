@@ -521,7 +521,7 @@ function addVariant(productId) {
     if (!name) { alert('Please enter a size name (e.g. 500ml)'); nameEl.focus(); return; }
     if (!price || price <= 0) { alert('Please enter a valid price'); priceEl.focus(); return; }
 
-    fetch('variant_handler.php', {
+    fetch('handlers/variant_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=add&product_id=${productId}&name=${encodeURIComponent(name)}&price=${price}&wholesale_price=${wp}`,
@@ -574,7 +574,7 @@ let updateTimer = {};
 function updateVariant(id, name, price, wholesalePrice, available) {
     clearTimeout(updateTimer[id]);
     updateTimer[id] = setTimeout(() => {
-        fetch('variant_handler.php', {
+        fetch('handlers/variant_handler.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `action=update&id=${id}&product_id=${PRODUCT_ID}&name=${encodeURIComponent(name)}&price=${parseFloat(price)||0}&wholesale_price=${parseFloat(wholesalePrice)||0}&${available ? 'available=1' : ''}`,
@@ -592,7 +592,7 @@ function updateVariant(id, name, price, wholesalePrice, available) {
 
 function deleteVariant(id, productId) {
     if (!confirm('Remove this variant? This cannot be undone.')) return;
-    fetch('variant_handler.php', {
+    fetch('handlers/variant_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `action=delete&id=${id}&product_id=${productId}`,

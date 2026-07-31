@@ -3,14 +3,14 @@
 //  Creamy Bite – Admin: Update Order Status / Payment Status / Delete
 // ============================================================
 $GLOBALS['ADMIN_GUARD_JSON'] = true;   // reply in JSON, not a redirect
-require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/../_guard.php';
 header('Content-Type: application/json');
 csrfCheckJson();
 
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/mailer.php';
-require_once __DIR__ . '/../includes/stock.php';
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/mailer.php';
+require_once __DIR__ . '/../../includes/stock.php';
 
 // ── Delete Order ──────────────────────────────────────────
 if (isset($_POST['action']) && $_POST['action'] === 'delete_order') {

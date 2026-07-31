@@ -17,15 +17,15 @@
 //  back is a decision for a human. The shortfall is flagged instead.
 // ============================================================
 $GLOBALS['ADMIN_GUARD_JSON'] = true;   // reply in JSON, not a redirect
-require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/../_guard.php';
 header('Content-Type: application/json');
 csrfCheckJson();
 
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/stock.php';
-require_once __DIR__ . '/../includes/invoice.php';
-require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/stock.php';
+require_once __DIR__ . '/../../includes/invoice.php';
+require_once __DIR__ . '/../../includes/mailer.php';
 
 $action = $_POST['action'] ?? '';
 

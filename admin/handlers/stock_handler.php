@@ -4,12 +4,12 @@
 //  Actions: increment_stock (add stock, damage, offline)
 // ============================================================
 $GLOBALS['ADMIN_GUARD_JSON'] = true;   // reply in JSON, not a redirect
-require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/../_guard.php';
 header('Content-Type: application/json');
 csrfCheckJson();
 
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/db.php';
 
 // ── Helper: column existence check ────────────────────────
 function columnExists(PDO $pdo, string $table, string $column): bool {

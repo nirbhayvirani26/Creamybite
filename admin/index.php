@@ -468,7 +468,7 @@ $pageTitles = [
                 <i class="fa-solid fa-plus"></i> Add Product
             </a>
             <?php elseif ($activeTab === 'invoices'): ?>
-            <form method="POST" action="invoice_handler.php" class="cbi-flush">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbi-flush">
                 <?= csrfField() ?>
                 <input type="hidden" name="action" value="create_blank">
                 <button class="btn-primary"><i class="fa-solid fa-plus"></i> New Invoice</button>
@@ -554,7 +554,7 @@ $pageTitles = [
 
             <!-- Raise from an order -->
             <?php if (!empty($uninvoicedOrders)): ?>
-            <form method="POST" action="invoice_handler.php"
+            <form method="POST" action="handlers/invoice_handler.php"
                   class="cbi-inv-raise-form">
         <?= csrfField() ?>
                 <input type="hidden" name="action" value="create_from_order">
@@ -585,7 +585,7 @@ $pageTitles = [
 
             <!-- Settings -->
             <div id="invSettings" class="cbi-inv-settings-panel" style="display:none;">
-                <form method="POST" action="invoice_handler.php">
+                <form method="POST" action="handlers/invoice_handler.php">
         <?= csrfField() ?>
                     <input type="hidden" name="action" value="save_settings">
                     <h3 class="cbi-inv-settings-title">Invoice defaults</h3>
@@ -2131,7 +2131,7 @@ function updateStatus(orderId, orderCode) {
     const status = document.getElementById('status-' + orderId).value;
     const msgEl  = document.getElementById('status-msg-' + orderId);
 
-    fetch('update_order.php', {
+    fetch('handlers/update_order.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'order_id=' + orderId + '&status=' + encodeURIComponent(status),
@@ -2156,7 +2156,7 @@ function updatePaymentStatus(orderId) {
     const ps    = document.getElementById('pstatus-' + orderId).value;
     const msgEl = document.getElementById('status-msg-' + orderId);
 
-    fetch('update_order.php', {
+    fetch('handlers/update_order.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'order_id=' + orderId + '&payment_status=' + encodeURIComponent(ps),
@@ -2208,7 +2208,7 @@ function triggerGalleryUpload(input) {
     const resultEl = document.getElementById('galleryUploadResult');
     resultEl.innerHTML = '<div class="alert alert-info"><i class="fa-solid fa-spinner fa-spin"></i> Uploading…</div>';
 
-    fetch('gallery_handler.php', { method: 'POST', body: formData })
+    fetch('handlers/gallery_handler.php', { method: 'POST', body: formData })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
@@ -2246,7 +2246,7 @@ function triggerGalleryUpload(input) {
 
 function deleteGalleryItem(id) {
     if (!confirm('Delete this photo? This cannot be undone.')) return;
-    fetch('gallery_handler.php?action=delete&id=' + id)
+    fetch('handlers/gallery_handler.php?action=delete&id=' + id)
     .then(r => r.json())
     .then(data => {
         if (data.success) {
@@ -2265,7 +2265,7 @@ function addCategory() {
     const name = document.getElementById('newCatName').value.trim();
     if (!name) { showCatMsg('Please enter a category name.', 'danger'); return; }
 
-    fetch('category_handler.php', {
+    fetch('handlers/category_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=add&name=' + encodeURIComponent(name),
@@ -2307,7 +2307,7 @@ function startRename(id, currentName) {
     const newName = prompt('Rename category:', currentName);
     if (!newName || newName.trim() === currentName) return;
 
-    fetch('category_handler.php', {
+    fetch('handlers/category_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=rename&id=' + id + '&name=' + encodeURIComponent(newName.trim()),
@@ -2325,7 +2325,7 @@ function startRename(id, currentName) {
 
 function deleteCategory(id, name) {
     if (!confirm('Delete category "' + name + '"? Products using it will still exist.')) return;
-    fetch('category_handler.php', {
+    fetch('handlers/category_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=delete&id=' + id,
@@ -2569,7 +2569,7 @@ function removeOrderItem(orderId, itemIndex, itemName) {
     });
     if (notify) body.append('notify', '1');
 
-    fetch('order_item_handler.php', {
+    fetch('handlers/order_item_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString(),
@@ -2756,7 +2756,7 @@ function saveStockEdit() {
     msgEl.textContent = 'Saving…';
     msgEl.style.color = 'var(--text-muted)';
 
-    fetch('stock_handler.php', {
+    fetch('handlers/stock_handler.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `action=increment_stock&product_id=${stockEditProductId}&add_qty=${addQty}&damage_qty=${damageQty}&offline_qty=${offlineQty}`,
@@ -2789,7 +2789,7 @@ document.getElementById('stockEditModal')?.addEventListener('click', function(e)
 // ── Delete Order ──────────────────────────────────────────────
 function deleteOrder(orderId, orderCode) {
     if (!confirm(`Delete order ${orderCode}?\nThis cannot be undone.`)) return;
-    fetch('update_order.php', {
+    fetch('handlers/update_order.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: `action=delete_order&order_id=${orderId}`,

@@ -13,15 +13,15 @@
 session_start();
 
 if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: login.php');
+    header('Location: ../login.php');
     exit;
 }
 
-require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/../_guard.php';
 csrfCheck();
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/invoice.php';
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/db.php';
+require_once __DIR__ . '/../../includes/invoice.php';
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -39,33 +39,33 @@ try {
         // ── Create an empty invoice and open it ──────────────
         case 'create_blank': {
             $id = createBlankInvoice($pdo);
-            backTo('invoice_edit.php?id=' . $id, 'New invoice created.');
+            backTo('../invoice_edit.php?id=' . $id, 'New invoice created.');
         }
 
         // ── Raise an invoice from a placed order ─────────────
         case 'create_from_order': {
             $orderId = (int)($_POST['order_id'] ?? $_GET['order_id'] ?? 0);
             if ($orderId <= 0) {
-                backTo('index.php?tab=invoices', 'No order selected.', 'error');
+                backTo('../index.php?tab=invoices', 'No order selected.', 'error');
             }
 
             // Don't silently raise a second invoice for the same order.
             $existing = $pdo->prepare("SELECT id, invoice_number FROM invoices WHERE order_id = :o AND status <> 'void' LIMIT 1");
             $existing->execute(['o' => $orderId]);
             if ($row = $existing->fetch()) {
-                backTo('invoice_edit.php?id=' . (int)$row['id'],
+                backTo('../invoice_edit.php?id=' . (int)$row['id'],
                        'Order already has invoice ' . $row['invoice_number'] . '. Opened it instead.', 'warn');
             }
 
             $id = createInvoiceFromOrder($pdo, $orderId);
-            backTo('invoice_edit.php?id=' . $id, 'Invoice raised from order.');
+            backTo('../invoice_edit.php?id=' . $id, 'Invoice raised from order.');
         }
 
         // ── Save the whole invoice, header and lines ─────────
         case 'save': {
             $id = (int)($_POST['invoice_id'] ?? 0);
             if ($id <= 0) {
-                backTo('index.php?tab=invoices', 'Invalid invoice.', 'error');
+                backTo('../index.php?tab=invoices', 'Invalid invoice.', 'error');
             }
 
             $issueDate = trim($_POST['issue_date'] ?? '') ?: date('Y-m-d');
@@ -145,7 +145,7 @@ try {
             }
 
             recalcInvoice($pdo, $id);
-            backTo('invoice_edit.php?id=' . $id, 'Invoice saved.');
+            backTo('../invoice_edit.php?id=' . $id, 'Invoice saved.');
         }
 
         // ── Record a payment ─────────────────────────────────
@@ -153,7 +153,7 @@ try {
             $id     = (int)($_POST['invoice_id'] ?? 0);
             $amount = round((float)($_POST['amount'] ?? 0), 2);
             if ($id <= 0 || $amount <= 0) {
-                backTo('invoice_edit.php?id=' . $id, 'Enter a payment amount greater than zero.', 'error');
+                backTo('../invoice_edit.php?id=' . $id, 'Enter a payment amount greater than zero.', 'error');
             }
 
             $pdo->prepare(
@@ -168,7 +168,7 @@ try {
             ]);
 
             syncInvoicePaymentState($pdo, $id);
-            backTo('invoice_edit.php?id=' . $id, 'Payment recorded.');
+            backTo('../invoice_edit.php?id=' . $id, 'Payment recorded.');
         }
 
         case 'delete_payment': {
@@ -177,7 +177,7 @@ try {
             $pdo->prepare("DELETE FROM invoice_payments WHERE id = :p AND invoice_id = :i")
                 ->execute(['p' => $pid, 'i' => $id]);
             syncInvoicePaymentState($pdo, $id);
-            backTo('invoice_edit.php?id=' . $id, 'Payment removed.');
+            backTo('../invoice_edit.php?id=' . $id, 'Payment removed.');
         }
 
         // ── Status changes ───────────────────────────────────
@@ -185,7 +185,7 @@ try {
             $id     = (int)($_POST['invoice_id'] ?? 0);
             $status = trim($_POST['status'] ?? '');
             if (!in_array($status, ['draft', 'sent', 'void'], true)) {
-                backTo('invoice_edit.php?id=' . $id, 'Unknown status.', 'error');
+                backTo('../invoice_edit.php?id=' . $id, 'Unknown status.', 'error');
             }
             $pdo->prepare("UPDATE invoices SET status = :s WHERE id = :id")
                 ->execute(['s' => $status, 'id' => $id]);
@@ -193,7 +193,7 @@ try {
             if ($status !== 'void') {
                 syncInvoicePaymentState($pdo, $id);
             }
-            backTo('invoice_edit.php?id=' . $id, 'Invoice marked ' . strtoupper($status) . '.');
+            backTo('../invoice_edit.php?id=' . $id, 'Invoice marked ' . strtoupper($status) . '.');
         }
 
         // ── Duplicate (credit notes, repeat billing) ─────────
@@ -201,7 +201,7 @@ try {
             $id  = (int)($_POST['invoice_id'] ?? $_GET['invoice_id'] ?? 0);
             $src = loadInvoice($pdo, $id);
             if (!$src) {
-                backTo('index.php?tab=invoices', 'Invoice not found.', 'error');
+                backTo('../index.php?tab=invoices', 'Invoice not found.', 'error');
             }
 
             $newId = createBlankInvoice($pdo, [
@@ -246,7 +246,7 @@ try {
             }
 
             recalcInvoice($pdo, $newId);
-            backTo('invoice_edit.php?id=' . $newId, 'Duplicated from ' . $src['invoice_number'] . '.');
+            backTo('../invoice_edit.php?id=' . $newId, 'Duplicated from ' . $src['invoice_number'] . '.');
         }
 
         // ── Delete ───────────────────────────────────────────
@@ -259,16 +259,16 @@ try {
             $row = $chk->fetch();
 
             if (!$row) {
-                backTo('index.php?tab=invoices', 'Invoice not found.', 'error');
+                backTo('../index.php?tab=invoices', 'Invoice not found.', 'error');
             }
             if ($row['status'] !== 'draft') {
-                backTo('invoice_edit.php?id=' . $id,
+                backTo('../invoice_edit.php?id=' . $id,
                        'Only drafts can be deleted. Void ' . $row['invoice_number'] . ' instead, so the number is not reused.',
                        'error');
             }
 
             $pdo->prepare("DELETE FROM invoices WHERE id = :id")->execute(['id' => $id]);
-            backTo('index.php?tab=invoices', 'Draft ' . $row['invoice_number'] . ' deleted.');
+            backTo('../index.php?tab=invoices', 'Draft ' . $row['invoice_number'] . ' deleted.');
         }
 
         // ── Shop-wide invoice defaults ───────────────────────
@@ -293,14 +293,14 @@ try {
                 'dt'  => trim($_POST['default_terms'] ?? 'On Receipt'),
                 'vr'  => round((float)($_POST['default_vat_rate'] ?? 0) / 100, 4),
             ]);
-            backTo('index.php?tab=invoices', 'Invoice settings saved.');
+            backTo('../index.php?tab=invoices', 'Invoice settings saved.');
         }
 
         default:
-            backTo('index.php?tab=invoices', 'Unknown action.', 'error');
+            backTo('../index.php?tab=invoices', 'Unknown action.', 'error');
     }
 
 } catch (Throwable $e) {
     error_log('Invoice action failed: ' . $e->getMessage());
-    backTo('index.php?tab=invoices', 'Could not complete that: ' . $e->getMessage(), 'error');
+    backTo('../index.php?tab=invoices', 'Could not complete that: ' . $e->getMessage(), 'error');
 }

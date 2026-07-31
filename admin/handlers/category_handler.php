@@ -4,12 +4,12 @@
 //  Actions: add | rename | delete
 // ============================================================
 $GLOBALS['ADMIN_GUARD_JSON'] = true;   // reply in JSON, not a redirect
-require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/../_guard.php';
 header('Content-Type: application/json');
 csrfCheckJson();
 
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/db.php';
 
 $action = $_POST['action'] ?? '';
 
