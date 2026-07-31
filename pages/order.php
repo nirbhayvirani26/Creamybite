@@ -667,15 +667,37 @@ function showToast(title, sub) {
 }
 
 // ── Category filter ──────────────────────────────────────────
+//  Only cards that are actually ARRIVING get animated. The previous
+//  version pushed every visible card to opacity 0 and faded it back in,
+//  so cards that were already on screen and staying put blinked out and
+//  back on every tab click — that flash was the whole problem.
 document.querySelectorAll('.cat-tab').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+
         const cat = btn.dataset.cat;
+        let shown = 0;
+
         document.querySelectorAll('.product-card').forEach(card => {
             const show = cat === 'all' || card.dataset.category === cat;
-            card.style.display = show ? 'flex' : 'none';
-            if (show) { card.style.opacity = '0'; setTimeout(() => card.style.opacity = '1', 20); }
+            const wasHidden = card.classList.contains('cb-filtered-out');
+
+            if (!show) {
+                card.classList.add('cb-filtered-out');
+                card.classList.remove('cb-filter-in');
+                return;
+            }
+
+            card.classList.remove('cb-filtered-out');
+
+            if (wasHidden) {
+                card.classList.remove('cb-filter-in');
+                void card.offsetWidth;                       // restart the animation
+                card.style.animationDelay = (shown * 35) + 'ms';   // gentle stagger
+                card.classList.add('cb-filter-in');
+            }
+            shown++;
         });
     });
 });
