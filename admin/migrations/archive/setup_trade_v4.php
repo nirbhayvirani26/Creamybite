@@ -5,13 +5,13 @@
 // ============================================================
 // Admins only — this runs CREATE TABLE / ALTER TABLE. It started a session
 // but never checked whether anyone was logged in.
-require_once __DIR__ . '/_guard.php';
-require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../../_guard.php';
+require_once __DIR__ . '/../../../includes/config.php';
 
 $results = [];
 
 try {
-    require_once __DIR__ . '/../includes/db.php';
+    require_once __DIR__ . '/../../../includes/db.php';
 
     // 1. Create trade_users table
     try {
@@ -58,10 +58,10 @@ $allOk = empty($error) && array_reduce($results, fn($c, $r) => $c && $r['ok'], t
 <head>
     <meta charset="UTF-8">
     <title>Setup v4 – Trade B2B & Wholesale Setup</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/setup.css">
-<link rel="stylesheet" href="../assets/css/modal.css">
-<script src="../assets/js/modal.js" defer></script>
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/setup.css">
+<link rel="stylesheet" href="../../../assets/css/modal.css">
+<script src="../../../assets/js/modal.js" defer></script>
 </head>
 <body class="admin-wrapper su-page" >
 <div class="su-wrap-md glass-panel" >
@@ -84,8 +84,8 @@ $allOk = empty($error) && array_reduce($results, fn($c, $r) => $c && $r['ok'], t
             <?= $allOk ? '✅ Setup Complete! Trade Accounts and Wholesale Prices are ready.' : '❌ Some migration errors occurred.' ?>
         </p>
         <div style="margin-top:20px; display:flex; gap:12px;">
-            <a href="index.php?tab=trade" class="btn-primary">Go to Admin Trade Tab</a>
-            <a href="../trade_register" class="btn-secondary">View Trade Registration Form</a>
+            <a href="../../index.php?tab=trade" class="btn-primary">Go to Admin Trade Tab</a>
+            <a href="../../../trade_register.php" class="btn-secondary">View Trade Registration Form</a>
         </div>
     <?php endif; ?>
 </div>

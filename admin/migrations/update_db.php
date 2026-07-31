@@ -7,9 +7,9 @@
 //  skipped if already present.
 //  Visit: /admin/update_db.php
 // ============================================================
-require_once __DIR__ . '/_guard.php';
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../_guard.php';
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/db.php';
 
 $results = [];
 
@@ -233,10 +233,10 @@ $allOk = array_reduce($results, fn($c, $r) => $c && $r['ok'], true);
 <head>
     <meta charset="UTF-8">
     <title>Update DB – Schema Parity (v6&ndash;v12)</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/setup.css">
-    <link rel="stylesheet" href="../assets/css/modal.css">
-    <script src="../assets/js/modal.js" defer></script>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/setup.css">
+    <link rel="stylesheet" href="../../assets/css/modal.css">
+    <script src="../../assets/js/modal.js" defer></script>
 </head>
 <body class="admin-wrapper su-page-warm">
 <div class="su-wrap">
@@ -255,7 +255,7 @@ $allOk = array_reduce($results, fn($c, $r) => $c && $r['ok'], true);
         <p style="color:<?= $allOk ? '#10b981' : '#ef4444' ?>; font-weight:700; font-size:15px; margin-bottom:20px;">
             <?= $allOk ? '✅ Database schema is fully up to date.' : '❌ Some steps failed — check the messages above.' ?>
         </p>
-        <a href="index.php" class="btn-primary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 20px;">
+        <a href="../index.php" class="btn-primary" style="display:inline-flex; align-items:center; gap:8px; padding:10px 20px;">
             <i class="fa-solid fa-arrow-left"></i> Back to Admin Dashboard
         </a>
     </div>

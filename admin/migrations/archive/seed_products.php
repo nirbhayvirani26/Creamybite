@@ -6,8 +6,8 @@
 // Admins only. This script OVERWRITES every product's price, description and
 // image, so an unauthenticated visitor reaching it could rewrite the whole
 // catalogue. It previously had no check whatsoever.
-require_once __DIR__ . '/_guard.php';
-require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../../_guard.php';
+require_once __DIR__ . '/../../../includes/config.php';
 
 $error = null;
 $count = 0;
@@ -21,7 +21,7 @@ if ($seedRequested) {
 
 if ($seedRequested):
 try {
-    require_once __DIR__ . '/../includes/db.php';
+    require_once __DIR__ . '/../../../includes/db.php';
 
     // 1. Auto-create/repair categories table structure
     $pdo->exec("CREATE TABLE IF NOT EXISTS `categories` (
@@ -117,10 +117,10 @@ endif;   // $seedRequested
 <head>
     <meta charset="UTF-8">
     <title>Seed Authentic Creamy Bite Products</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/setup.css">
-<link rel="stylesheet" href="../assets/css/modal.css">
-<script src="../assets/js/modal.js" defer></script>
+    <link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/setup.css">
+<link rel="stylesheet" href="../../../assets/css/modal.css">
+<script src="../../../assets/js/modal.js" defer></script>
 </head>
 <body class="admin-wrapper su-page" >
 <div class="su-wrap-md glass-panel" >
@@ -144,7 +144,7 @@ endif;   // $seedRequested
                 data-confirm-ok="Yes, reset them">
             Run seeder
         </button>
-        <a href="index.php?tab=products" class="btn-secondary su-btn-next" >Cancel</a>
+        <a href="../../index.php?tab=products" class="btn-secondary su-btn-next" >Cancel</a>
     </form>
     <?php else: ?>
 
@@ -159,8 +159,8 @@ endif;   // $seedRequested
     <?php else: ?>
         <p style="color:#10b981; font-weight:700;">✅ <?= $count ?> authentic Creamy Bite ice cream tubs & categories loaded into your database!</p>
         <div style="margin-top:20px; display:flex; gap:12px;">
-            <a href="index.php?tab=products" class="btn-primary">Back to Products</a>
-            <a href="../order.php" class="btn-secondary">View Store Menu</a>
+            <a href="../../index.php?tab=products" class="btn-primary">Back to Products</a>
+            <a href="../../../order.php" class="btn-secondary">View Store Menu</a>
         </div>
     <?php endif; ?>
 

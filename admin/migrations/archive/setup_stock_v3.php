@@ -5,9 +5,9 @@
 // ============================================================
 // Admins only — this runs ALTER TABLE. It previously had no session_start()
 // and no authentication check at all.
-require_once __DIR__ . '/_guard.php';
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../../_guard.php';
+require_once __DIR__ . '/../../../includes/config.php';
+require_once __DIR__ . '/../../../includes/db.php';
 
 $results = [];
 $migrations = [
@@ -34,9 +34,9 @@ $allOk = array_reduce($results, fn($c, $r) => $c && $r['ok'], true);
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><title>Setup v3</title><link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="assets/css/setup.css"><link rel="stylesheet" href="../assets/css/modal.css">
-<script src="../assets/js/modal.js" defer></script>
+<head><meta charset="UTF-8"><title>Setup v3</title><link rel="stylesheet" href="../../../assets/css/style.css">
+    <link rel="stylesheet" href="../../assets/css/setup.css"><link rel="stylesheet" href="../../../assets/css/modal.css">
+<script src="../../../assets/js/modal.js" defer></script>
 </head>
 <body class="admin-wrapper su-page" >
 <div class="su-wrap-sm">
@@ -51,7 +51,7 @@ $allOk = array_reduce($results, fn($c, $r) => $c && $r['ok'], true);
             <?php endforeach; ?>
         </table>
         <p style="color:<?= $allOk ? '#10b981' : '#ef4444' ?>; font-weight:700;"><?= $allOk ? '✅ All done! Delivery columns ready.' : '❌ Some errors occurred.' ?></p>
-        <a href="index.php" class="btn-primary" style="display:inline-flex; margin-top:12px;"><i class="fa-solid fa-arrow-left"></i> Back to Admin</a>
+        <a href="../../index.php" class="btn-primary" style="display:inline-flex; margin-top:12px;"><i class="fa-solid fa-arrow-left"></i> Back to Admin</a>
     </div>
 </div>
 </body></html>

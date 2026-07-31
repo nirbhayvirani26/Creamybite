@@ -28,7 +28,13 @@ if (empty($_SESSION['admin_logged_in'])) {
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'message' => 'Not authorised. Please log in again.']);
     } else {
-        header('Location: login.php');
+        // Resolved from THIS file's folder, not the caller's. A relative
+        // "login.php" would break for anything guarded from a subfolder
+        // (admin/migrations/…), sending the browser to a path that does
+        // not exist. __DIR__ is always the admin folder, so this is
+        // correct however deep the guarded script sits.
+        $adminUrl = str_replace('\\', '/', substr(__DIR__, strlen(rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/'))));
+        header('Location: ' . ($adminUrl !== '' && $adminUrl[0] === '/' ? $adminUrl : '') . '/login.php');
     }
     exit;
 }
