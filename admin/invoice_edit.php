@@ -53,6 +53,8 @@ $locked = ($inv['status'] === 'void');
 <title>Edit <?= htmlspecialchars($inv['invoice_number']) ?> – <?= SHOP_NAME ?></title>
 <link rel="stylesheet" href="../assets/css/style.css">
 <link rel="stylesheet" href="../assets/css/responsive.css">
+<!-- This page's own cbie-* layout classes live in admin.css. -->
+<link rel="stylesheet" href="assets/css/admin.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     .inv-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; }

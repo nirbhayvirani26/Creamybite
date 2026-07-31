@@ -167,6 +167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title><?= $isEdit ? 'Edit Product' : 'Add Product' ?> – <?= SHOP_NAME ?></title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
+    <!-- This page's own cbpf-* layout classes live in admin.css. -->
+    <link rel="stylesheet" href="assets/css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <?php include __DIR__ . '/_csrf_js.php'; ?>
 <link rel="stylesheet" href="../assets/css/modal.css">
