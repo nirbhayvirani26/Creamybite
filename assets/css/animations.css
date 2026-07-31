@@ -81,6 +81,12 @@ body { animation: cbFadeIn .32s ease-out both; }
 .cb-motion .stagger.is-visible > *:nth-child(8) { animation-delay:.37s }
 .cb-motion .stagger.is-visible > *:nth-child(n+9){ animation-delay:.4s  }
 
+/* The product image is NOT staggered. It is a direct child of
+   .product-card (which is itself a .reveal), so the rule above would fade
+   it up a second time, sliding the photo inside a card that is already
+   moving. The card's own reveal carries it in. */
+.cb-motion .reveal.is-visible > .product-image-wrap { animation: none; }
+
 /* ── Cards & products ────────────────────────────────────── */
 .product-card,
 .glass-panel,
