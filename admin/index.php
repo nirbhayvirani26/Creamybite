@@ -208,9 +208,17 @@ try {
       LEFT JOIN invoices i ON i.order_id = o.id AND i.status <> 'void'
           WHERE i.id IS NULL
        ORDER BY o.created_at DESC
-          LIMIT 100"
+          LIMIT 101"
     )->fetchAll();
 } catch (PDOException $e) {}
+
+// The query asks for 101 so we can tell "exactly 100" from "more than 100".
+// A picker that silently stops at 100 looks like a complete list, and an
+// older order that is missing from it looks like it was already invoiced.
+$uninvoicedCapped = count($uninvoicedOrders) > 100;
+if ($uninvoicedCapped) {
+    array_pop($uninvoicedOrders);
+}
 
 // ── Active tab ────────────────────────────────────────────
 $activeTab = $_GET['tab'] ?? 'orders';
@@ -545,7 +553,61 @@ $pageTitles = [
              in the topbar too. Leaving an empty header row here put a tall
              blank band above the stat cards with a stranded button in it. -->
 
-        <!-- Stats Cards -->
+        <!-- Stats Cards.
+             The invoices tab gets invoice figures instead of order figures:
+             "Total Orders" and "Products" tell you nothing while you are
+             chasing money, and what matters there is how much has been
+             billed and how much is still owed. -->
+        <?php if ($activeTab === 'invoices'): ?>
+        <?php
+            $invStats = ['count' => 0, 'billed' => 0.0, 'received' => 0.0, 'owed' => 0.0,
+                         'paid' => 0, 'part' => 0, 'unpaid' => 0, 'draft' => 0, 'void' => 0];
+            foreach ($invoices as $iv) {
+                if ($iv['status'] === 'void') { $invStats['void']++; continue; }
+                $invStats['count']++;
+                $invStats['billed']   += (float)$iv['total'];
+                $invStats['received'] += (float)$iv['amount_paid'];
+                $invStats['owed']     += (float)$iv['balance_due'];
+                if ($iv['status'] === 'paid')           { $invStats['paid']++; }
+                elseif ($iv['status'] === 'part_paid')  { $invStats['part']++; }
+                elseif ($iv['status'] === 'draft')      { $invStats['draft']++; }
+                else                                    { $invStats['unpaid']++; }
+            }
+        ?>
+        <div class="stats-grid cbi-gap-32">
+            <div class="stat-card glass-panel">
+                <div class="stat-card-icon">🧾</div>
+                <div class="stat-label">Invoices</div>
+                <div class="stat-value"><?= $invStats['count'] ?></div>
+                <?php if ($invStats['void'] > 0): ?>
+                <div class="cbi-stat-subnote"><?= $invStats['void'] ?> void (not counted)</div>
+                <?php endif; ?>
+            </div>
+            <div class="stat-card glass-panel">
+                <div class="stat-card-icon">💷</div>
+                <div class="stat-label">Total Billed</div>
+                <div class="stat-value cbi-stat-value-sm">£<?= number_format($invStats['billed'], 2) ?></div>
+            </div>
+            <div class="stat-card glass-panel">
+                <div class="stat-card-icon">✅</div>
+                <div class="stat-label">Received</div>
+                <div class="stat-value cbi-stat-value-sm cbi-stat-good">£<?= number_format($invStats['received'], 2) ?></div>
+                <div class="cbi-stat-subnote"><?= $invStats['paid'] ?> fully paid</div>
+            </div>
+            <div class="stat-card glass-panel">
+                <div class="stat-card-icon">⏳</div>
+                <div class="stat-label">Outstanding</div>
+                <div class="stat-value cbi-stat-value-sm<?= $invStats['owed'] > 0.001 ? ' cbi-stat-bad' : '' ?>">£<?= number_format($invStats['owed'], 2) ?></div>
+                <div class="cbi-stat-subnote"><?= $invStats['part'] ?> part paid</div>
+            </div>
+            <div class="stat-card glass-panel">
+                <div class="stat-card-icon">📤</div>
+                <div class="stat-label">Not Paid</div>
+                <div class="stat-value"><?= $invStats['unpaid'] ?></div>
+                <div class="cbi-stat-subnote"><?= $invStats['draft'] ?> still draft</div>
+            </div>
+        </div>
+        <?php else: ?>
         <div class="stats-grid cbi-gap-32">
             <div class="stat-card glass-panel">
                 <div class="stat-card-icon">📋</div>
@@ -573,6 +635,7 @@ $pageTitles = [
                 <div class="stat-value"><?= $totalProducts ?></div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Navigation now lives in the sidebar (see $adminNav above). -->
 
@@ -630,7 +693,9 @@ $pageTitles = [
                 </select>
                 <button class="btn-secondary cbi-inv-create-btn">Create</button>
                 <span id="orderPickerCount" class="cbi-inv-picker-count"></span>
-                <span class="cbi-inv-picker-note"><?= count($uninvoicedOrders) ?> order(s) not yet invoiced</span>
+                <span class="cbi-inv-picker-note">
+                    <?= count($uninvoicedOrders) ?> order(s) not yet invoiced<?= $uninvoicedCapped ? ' — showing the 100 most recent' : '' ?>
+                </span>
             </form>
             <?php endif; ?>
 

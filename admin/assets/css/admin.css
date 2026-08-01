@@ -1235,7 +1235,10 @@ th.inv-sort i.is-sorted   { opacity: 1; }
                    color: var(--text-muted); font-weight: 800; padding: 8px 10px;
                    border-bottom: 1px solid var(--border-light); }
 .cbtr-table td   { padding: 9px 10px; border-bottom: 1px solid var(--border-light); }
-.cbtr-col-num    { text-align: right; white-space: nowrap; }
+.cbtr-table td.cbtr-col-num,
+.cbtr-table th.cbtr-col-num { text-align: right; white-space: nowrap; }
+.cbtr-table th.cbtr-col-rank,
+.cbtr-table td.cbtr-rank    { text-align: right; }
 .cbtr-col-rank   { width: 40px; }
 .cbtr-col-share  { width: 26%; }
 .cbtr-rank       { color: var(--text-muted); font-weight: 700; }
@@ -1296,7 +1299,10 @@ th.inv-sort i.is-sorted   { opacity: 1; }
 .cbi-prod-table td     { padding: 9px 8px; border-bottom: 1px solid var(--border-light); }
 .cbi-prod-table tfoot td { border-bottom: none; border-top: 2px solid var(--border-light);
                            font-weight: 800; color: var(--text-muted); font-size: 12px; }
-.cbi-prod-col-num      { text-align: right; white-space: nowrap; }
+.cbi-prod-table td.cbi-prod-col-num,
+.cbi-prod-table th.cbi-prod-col-num { text-align: right; white-space: nowrap; }
+.cbi-prod-table th.cbi-prod-col-rank,
+.cbi-prod-table td.cbi-prod-rank    { text-align: right; }
 .cbi-prod-col-rank     { width: 34px; }
 .cbi-prod-col-bar      { width: 34%; }
 .cbi-prod-rank         { color: var(--text-muted); font-weight: 800; }
@@ -1318,3 +1324,14 @@ th.inv-sort i.is-sorted   { opacity: 1; }
     border-color: #f59e0b;
     background: #fffbeb;
 }
+
+/* Share bars: the track needs to be visible, otherwise a short bar reads as a
+   stray line rather than a proportion of the longest one. */
+.cbtr-bar-track, .cbi-prod-bar-track {
+    background: rgba(120, 120, 120, 0.18);
+    overflow: hidden;
+}
+.cbtr-col-share  { white-space: nowrap; }
+.cbtr-bar-track  { display: inline-block; vertical-align: middle; width: calc(100% - 46px); }
+.cbtr-share-pct  { display: inline-block; width: 40px; text-align: right;
+                   font-size: 11px; color: var(--text-muted); }

@@ -58,7 +58,17 @@ try {
             }
 
             $id = createInvoiceFromOrder($pdo, $orderId);
-            backTo('../invoice_edit.php?id=' . $id, 'Invoice raised from order.');
+
+            // If the customer already paid for the order online, the invoice is
+            // a receipt, not a demand — so it opens as PAID rather than making
+            // someone notice and mark it by hand.
+            $msg = 'Invoice raised from order.';
+            if (invoiceSettleFromPaidOrder($pdo, $id)) {
+                $msg = 'Invoice raised and marked PAID — the order was already paid online.';
+            }
+            syncInvoicePaymentState($pdo, $id);
+
+            backTo('../invoice_edit.php?id=' . $id, $msg);
         }
 
         // ── Save the whole invoice, header and lines ─────────

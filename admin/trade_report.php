@@ -64,15 +64,31 @@ $avgOrder = $orderCount > 0 ? $totalValue / $orderCount : 0.0;
 // Measured across the span between the first and last order, not since the
 // account was created: an account opened months before its first order would
 // otherwise look far less active than it is.
-$daysBetween   = null;
+//
+// A span shorter than a week is not a rate. Three orders placed on one
+// afternoon would read as "3 orders per month, 0.5 days between orders",
+// which is a number with no meaning presented as if it were a fact — so
+// below that threshold the figures are withheld rather than invented.
+const CBTR_MIN_SPAN_DAYS = 7;
+
+$daysBetween    = null;
 $ordersPerMonth = null;
+$spanDays       = null;
 if ($orderCount > 1 && $firstOrder && $lastOrder && $lastOrder > $firstOrder) {
-    $spanDays       = max(1, (int)round(($lastOrder - $firstOrder) / 86400));
-    $daysBetween    = round($spanDays / max(1, $orderCount - 1), 1);
-    $ordersPerMonth = round($orderCount / max(1, $spanDays / 30.44), 1);
+    $spanDays = max(1, (int)round(($lastOrder - $firstOrder) / 86400));
+    if ($spanDays >= CBTR_MIN_SPAN_DAYS) {
+        $daysBetween    = round($spanDays / max(1, $orderCount - 1), 1);
+        $ordersPerMonth = round($orderCount / ($spanDays / 30.44), 1);
+    }
 }
 
 $daysSinceLast = $lastOrder ? (int)floor((time() - $lastOrder) / 86400) : null;
+
+/** "1 day" / "3 days" — plural agreement, so the page never reads "1 days". */
+function cbtrDays(int $n): string
+{
+    return $n . ' day' . ($n === 1 ? '' : 's');
+}
 
 // ── Top products, all time ───────────────────────────────────
 // Items live in orders.items_json, so this is totalled in PHP rather than
@@ -101,6 +117,9 @@ foreach ($orders as $ord) {
 uasort($productTotals, fn($a, $b) => $b['qty'] <=> $a['qty']);
 $topProducts = array_slice(array_values($productTotals), 0, 15);
 $topQty      = $topProducts ? max(array_column($topProducts, 'qty')) : 0;
+// Share is of EVERYTHING they have bought, not just the rows shown, so the
+// percentages describe the whole basket rather than the top fifteen.
+$total       = array_sum(array_column($productTotals, 'qty'));
 
 // ── Invoices raised against this partner ─────────────────────
 $invoices     = [];
@@ -201,13 +220,13 @@ $customerNo = 'TC-' . str_pad((string)$tradeId, 5, '0', STR_PAD_LEFT);
         <h2 class="cbtr-card-title">Order frequency</h2>
         <div class="cbtr-freq-grid">
             <div>
-                <div class="cbtr-freq-value">
+                <div class="cbtr-freq-value<?= $ordersPerMonth === null ? ' cbtr-freq-none' : '' ?>">
                     <?= $ordersPerMonth !== null ? htmlspecialchars((string)$ordersPerMonth) : '—' ?>
                 </div>
                 <div class="cbtr-freq-label">orders per month</div>
             </div>
             <div>
-                <div class="cbtr-freq-value">
+                <div class="cbtr-freq-value<?= $daysBetween === null ? ' cbtr-freq-none' : '' ?>">
                     <?= $daysBetween !== null ? htmlspecialchars((string)$daysBetween) : '—' ?>
                 </div>
                 <div class="cbtr-freq-label">days between orders</div>
@@ -221,13 +240,19 @@ $customerNo = 'TC-' . str_pad((string)$tradeId, 5, '0', STR_PAD_LEFT);
                     <?= $lastOrder ? date('d M Y', $lastOrder) : '—' ?>
                 </div>
                 <div class="cbtr-freq-label">
-                    last order<?= $daysSinceLast !== null ? ' (' . $daysSinceLast . ' days ago)' : '' ?>
+                    last order<?= $daysSinceLast !== null ? ' (' . ($daysSinceLast === 0 ? 'today' : cbtrDays($daysSinceLast) . ' ago') . ')' : '' ?>
                 </div>
             </div>
         </div>
         <?php if ($ordersPerMonth === null): ?>
         <p class="cbtr-note">
-            Frequency needs at least two orders before it means anything.
+            <?php if ($orderCount < 2): ?>
+                A rate needs at least two orders to measure between.
+            <?php else: ?>
+                All <?= $orderCount ?> orders fall within <?= cbtrDays((int)$spanDays) ?>,
+                which is too short a span to read a rate from — it will appear
+                once this account has been ordering for a week or more.
+            <?php endif; ?>
         </p>
         <?php elseif ($daysSinceLast !== null && $daysSinceLast > 60): ?>
         <p class="cbtr-note cbtr-warn">
@@ -261,10 +286,13 @@ $customerNo = 'TC-' . str_pad((string)$tradeId, 5, '0', STR_PAD_LEFT);
                     <td class="cbtr-col-num"><strong><?= (int)$p['qty'] ?></strong></td>
                     <td class="cbtr-col-share">
                         <!-- Bar width is data, so it rides on data-pct and is
-                             applied by the script at the foot of the page. -->
+                             applied by the script at the foot of the page.
+                             The figure is stated as well as drawn: a bar shows
+                             the shape, the number is what you write down. -->
                         <div class="cbtr-bar-track">
                             <div class="cbtr-bar-fill" data-pct="<?= $topQty > 0 ? round($p['qty'] / $topQty * 100, 1) : 0 ?>"></div>
                         </div>
+                        <span class="cbtr-share-pct"><?= $total > 0 ? number_format($p['qty'] / $total * 100, 0) : '0' ?>%</span>
                     </td>
                     <td class="cbtr-col-num">£<?= number_format($p['value'], 2) ?></td>
                 </tr>
