@@ -127,11 +127,15 @@ $grandTotal     = $totals['total'];
             <!-- ── Customer Form ──────────────────────────── -->
             <div>
                 <?php if (!empty($errors)): ?>
-                <div class="alert alert-danger cbco-mb-24">
+                <div class="alert alert-danger cbco-mb-24" id="serverErrors">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                     <div>
                         <?php foreach ($errors as $err): ?>
-                        <div><?= htmlspecialchars($err) ?></div>
+                        <?php // Tagged so the page can drop it once the basket
+                              // satisfies the rule. A rejection printed on page
+                              // load has no idea the customer has since fixed it,
+                              // and stays on screen contradicting the summary. ?>
+                        <div<?= str_contains($err, 'Minimum order') ? ' data-clears-at="min-order"' : '' ?>><?= htmlspecialchars($err) ?></div>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -987,10 +991,22 @@ function checkMinimumOrder() {
         if (btn) btn.disabled = true;
     } else {
         notice.classList.add('cbco-hidden');
+        text.textContent = '';
         // Only re-enable what THIS rule disabled — the out-of-range postcode
         // check disables the same button, and clearing it here would let an
         // undeliverable order through.
         if (btn && !btn.dataset.blockedByDistance) btn.disabled = false;
+
+        // Drop the server's rejection too. It was printed when the page loaded
+        // and cannot know the basket has since grown, so leaving it up tells
+        // the customer their order is too small while the summary shows it is
+        // not — which is what made this look unfixable.
+        document.querySelectorAll('[data-clears-at="min-order"]').forEach(el => el.remove());
+        // Drop the whole box once nothing is left to say. Counting child divs
+        // does not work — the wrapper is itself a div inside a div — so this
+        // asks the simpler question: is there any text left?
+        const box = document.getElementById('serverErrors');
+        if (box && box.textContent.trim() === '') box.remove();
     }
 }
 
