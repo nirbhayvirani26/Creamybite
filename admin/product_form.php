@@ -2,7 +2,9 @@
 // ============================================================
 //  Creamy Bite – Admin: Add / Edit Product Form
 // ============================================================
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }
@@ -61,7 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name        = trim($_POST['name']        ?? '');
     $description = trim($_POST['description'] ?? '');
     $price           = (float)($_POST['price']           ?? 0);
-    $wholesale_price = (float)($_POST['wholesale_price'] ?? 0);
     $category        = trim($_POST['category']           ?? '');
     $emoji           = trim($_POST['emoji']              ?? '🍦');
     $badge           = trim($_POST['badge']              ?? '');
@@ -129,17 +130,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             if ($productId > 0) {
                 // UPDATE
-                $stmt = $pdo->prepare("UPDATE products SET name=:name, description=:description, price=:price, wholesale_price=:wholesale_price,
+                //
+                // wholesale_price is deliberately absent: the form no longer
+                // offers it, so posting it would write 0 over whatever trade
+                // price the product already had. Leaving the column out of the
+                // statement keeps the stored value untouched.
+                $stmt = $pdo->prepare("UPDATE products SET name=:name, description=:description, price=:price,
                     category=:category, emoji=:emoji, image=:image, badge=:badge, available=:available, nuts_allergy=:nuts_allergy,
                     trade_only=:trade_only, track_stock=:track_stock, stock_qty=:stock_qty
                     WHERE id=:id");
-                $stmt->execute(compact('name','description','price','wholesale_price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty, 'id' => $productId]);
+                $stmt->execute(compact('name','description','price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty, 'id' => $productId]);
                 header('Location: index.php?tab=products&product_updated=1'); exit;
             } else {
-                // INSERT
-                $stmt = $pdo->prepare("INSERT INTO products (name, description, price, wholesale_price, category, emoji, image, badge, available, nuts_allergy, trade_only, track_stock, stock_qty)
-                    VALUES (:name, :description, :price, :wholesale_price, :category, :emoji, :image, :badge, :available, :nuts_allergy, :trade_only, :track_stock, :stock_qty)");
-                $stmt->execute(compact('name','description','price','wholesale_price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty]);
+                // INSERT — a new product starts with no trade price of its own;
+                // trade pricing is set per size on the Sizes panel.
+                $stmt = $pdo->prepare("INSERT INTO products (name, description, price, category, emoji, image, badge, available, nuts_allergy, trade_only, track_stock, stock_qty)
+                    VALUES (:name, :description, :price, :category, :emoji, :image, :badge, :available, :nuts_allergy, :trade_only, :track_stock, :stock_qty)");
+                $stmt->execute(compact('name','description','price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty]);
                 header('Location: index.php?tab=products&product_added=1'); exit;
             }
         } catch (PDOException $e) {
@@ -248,12 +255,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     step="0.01" min="0.01" placeholder="e.g. 6.99"
                                     value="<?= htmlspecialchars($product['price'] ?? '') ?>" required
                                     oninput="updatePreviewPrice(this.value)">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Wholesale Price (£) <small class="cbpf-label-accent">(Trade B2B)</small></label>
-                                <input type="number" name="wholesale_price" class="form-control"
-                                    step="0.01" min="0.00" placeholder="e.g. 4.50"
-                                    value="<?= htmlspecialchars($product['wholesale_price'] ?? '0.00') ?>">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Category *</label>

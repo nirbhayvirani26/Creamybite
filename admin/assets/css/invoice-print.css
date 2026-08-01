@@ -75,6 +75,9 @@
         body{ background:#fff; padding:0; }
         .sheet{ box-shadow:none; padding:0; max-width:none; }
         .bar{ display:none; }
+        /* Internal-only chrome: the status stamp and the action bar are for
+           whoever is looking at the screen, not for the customer's copy. */
+        .no-print{ display:none !important; }
         table.items thead th{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     }
 
@@ -94,3 +97,9 @@
 .pill.is-sent      { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
 .pill.is-void      { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; }
 .pill.is-draft     { background:#f9fafb; color:#6b7280; border:1px solid #e5e7eb; }
+
+/* Who sold it. Sits under the bill-to block on the customer's copy; what the
+   rep earns never appears on this document at all. */
+.soldby      { margin-top: 12px; font-size: 12.5px; color: #374151; }
+.soldby-cap  { display: block; font-size: 10px; text-transform: uppercase;
+               letter-spacing: .09em; color: #9ca3af; font-weight: 800; margin-bottom: 2px; }

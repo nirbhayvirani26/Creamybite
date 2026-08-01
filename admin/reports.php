@@ -17,6 +17,20 @@
 require_once __DIR__ . '/_guard.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/invoice.php';   // invoiceCommission()
+
+/**
+ * fputcsv with the escape character pinned to "".
+ *
+ * PHP 8.4 deprecates relying on fputcsv()'s default $escape, and the notice is
+ * emitted straight into the output stream — which for a CSV download means the
+ * warning text lands inside the file and Excel opens a corrupted sheet. Passing
+ * it explicitly both silences the notice and gives plain RFC-4180 quoting.
+ */
+function cbCsv($out, array $fields): void
+{
+    fputcsv($out, $fields, ',', '"', '');
+}
 
 // ── Resolve the reporting period ─────────────────────────────
 $period = $_GET['period'] ?? 'this_month';
@@ -63,7 +77,7 @@ switch ($period) {
 
 $type   = $_GET['type']   ?? 'summary';
 $format = ($_GET['format'] ?? 'html') === 'csv' ? 'csv' : 'html';
-$validTypes = ['summary', 'sales', 'clients', 'products', 'payments', 'invoices'];
+$validTypes = ['summary', 'sales', 'clients', 'products', 'payments', 'invoices', 'reps'];
 if (!in_array($type, $validTypes, true)) {
     $type = 'summary';
 }
@@ -74,6 +88,9 @@ $P = ['f' => $from, 't' => $to];
 // Cancelled orders are excluded from money everywhere: the row keeps its
 // Paid/Cash status but the cash was refunded or never taken.
 $data = [];
+// Declared outside the try so the rep report renders empty rather than
+// fataling when the invoice query fails.
+$repRows = [];
 
 try {
     // Orders in range
@@ -85,14 +102,56 @@ try {
 
     // Invoices in range
     $iStmt = $pdo->prepare(
-        "SELECT i.*, o.order_code
+        "SELECT i.*, o.order_code, r.name AS rep_name
            FROM invoices i
-      LEFT JOIN orders o ON o.id = i.order_id
+      LEFT JOIN orders o     ON o.id = i.order_id
+      LEFT JOIN sales_reps r ON r.id = i.sales_rep_id
           WHERE i.status <> 'void' AND DATE(i.issue_date) BETWEEN :f AND :t
        ORDER BY i.issue_date ASC, i.id ASC"
     );
     $iStmt->execute($P);
     $invoices = $iStmt->fetchAll();
+
+    // ── Sales rep performance ────────────────────────────────
+    // Built from invoices only. Orders have no rep on them: a rep sale is
+    // recorded by raising an invoice against it, so counting orders too
+    // would double what the rep appears to have sold.
+    $repRows = [];
+    foreach ($invoices as $iv) {
+        $repId = (int)($iv['sales_rep_id'] ?? 0);
+        if ($repId <= 0) {
+            continue;
+        }
+        if (!isset($repRows[$repId])) {
+            $repRows[$repId] = [
+                'name'       => $iv['rep_name'] ?: 'Rep #' . $repId,
+                'invoices'   => 0,
+                'sold'       => 0.0,   // ex-VAT, the basis commission is paid on
+                'gross'      => 0.0,   // what the customer was billed
+                'commission' => 0.0,
+                'stores'     => [],
+            ];
+        }
+        $exVat = (float)$iv['total'] - (float)$iv['vat_amount'];
+        $repRows[$repId]['invoices']++;
+        $repRows[$repId]['sold']       += $exVat;
+        $repRows[$repId]['gross']      += (float)$iv['total'];
+        $repRows[$repId]['commission'] += invoiceCommission($iv);
+
+        // Which shops they are actually selling into, and how much at each.
+        $store = trim((string)$iv['to_name']) ?: 'Unnamed customer';
+        if (!isset($repRows[$repId]['stores'][$store])) {
+            $repRows[$repId]['stores'][$store] = ['value' => 0.0, 'count' => 0];
+        }
+        $repRows[$repId]['stores'][$store]['value'] += $exVat;
+        $repRows[$repId]['stores'][$store]['count']++;
+    }
+    // Biggest store first, so the report opens with where the money is.
+    foreach ($repRows as &$rr) {
+        uasort($rr['stores'], fn($x, $y) => $y['value'] <=> $x['value']);
+    }
+    unset($rr);
+    uasort($repRows, fn($x, $y) => $y['sold'] <=> $x['sold']);
 } catch (PDOException $e) {
     error_log('Report query failed: ' . $e->getMessage());
     $orders = $invoices = [];
@@ -211,43 +270,67 @@ if ($format === 'csv') {
     // BOM so Excel opens UTF-8 (and the £ sign) correctly.
     fwrite($out, "\xEF\xBB\xBF");
 
-    fputcsv($out, [SHOP_NAME . ' — ' . ucfirst($type) . ' report']);
-    fputcsv($out, ['Period', $label]);
-    fputcsv($out, ['Generated', date('d M Y H:i')]);
-    fputcsv($out, []);
+    cbCsv($out, [SHOP_NAME . ' — ' . ucfirst($type) . ' report']);
+    cbCsv($out, ['Period', $label]);
+    cbCsv($out, ['Generated', date('d M Y H:i')]);
+    cbCsv($out, []);
 
     switch ($type) {
         case 'summary':
-            fputcsv($out, ['Metric', 'Value']);
-            fputcsv($out, ['Retail revenue',              number_format($sum['retail'], 2)]);
-            fputcsv($out, ['Retail paid orders',          $sum['retail_n']]);
-            fputcsv($out, ['Trade revenue',               number_format($sum['trade'], 2)]);
-            fputcsv($out, ['Trade paid orders',           $sum['trade_n']]);
-            fputcsv($out, ['Order revenue',               number_format($sum['orders_revenue'], 2)]);
-            fputcsv($out, ['Direct invoice revenue',      number_format($sum['inv_direct'], 2)]);
-            fputcsv($out, ['Direct invoices',             $sum['inv_direct_n']]);
-            fputcsv($out, ['TOTAL REVENUE',               number_format($sum['grand_total'], 2)]);
-            fputcsv($out, []);
-            fputcsv($out, ['VAT collected',               number_format($sum['vat'], 2)]);
-            fputcsv($out, ['Delivery charged',            number_format($sum['delivery'], 2)]);
-            fputcsv($out, ['Discounts given',             number_format($sum['discount'], 2)]);
-            fputcsv($out, ['Average order value',         number_format($sum['aov'], 2)]);
-            fputcsv($out, []);
-            fputcsv($out, ['Unpaid orders',               $sum['unpaid_n']]);
-            fputcsv($out, ['Unpaid value',                number_format($sum['unpaid'], 2)]);
-            fputcsv($out, ['Invoices outstanding',        number_format($sum['inv_owing'], 2)]);
-            fputcsv($out, ['Cancelled orders',            $sum['cancelled_n']]);
-            fputcsv($out, ['Cancelled value (excluded)',  number_format($sum['cancelled'], 2)]);
+            cbCsv($out, ['Metric', 'Value']);
+            cbCsv($out, ['Retail revenue',              number_format($sum['retail'], 2)]);
+            cbCsv($out, ['Retail paid orders',          $sum['retail_n']]);
+            cbCsv($out, ['Trade revenue',               number_format($sum['trade'], 2)]);
+            cbCsv($out, ['Trade paid orders',           $sum['trade_n']]);
+            cbCsv($out, ['Order revenue',               number_format($sum['orders_revenue'], 2)]);
+            cbCsv($out, ['Direct invoice revenue',      number_format($sum['inv_direct'], 2)]);
+            cbCsv($out, ['Direct invoices',             $sum['inv_direct_n']]);
+            cbCsv($out, ['TOTAL REVENUE',               number_format($sum['grand_total'], 2)]);
+            cbCsv($out, []);
+            cbCsv($out, ['VAT collected',               number_format($sum['vat'], 2)]);
+            cbCsv($out, ['Delivery charged',            number_format($sum['delivery'], 2)]);
+            cbCsv($out, ['Discounts given',             number_format($sum['discount'], 2)]);
+            cbCsv($out, ['Average order value',         number_format($sum['aov'], 2)]);
+            cbCsv($out, []);
+            cbCsv($out, ['Unpaid orders',               $sum['unpaid_n']]);
+            cbCsv($out, ['Unpaid value',                number_format($sum['unpaid'], 2)]);
+            cbCsv($out, ['Invoices outstanding',        number_format($sum['inv_owing'], 2)]);
+            cbCsv($out, ['Cancelled orders',            $sum['cancelled_n']]);
+            cbCsv($out, ['Cancelled value (excluded)',  number_format($sum['cancelled'], 2)]);
+            break;
+
+        case 'reps':
+            cbCsv($out, ['Sales rep','Invoices','Sold ex-VAT','Billed inc VAT','Commission','Net to shop']);
+            foreach ($repRows as $rr) {
+                cbCsv($out, [
+                    $rr['name'], $rr['invoices'],
+                    number_format($rr['sold'], 2, '.', ''),
+                    number_format($rr['gross'], 2, '.', ''),
+                    number_format($rr['commission'], 2, '.', ''),
+                    number_format($rr['sold'] - $rr['commission'], 2, '.', ''),
+                ]);
+            }
+            cbCsv($out, []);
+            cbCsv($out, ['Sales rep','Store / customer','Invoices','Sold ex-VAT','Share %']);
+            foreach ($repRows as $rr) {
+                foreach ($rr['stores'] as $storeName => $st) {
+                    cbCsv($out, [
+                        $rr['name'], $storeName, $st['count'],
+                        number_format($st['value'], 2, '.', ''),
+                        $rr['sold'] > 0 ? number_format($st['value'] / $rr['sold'] * 100, 1, '.', '') : '0.0',
+                    ]);
+                }
+            }
             break;
 
         case 'sales':
-            fputcsv($out, ['Order code','Date','Customer','Type','Items','Subtotal','Discount','Delivery','VAT','Total','Payment','Status']);
+            cbCsv($out, ['Order code','Date','Customer','Type','Items','Subtotal','Discount','Delivery','VAT','Total','Payment','Status']);
             foreach ($orders as $o) {
                 $items = json_decode($o['items_json'] ?? '', true) ?? [];
                 $qty = array_sum(array_column($items, 'quantity'));
                 $sub = (float)$o['total_price'] - (float)($o['delivery_charge'] ?? 0)
                      - (float)($o['vat_amount'] ?? 0) + (float)($o['discount_amount'] ?? 0);
-                fputcsv($out, [
+                cbCsv($out, [
                     $o['order_code'], date('Y-m-d H:i', strtotime($o['created_at'])),
                     (int)$o['trade_user_id'] > 0 ? ($o['trade_business_name'] ?: $o['customer_name']) : $o['customer_name'],
                     (int)$o['trade_user_id'] > 0 ? 'Trade' : 'Retail',
@@ -262,32 +345,32 @@ if ($format === 'csv') {
             break;
 
         case 'clients':
-            fputcsv($out, ['Customer','Type','Email','Phone','Orders','Paid','Unpaid','Last order']);
+            cbCsv($out, ['Customer','Type','Email','Phone','Orders','Paid','Unpaid','Last order']);
             foreach ($clients as $c) {
-                fputcsv($out, [$c['name'], $c['type'], $c['email'], $c['phone'], $c['orders'],
+                cbCsv($out, [$c['name'], $c['type'], $c['email'], $c['phone'], $c['orders'],
                                number_format($c['paid'], 2), number_format($c['unpaid'], 2),
                                date('Y-m-d', strtotime($c['last']))]);
             }
             break;
 
         case 'products':
-            fputcsv($out, ['Product','Qty sold','Revenue','Times ordered']);
+            cbCsv($out, ['Product','Qty sold','Revenue','Times ordered']);
             foreach ($products as $name => $p) {
-                fputcsv($out, [$name, $p['qty'], number_format($p['revenue'], 2), $p['orders']]);
+                cbCsv($out, [$name, $p['qty'], number_format($p['revenue'], 2), $p['orders']]);
             }
             break;
 
         case 'payments':
-            fputcsv($out, ['Method','Status','Orders','Total']);
+            cbCsv($out, ['Method','Status','Orders','Total']);
             foreach ($payments as $p) {
-                fputcsv($out, [$p['method'], $p['status'], $p['n'], number_format($p['total'], 2)]);
+                cbCsv($out, [$p['method'], $p['status'], $p['n'], number_format($p['total'], 2)]);
             }
             break;
 
         case 'invoices':
-            fputcsv($out, ['Invoice','Date','Bill to','From order','Total','Paid','Balance','Status']);
+            cbCsv($out, ['Invoice','Date','Bill to','From order','Total','Paid','Balance','Status']);
             foreach ($invoices as $iv) {
-                fputcsv($out, [$iv['invoice_number'], date('Y-m-d', strtotime($iv['issue_date'])),
+                cbCsv($out, [$iv['invoice_number'], date('Y-m-d', strtotime($iv['issue_date'])),
                                $iv['to_name'], $iv['order_code'] ?: '(direct)',
                                number_format((float)$iv['total'], 2),
                                number_format((float)$iv['amount_paid'], 2),
@@ -427,6 +510,46 @@ if ($format === 'csv') {
         <?php endforeach; if (!$payments): ?><tr><td colspan="4" class="empty">No payments in this period.</td></tr><?php endif; ?>
         </tbody>
     </table>
+
+<?php elseif ($type === 'reps'): ?>
+    <table>
+        <thead><tr><th>Sales rep / agent</th><th class="r">Invoices</th><th class="r">Sold (ex-VAT)</th><th class="r">Billed (inc VAT)</th><th class="r">Commission</th><th class="r">Net to shop</th></tr></thead>
+        <tbody>
+        <?php $rSold=0.0; $rComm=0.0; foreach ($repRows as $rr): $rSold+=$rr['sold']; $rComm+=$rr['commission']; ?>
+            <tr>
+                <td class="mono-b"><?= htmlspecialchars($rr['name']) ?></td>
+                <td class="r"><?= (int)$rr['invoices'] ?></td>
+                <td class="r"><?= $money($rr['sold']) ?></td>
+                <td class="r"><?= $money($rr['gross']) ?></td>
+                <td class="r owed"><?= $money($rr['commission']) ?></td>
+                <td class="r"><?= $money($rr['sold'] - $rr['commission']) ?></td>
+            </tr>
+        <?php endforeach; if (!$repRows): ?>
+            <tr><td colspan="6" class="empty">No rep sales in this period.</td></tr>
+        <?php endif; ?>
+        </tbody>
+        <?php if ($repRows): ?>
+        <tfoot><tr><td>Total</td><td></td><td class="r"><?= $money($rSold) ?></td><td></td><td class="r"><?= $money($rComm) ?></td><td class="r"><?= $money($rSold - $rComm) ?></td></tr></tfoot>
+        <?php endif; ?>
+    </table>
+
+    <?php // Where each rep is actually selling — the stores behind those totals. ?>
+    <?php foreach ($repRows as $rr): ?>
+    <h2 class="rep-stores-head"><?= htmlspecialchars($rr['name']) ?> &mdash; stores</h2>
+    <table>
+        <thead><tr><th>Store / customer</th><th class="r">Invoices</th><th class="r">Sold (ex-VAT)</th><th class="r">Share</th></tr></thead>
+        <tbody>
+        <?php foreach ($rr['stores'] as $storeName => $st): ?>
+            <tr>
+                <td><?= htmlspecialchars($storeName) ?></td>
+                <td class="r"><?= (int)$st['count'] ?></td>
+                <td class="r"><?= $money($st['value']) ?></td>
+                <td class="r"><?= $rr['sold'] > 0 ? number_format($st['value'] / $rr['sold'] * 100, 1) : '0.0' ?>%</td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    <?php endforeach; ?>
 
 <?php else: ?>
     <table>

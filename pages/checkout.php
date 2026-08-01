@@ -212,15 +212,15 @@ $grandTotal     = $totals['total'];
                                  down renders for trade customers too, and a duplicate field
                                  name means PHP keeps only the last one — which silently threw
                                  these mandatory delivery instructions away. -->
-                            <label for="trade_instructions" class="form-label cbco-label-strong">
-                                <i class="fa-solid fa-clock cbco-icon-primary"></i> Store Opening Hours & Delivery Instructions *
+                            <label for="trade_instructions" id="trade_instructions_label" class="form-label cbco-label-strong">
+                                <i class="fa-solid fa-clock cbco-icon-primary"></i> Store Opening Hours &amp; Delivery Instructions *
                             </label>
                             <textarea id="trade_instructions" name="trade_instructions" class="form-control" rows="3"
-                                placeholder="Please specify: 
+                                placeholder="Please specify:
 1. Store opening hours (e.g. 9:00 AM - 8:00 PM)
 2. Delivery place / drop-off location (e.g. Rear loading bay / Front counter)
 3. Any access codes or special delivery notes" required><?= htmlspecialchars($_POST['notes'] ?? '') ?></textarea>
-                            <small class="cbco-field-hint">
+                            <small class="cbco-field-hint" id="trade_instructions_hint">
                                 <i class="fa-solid fa-circle-info"></i> Our drivers will use these details for smooth store delivery.
                             </small>
                         </div>
@@ -1119,60 +1119,85 @@ function updateDeliveryDisplay(charge) {
     triggerStripeAmountUpdate();
 }
 
+// Show/hide, without assuming an element exists.
+//
+// The trade and retail checkouts render DIFFERENT field sets — the structured
+// address inputs are retail-only — so reaching straight for
+// getElementById('addr_house').style on the trade page threw on the first null
+// and abandoned the rest of the function. That is why picking Warehouse
+// Collection as a trade customer did nothing: the warehouse panel never
+// appeared and the mandatory delivery instructions stayed mandatory.
+function cbShow(id, visible, displayAs) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = visible ? (displayAs || 'block') : 'none';
+}
+function cbRequire(id, required) {
+    const el = document.getElementById(id);
+    if (el) el.required = required;
+}
+
 function toggleOrderType(type) {
     const isCollection = (type === 'collection');
     const delLabel = document.getElementById('type_delivery_label');
     const colLabel = document.getElementById('type_collection_label');
-    
+
+    if (delLabel) delLabel.classList.toggle('cbco-order-type-option-active', !isCollection);
+    if (delLabel) delLabel.classList.toggle('cbco-order-type-option-idle',    isCollection);
+    if (colLabel) colLabel.classList.toggle('cbco-order-type-option-active',  isCollection);
+    if (colLabel) colLabel.classList.toggle('cbco-order-type-option-idle',   !isCollection);
+
+    // Collecting from the warehouse means there is no delivery to instruct,
+    // so the trade instructions stop being mandatory and say why.
+    const tradeNote  = document.getElementById('trade_instructions');
+    const tradeLabel = document.getElementById('trade_instructions_label');
+    const tradeHint  = document.getElementById('trade_instructions_hint');
+    if (tradeNote) {
+        tradeNote.required = !isCollection;
+        tradeNote.placeholder = isCollection
+            ? 'Anything we should know about your collection (optional)'
+            : 'Please specify:\n1. Store opening hours (e.g. 9:00 AM - 8:00 PM)\n2. Delivery place / drop-off location (e.g. Rear loading bay / Front counter)\n3. Any access codes or special delivery notes';
+    }
+    if (tradeLabel) {
+        tradeLabel.innerHTML = isCollection
+            ? '<i class="fa-solid fa-clock cbco-icon-primary"></i> Collection notes <span class="cbco-optional">(optional)</span>'
+            : '<i class="fa-solid fa-clock cbco-icon-primary"></i> Store Opening Hours &amp; Delivery Instructions *';
+    }
+    if (tradeHint) {
+        tradeHint.innerHTML = isCollection
+            ? '<i class="fa-solid fa-circle-info"></i> Not needed for collection — tell us anything useful if you like.'
+            : '<i class="fa-solid fa-circle-info"></i> Our drivers will use these details for smooth store delivery.';
+    }
+
     if (isCollection) {
-        delLabel.style.borderColor = 'var(--border-light)';
-        delLabel.style.background = 'var(--bg-surface)';
-        delLabel.querySelector('span').style.color = 'var(--text-secondary)';
-        delLabel.querySelector('i').style.color = 'var(--text-secondary)';
-        
-        colLabel.style.borderColor = 'var(--color-primary)';
-        colLabel.style.background = 'var(--color-primary-bg)';
-        colLabel.querySelector('span').style.color = 'var(--text-primary)';
-        colLabel.querySelector('i').style.color = 'var(--color-primary)';
-        
-        document.getElementById('postcode_field_group').style.display = 'none';
-        document.getElementById('address_fields_container').style.display = 'none';
-        document.getElementById('warehouseCollectionInfo').style.display = 'block';
-        
-        document.getElementById('delivery_postcode').required = false;
-        document.getElementById('address').required = false;
-        document.getElementById('addr_house').required = false;
-        document.getElementById('addr_street').required = false;
-        document.getElementById('addr_city').required = false;
-        
-        const pcStatus = document.getElementById('postcodeStatus');
-        if (pcStatus) pcStatus.style.display = 'none';
+        cbShow('postcode_field_group', false);
+        cbShow('address_fields_container', false);
+        cbShow('warehouseCollectionInfo', true);
+
+        cbRequire('delivery_postcode', false);
+        cbRequire('address', false);
+        cbRequire('addr_house', false);
+        cbRequire('addr_street', false);
+        cbRequire('addr_city', false);
+
+        cbShow('postcodeStatus', false);
         updateDeliveryDisplay(0);
     } else {
-        colLabel.style.borderColor = 'var(--border-light)';
-        colLabel.style.background = 'var(--bg-surface)';
-        colLabel.querySelector('span').style.color = 'var(--text-secondary)';
-        colLabel.querySelector('i').style.color = 'var(--text-secondary)';
-        
-        delLabel.style.borderColor = 'var(--color-primary)';
-        delLabel.style.background = 'var(--color-primary-bg)';
-        delLabel.querySelector('span').style.color = 'var(--text-primary)';
-        delLabel.querySelector('i').style.color = 'var(--color-primary)';
-        
-        document.getElementById('postcode_field_group').style.display = 'block';
-        document.getElementById('address_fields_container').style.display = 'block';
-        document.getElementById('warehouseCollectionInfo').style.display = 'none';
-        
-        document.getElementById('delivery_postcode').required = true;
-        
+        cbShow('postcode_field_group', true);
+        cbShow('address_fields_container', true);
+        cbShow('warehouseCollectionInfo', false);
+
+        cbRequire('delivery_postcode', true);
+
         if (manualMode) {
             switchToManualMode();
         } else {
-            const pc = document.getElementById('delivery_postcode').value.trim();
+            // Trade has no structured address block, so read defensively here
+            // too rather than reintroducing the same crash on this path.
+            const pc = (document.getElementById('delivery_postcode')?.value || '').trim();
             if (pc && isValidUKPostcode(pc)) {
-                document.getElementById('addr_house').required = true;
-                document.getElementById('addr_street').required = true;
-                document.getElementById('addr_city').required = true;
+                cbRequire('addr_house', true);
+                cbRequire('addr_street', true);
+                cbRequire('addr_city', true);
             } else {
                 switchToManualMode();
             }

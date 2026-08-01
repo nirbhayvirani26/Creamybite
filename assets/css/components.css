@@ -1076,3 +1076,7 @@ a.btn-primary.cboc-directions-btn {
 
 /* Variant name under an order line, built by JS on the order page. */
 .cbo-variant-label { font-size:11px; color:var(--text-muted); font-weight:500; }
+
+/* Marks a field that stops being mandatory — e.g. delivery instructions once
+   the customer has chosen to collect from the warehouse. */
+.cbco-optional { font-weight: 600; color: var(--text-muted); font-size: 12px; }

@@ -1173,3 +1173,140 @@ button.cbpf-add-variant-btn{ padding: 10px 18px; flex-shrink: 0; }
 .expand-btn       { cursor:pointer; background:none; border:none; color:var(--color-secondary);
                     font-size:13px; display:flex; align-items:center; gap:4px; }
 .expand-btn:hover { color:var(--color-primary); }
+
+/* ── Trade account search bar ─────────────────────────────────── */
+.cbi-trade-searchbar     { margin-bottom: 16px; }
+.cbi-trade-search-wrap   { position: relative; max-width: 420px; }
+.cbi-trade-search-icon   { position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+                           color: var(--text-muted); font-size: 13px; pointer-events: none; }
+.cbi-trade-search-input  { padding-left: 34px; padding-right: 34px; }
+.cbi-trade-search-clear  { position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+                           background: none; border: none; cursor: pointer;
+                           color: var(--text-muted); font-size: 14px; padding: 4px; }
+.cbi-trade-search-clear:hover { color: var(--color-primary); }
+.cbi-trade-nomatch       { text-align: center; padding: 28px 12px; color: var(--text-muted); font-size: 14px; }
+
+/* Sort arrows sit dim until their column is the one in use. */
+th.inv-sort               { cursor: pointer; user-select: none; }
+th.inv-sort i             { opacity: .35; margin-left: 4px; font-size: 11px; }
+th.inv-sort i.is-sorted   { opacity: 1; }
+
+.btn-sm-info { background: rgba(14,165,233,0.12); color: #0284c7; border: 1px solid rgba(14,165,233,0.3); }
+.btn-sm-info:hover { background: rgba(14,165,233,0.2); }
+
+/* ── Trade customer report (trade_report.php) ─────────────────── */
+.cbtr-page   { padding: 32px 0 80px; }
+.cbtr-shell  { max-width: 1240px; }
+.cbtr-head   { display: flex; justify-content: space-between; align-items: flex-start;
+               gap: 20px; flex-wrap: wrap; margin-bottom: 24px; }
+.cbtr-back-link { font-size: 13px; color: var(--text-muted); display: inline-flex; align-items: center; gap: 6px; }
+.cbtr-title     { margin: 8px 0 4px; font-size: 26px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.cbtr-subtitle  { font-size: 13px; color: var(--text-muted); }
+.cbtr-print-btn { padding: 10px 18px; font-size: 13px; white-space: nowrap; }
+
+.cbtr-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                  gap: 16px; margin-bottom: 20px; }
+.cbtr-stat      { background: var(--bg-surface, #fff); border: 1px solid var(--border-light);
+                  border-radius: var(--radius-md); padding: 18px 20px; }
+.cbtr-stat.is-owing { background: #fffbeb; border-color: #fde68a; }
+.cbtr-stat.is-owing .cbtr-stat-value { color: #b45309; }
+.cbtr-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .07em;
+                   color: var(--text-muted); font-weight: 800; margin-bottom: 6px; }
+.cbtr-stat-value { font-size: 24px; font-weight: 800; color: var(--color-primary); }
+.cbtr-stat-note  { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.cbtr-pos        { color: #047857; }
+.cbtr-due        { color: #b91c1c; font-weight: 700; }
+
+.cbtr-card       { background: var(--bg-surface, #fff); border: 1px solid var(--border-light);
+                   border-radius: var(--radius-md); padding: 22px; margin-bottom: 20px; }
+.cbtr-card-title { margin: 0 0 16px; font-size: 15px; font-weight: 800;
+                   display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.cbtr-card-sub   { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+.cbtr-freq-grid  { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px; }
+.cbtr-freq-value { font-size: 20px; font-weight: 800; color: var(--text-primary); }
+.cbtr-freq-value.cbtr-stale { color: #b45309; }
+.cbtr-freq-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.cbtr-note       { margin: 14px 0 0; font-size: 13px; color: var(--text-muted); }
+.cbtr-note.cbtr-warn { color: #b45309; font-weight: 600; }
+
+.cbtr-table      { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cbtr-table th   { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+                   color: var(--text-muted); font-weight: 800; padding: 8px 10px;
+                   border-bottom: 1px solid var(--border-light); }
+.cbtr-table td   { padding: 9px 10px; border-bottom: 1px solid var(--border-light); }
+.cbtr-col-num    { text-align: right; white-space: nowrap; }
+.cbtr-col-rank   { width: 40px; }
+.cbtr-col-share  { width: 26%; }
+.cbtr-rank       { color: var(--text-muted); font-weight: 700; }
+.cbtr-product-name { font-weight: 600; }
+.cbtr-order-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+.cbtr-link       { color: var(--color-primary); font-weight: 700; }
+
+.cbtr-bar-track  { height: 6px; background: rgba(var(--color-primary-rgb), 0.15); border-radius: 3px; width: 100%; }
+.cbtr-bar-fill   { height: 6px; width: 0; background: var(--color-primary); border-radius: 3px; transition: width .5s ease; }
+
+.cbtr-pay           { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+.cbtr-pay.is-paid   { background: #ecfdf5; color: #047857; }
+.cbtr-pay.is-unpaid { background: #fef2f2; color: #b91c1c; }
+
+.cbtr-empty       { text-align: center; padding: 60px 20px; }
+.cbtr-empty-icon  { font-size: 44px; margin-bottom: 12px; }
+.cbtr-empty-title { font-size: 20px; font-weight: 800; margin: 0 0 8px; }
+.cbtr-empty-text  { font-size: 14px; color: var(--text-muted); margin: 0; }
+
+@media print {
+    .no-print { display: none !important; }
+    .cbtr-card, .cbtr-stat { break-inside: avoid; }
+}
+
+/* ── Sales reps panel (invoices tab) ──────────────────────────── */
+.cbi-rep-intro     { font-size: 13px; color: var(--text-muted); margin: 0 0 14px; }
+.cbi-rep-add-form  { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.cbi-rep-input     { flex: 1 1 160px; min-width: 140px; }
+.cbi-rep-add-btn   { padding: 10px 18px; font-size: 13px; white-space: nowrap; }
+.cbi-rep-empty     { font-size: 13px; color: var(--text-muted); margin: 0; }
+.cbi-rep-table     { width: 100%; }
+.cbi-rep-contact   { font-size: 12px; color: var(--text-muted); }
+.cbi-rep-toggle-form { display: inline; }
+.cbi-rep-toggle    { border: none; cursor: pointer; font-size: 11px; font-weight: 700;
+                     padding: 4px 12px; border-radius: 20px; }
+.cbi-rep-toggle.is-active   { background: rgba(16,185,129,0.15); color: #10b981; }
+.cbi-rep-toggle.is-inactive { background: rgba(100,100,100,0.12); color: var(--text-muted); }
+.cbi-inv-rep-cell  { font-size: 13px; }
+
+/* ── Invoice editor: internal-only block ──────────────────────── */
+.cbie-internal      { border-left: 4px solid #b45309; background: #fffdf7; }
+.cbie-internal-tag  { font-size: 10px; font-weight: 800; text-transform: uppercase;
+                      letter-spacing: .07em; color: #b45309; background: #fef3c7;
+                      padding: 3px 9px; border-radius: 20px; margin-left: 10px;
+                      display: inline-flex; align-items: center; gap: 5px; }
+.cbie-commission-figure { font-size: 22px; font-weight: 800; color: #b45309; padding-top: 4px; }
+
+/* ── Revenue: top-product tables ──────────────────────────────────
+   Replaced two flat bar charts (and the Chart.js CDN dependency) with
+   tables. A table gives the exact units and revenue alongside the shape,
+   prints properly, and needs nothing loaded from another origin. The dot
+   and bar colour come from the product's name, so a product keeps the same
+   colour in both tables and can be matched across them at a glance. */
+.cbi-prod-table        { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cbi-prod-table th     { text-align: left; font-size: 10.5px; text-transform: uppercase;
+                         letter-spacing: .06em; color: var(--text-muted); font-weight: 800;
+                         padding: 8px 8px; border-bottom: 1px solid var(--border-light); }
+.cbi-prod-table td     { padding: 9px 8px; border-bottom: 1px solid var(--border-light); }
+.cbi-prod-table tfoot td { border-bottom: none; border-top: 2px solid var(--border-light);
+                           font-weight: 800; color: var(--text-muted); font-size: 12px; }
+.cbi-prod-col-num      { text-align: right; white-space: nowrap; }
+.cbi-prod-col-rank     { width: 34px; }
+.cbi-prod-col-bar      { width: 34%; }
+.cbi-prod-rank         { color: var(--text-muted); font-weight: 800; }
+.cbi-prod-name         { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.cbi-prod-dot          { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 10px;
+                         background: var(--text-muted); }
+.cbi-prod-bar-track    { height: 7px; background: rgba(120,120,120,0.15);
+                         border-radius: 4px; width: 100%; display: inline-block; vertical-align: middle; }
+.cbi-prod-bar-fill     { height: 7px; width: 0; border-radius: 4px; display: block;
+                         background: var(--text-muted); transition: width .5s ease; }
+.cbi-prod-share        { font-size: 11px; color: var(--text-muted); margin-left: 2px; }
+.cbi-rev-chart-sub     { display: block; font-size: 11px; font-weight: 600;
+                         color: var(--text-muted); margin-top: 3px; }

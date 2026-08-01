@@ -34,6 +34,7 @@ unset($_SESSION['invoice_flash']);
 $isTradeInvoice = ((int)$inv['trade_user_id'] > 0) || ((float)$inv['vat_rate'] > 0);
 $productOptions = invoiceProductOptions($pdo, $isTradeInvoice);
 $tradeCustomers = invoiceTradeCustomers($pdo);
+$salesReps      = invoiceSalesReps($pdo);
 
 // The order this invoice came from, shown by its CB- code rather than its
 // database id — the code is what appears on the order and in emails.
@@ -126,10 +127,6 @@ $locked = ($inv['status'] === 'void');
                 <div>
                     <label class="form-label">Due Date <small class="cbie-muted">(optional)</small></label>
                     <input type="date" name="due_date" class="form-control" value="<?= htmlspecialchars((string)$inv['due_date']) ?>">
-                </div>
-                <div>
-                    <label class="form-label">Currency</label>
-                    <input type="text" name="currency" class="form-control" value="<?= htmlspecialchars($inv['currency']) ?>" maxlength="8">
                 </div>
             </div>
         </div>
@@ -285,6 +282,68 @@ $locked = ($inv['status'] === 'void');
                 <small class="cbie-hint cbie-hint-totals">
                     Figures above update live; the stored totals are recalculated on save.
                 </small>
+            </div>
+        </div>
+
+        <!-- ── Sales rep & commission (internal) ──────── -->
+        <div class="inv-card cbie-internal">
+            <h3>
+                Sold by
+                <span class="cbie-internal-tag">
+                    <i class="fa-solid fa-lock"></i> Internal only — never printed or emailed
+                </span>
+            </h3>
+            <div class="inv-grid">
+                <div>
+                    <label class="form-label">Sales rep / agent</label>
+                    <select name="sales_rep_id" id="fSalesRep" class="form-control">
+                        <option value="0">— House sale (no rep) —</option>
+                        <?php foreach ($salesReps as $rep): ?>
+                        <option value="<?= (int)$rep['id'] ?>"
+                            <?= (int)$inv['sales_rep_id'] === (int)$rep['id'] ? 'selected' : '' ?>
+                            <?= (!$rep['active'] && (int)$inv['sales_rep_id'] !== (int)$rep['id']) ? 'disabled' : '' ?>>
+                            <?= htmlspecialchars($rep['name']) ?><?= $rep['active'] ? '' : ' (inactive)' ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (empty($salesReps)): ?>
+                    <small class="cbie-hint">
+                        No reps yet — add them from the Invoices tab.
+                    </small>
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <label class="form-label">Commission (%)</label>
+                    <select name="commission_percent" id="fCommission" class="form-control">
+                        <option value="0">— None —</option>
+                        <?php
+                        // 2–20% in whole points: the agreed band. A stored rate
+                        // outside it (from older data) is added so editing an
+                        // invoice never silently changes what the rep is owed.
+                        $rates = range(2, 20);
+                        $current = (float)$inv['commission_percent'];
+                        if ($current > 0 && !in_array((int)$current, $rates, true)) {
+                            $rates[] = $current;
+                            sort($rates);
+                        }
+                        foreach ($rates as $r):
+                        ?>
+                        <option value="<?= $r ?>" <?= abs($current - $r) < 0.005 ? 'selected' : '' ?>>
+                            <?= rtrim(rtrim(number_format((float)$r, 2, '.', ''), '0'), '.') ?>%
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="cbie-hint">Charged on the goods, excluding VAT.</small>
+                </div>
+                <div>
+                    <label class="form-label">Commission due</label>
+                    <div class="cbie-commission-figure" id="tCommission">
+                        £<?= number_format(invoiceCommission($inv), 2) ?>
+                    </div>
+                    <small class="cbie-hint" id="commissionBasis">
+                        <?= number_format((float)$inv['total'] - (float)$inv['vat_amount'], 2) ?> ex-VAT
+                    </small>
+                </div>
             </div>
         </div>
 
@@ -570,6 +629,22 @@ function recalc() {
     document.getElementById('tDelivery').textContent = money(delivery);
     document.getElementById('tVat').textContent      = money(vat);
     document.getElementById('tTotal').textContent    = money(total);
+
+    // Commission tracks the goods, never the VAT — the same basis the server
+    // uses in invoiceCommission(), so the figure shown here is the figure that
+    // gets stored.
+    const commEl = document.getElementById('tCommission');
+    if (commEl) {
+        const pct   = parseFloat((document.getElementById('fCommission') || {}).value) || 0;
+        const exVat = Math.max(0, Math.round((total - vat) * 100) / 100);
+        commEl.textContent = money(Math.round(exVat * (pct / 100) * 100) / 100);
+        const basis = document.getElementById('commissionBasis');
+        if (basis) {
+            basis.textContent = pct > 0
+                ? pct + '% of ' + money(exVat) + ' ex-VAT'
+                : money(exVat) + ' ex-VAT';
+        }
+    }
 }
 
 function addLine() {
@@ -596,6 +671,11 @@ function removeLine(btn) {
 
 document.addEventListener('input', e => {
     if (e.target.closest('#lineBody') || ['fDiscount','fDelivery','fVatRate'].includes(e.target.id)) recalc();
+});
+// The commission and discount-type pickers are <select>s, which fire change
+// rather than input — without this the figure would lag a step behind.
+document.addEventListener('change', e => {
+    if (['fCommission','fDiscountType'].includes(e.target.id)) recalc();
 });
 recalc();
 </script>

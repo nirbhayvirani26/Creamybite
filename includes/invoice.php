@@ -242,6 +242,113 @@ function syncInvoicePaymentState(PDO $pdo, int $invoiceId): void
         ->execute(['paid' => $paid, 'st' => $status, 'id' => $invoiceId]);
 }
 
+/**
+ * Every sales rep / agent, newest-active first. Empty when the table has not
+ * been migrated yet, so the invoice editor degrades to "no reps" rather than
+ * dying on a server whose schema is behind.
+ */
+function invoiceSalesReps(PDO $pdo, bool $activeOnly = false): array
+{
+    try {
+        $sql = "SELECT id, name, phone, email, active FROM sales_reps";
+        if ($activeOnly) {
+            $sql .= " WHERE active = 1";
+        }
+        $sql .= " ORDER BY active DESC, name ASC";
+        return $pdo->query($sql)->fetchAll();
+    } catch (PDOException $e) {
+        error_log('invoiceSalesReps failed: ' . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Commission earned on one invoice.
+ *
+ * Charged on the goods, never on the VAT: the VAT is the government's money
+ * passing through, so paying a percentage of it would come straight out of
+ * the shop's margin. Delivery is included because it is part of what the rep
+ * sold. Returns 0 when no rate is set.
+ */
+function invoiceCommission(array $inv): float
+{
+    $pct = (float)($inv['commission_percent'] ?? 0);
+    if ($pct <= 0) {
+        return 0.0;
+    }
+    $exVat = (float)($inv['total'] ?? 0) - (float)($inv['vat_amount'] ?? 0);
+    if ($exVat <= 0) {
+        return 0.0;
+    }
+    return round($exVat * $pct / 100, 2);
+}
+
+/**
+ * Settle an invoice whose source order was already paid.
+ *
+ * Raising an invoice from an order the customer paid at checkout used to leave
+ * it reading UNPAID, so the invoice list showed money outstanding that had in
+ * fact been received. This records the payment once, against the order's own
+ * method, and leaves the status to syncInvoicePaymentState().
+ *
+ * Returns true only when it actually added a payment, so the caller can say so.
+ * Deliberately does nothing for void invoices, invoices not raised from an
+ * order, orders still unpaid, and invoices that already have a payment
+ * recorded — re-saving must not keep stacking up duplicate payments.
+ */
+function invoiceSettleFromPaidOrder(PDO $pdo, int $invoiceId): bool
+{
+    try {
+        $q = $pdo->prepare(
+            "SELECT i.total, i.status, i.order_id, o.payment_status, o.payment_method
+               FROM invoices i
+               JOIN orders o ON o.id = i.order_id
+              WHERE i.id = :id"
+        );
+        $q->execute(['id' => $invoiceId]);
+        $row = $q->fetch();
+
+        if (!$row || $row['status'] === 'void') {
+            return false;
+        }
+        // 'Unpaid' is the only state that means no money has been taken.
+        if (($row['payment_status'] ?? 'Unpaid') === 'Unpaid') {
+            return false;
+        }
+
+        $total = round((float)$row['total'], 2);
+        if ($total <= 0) {
+            return false;
+        }
+
+        $existing = $pdo->prepare("SELECT COUNT(*) FROM invoice_payments WHERE invoice_id = :id");
+        $existing->execute(['id' => $invoiceId]);
+        if ((int)$existing->fetchColumn() > 0) {
+            return false;
+        }
+
+        $method = ($row['payment_method'] ?? '') === 'cash' || $row['payment_status'] === 'Cash'
+            ? 'Cash'
+            : 'Card (online)';
+
+        $pdo->prepare(
+            "INSERT INTO invoice_payments (invoice_id, paid_on, amount, method, reference)
+             VALUES (:inv, :on, :amt, :method, :ref)"
+        )->execute([
+            'inv'    => $invoiceId,
+            'on'     => date('Y-m-d'),
+            'amt'    => $total,
+            'method' => $method,
+            'ref'    => 'Paid with the original order',
+        ]);
+
+        return true;
+    } catch (PDOException $e) {
+        error_log('invoiceSettleFromPaidOrder failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
 /** Full invoice with its items and payments. Null when not found. */
 function loadInvoice(PDO $pdo, int $invoiceId): ?array
 {

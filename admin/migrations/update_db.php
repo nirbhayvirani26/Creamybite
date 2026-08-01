@@ -161,6 +161,20 @@ $tables = [
           FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 
+    // Agents and sales reps who bring in trade orders. Kept as their own
+    // table rather than free text on the invoice so the same person is
+    // spelled one way everywhere and their sales can actually be totalled.
+    'sales_reps' => "CREATE TABLE IF NOT EXISTS `sales_reps` (
+        `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `name`       VARCHAR(150) NOT NULL,
+        `phone`      VARCHAR(40)  NOT NULL DEFAULT '',
+        `email`      VARCHAR(180) NOT NULL DEFAULT '',
+        `active`     TINYINT(1)   NOT NULL DEFAULT 1,
+        `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uq_rep_name` (`name`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
     'invoice_settings' => "CREATE TABLE IF NOT EXISTS `invoice_settings` (
         `id`                   TINYINT UNSIGNED NOT NULL DEFAULT 1,
         `number_prefix`        VARCHAR(12)  NOT NULL DEFAULT 'INV',
@@ -231,6 +245,13 @@ $columns = [
     ['orders',      'vat_number',      "ALTER TABLE `orders` ADD COLUMN `vat_number` VARCHAR(50) NOT NULL DEFAULT '' AFTER `vat_amount`"],
     ['orders',      'stock_deducted',  "ALTER TABLE `orders` ADD COLUMN `stock_deducted` TINYINT(1) NOT NULL DEFAULT 0 AFTER `status`"],
     ['promo_codes', 'description',     "ALTER TABLE `promo_codes` ADD COLUMN `description` VARCHAR(255) NOT NULL DEFAULT '' AFTER `code`"],
+
+    // Who sold it, and what they earn on it. commission_percent is stored on
+    // the invoice rather than on the rep because the rate is agreed per deal;
+    // reading it off the rep would silently rewrite history the moment
+    // someone edited their standard rate.
+    ['invoices', 'sales_rep_id',       "ALTER TABLE `invoices` ADD COLUMN `sales_rep_id` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `trade_user_id`"],
+    ['invoices', 'commission_percent', "ALTER TABLE `invoices` ADD COLUMN `commission_percent` DECIMAL(5,2) NOT NULL DEFAULT 0.00 AFTER `sales_rep_id`"],
 ];
 
 foreach ($columns as [$table, $col, $sql]) {

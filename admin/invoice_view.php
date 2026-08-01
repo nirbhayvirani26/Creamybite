@@ -30,6 +30,19 @@ if (!$inv) {
 }
 
 [$stLabel, $stBg, $stFg, $stBd] = invoiceStatusLabel($inv['status']);
+
+// The rep's name, resolved once. Looked up rather than stored on the invoice
+// so a corrected spelling shows on every document that person sold.
+$salesRepName = '';
+if (!empty($inv['sales_rep_id'])) {
+    try {
+        $r = $pdo->prepare("SELECT name FROM sales_reps WHERE id = :id");
+        $r->execute(['id' => (int)$inv['sales_rep_id']]);
+        $salesRepName = (string)($r->fetchColumn() ?: '');
+    } catch (PDOException $e) {
+        error_log('Sales rep lookup failed: ' . $e->getMessage());
+    }
+}
 $symbol  = $inv['currency'] === 'GBP' ? '£' : '';
 $balance = (float)$inv['balance_due'];
 
@@ -101,7 +114,10 @@ function invLines(string $text): string
                 </tr>
             </table>
 
-            <span class="pill <?= invoiceStatusClass($inv['status']) ?>">
+            <!-- Screen only. DRAFT / SENT / PART PAID are internal bookkeeping,
+                 and a customer handed a document stamped "DRAFT" reasonably
+                 doubts whether it is a real invoice. -->
+            <span class="pill no-print <?= invoiceStatusClass($inv['status']) ?>">
                 <?= $stLabel ?>
             </span>
         </div>
@@ -116,6 +132,14 @@ function invLines(string $text): string
             <?php if ($inv['to_email'] !== ''): ?><br><?= htmlspecialchars($inv['to_email']) ?><?php endif; ?>
             <?php if ($inv['to_vat_number'] !== ''): ?><br>VAT: <?= htmlspecialchars($inv['to_vat_number']) ?><?php endif; ?>
         </div>
+        <?php if ($salesRepName !== ''): ?>
+        <!-- The rep's NAME is on the customer's copy so they know who served
+             them. What that rep earns is not — see invoice_edit.php. -->
+        <div class="soldby">
+            <span class="soldby-cap">Sold by</span>
+            <strong><?= htmlspecialchars($salesRepName) ?></strong>
+        </div>
+        <?php endif; ?>
     </div>
 
     <table class="items">

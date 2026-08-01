@@ -155,11 +155,18 @@ require_once __DIR__ . '/../includes/invoice.php';
 $invoices        = [];
 $invoiceSettings = [];
 $invoiceOutstanding = 0.0;
+// Initialised here, not only inside the try: a failed invoice query would
+// otherwise leave the rep panel referencing undefined variables.
+$salesReps = [];
+$repTotals = [];
 try {
+    // LEFT JOIN on the rep so an invoice with no rep, or one whose rep was
+    // removed, still appears — an INNER JOIN would quietly hide invoices.
     $invoices = $pdo->query(
-        "SELECT i.*, (i.total - i.amount_paid) AS balance_due, o.order_code
+        "SELECT i.*, (i.total - i.amount_paid) AS balance_due, o.order_code, r.name AS rep_name
            FROM invoices i
-      LEFT JOIN orders o ON o.id = i.order_id
+      LEFT JOIN orders o     ON o.id = i.order_id
+      LEFT JOIN sales_reps r ON r.id = i.sales_rep_id
        ORDER BY i.issue_date DESC, i.id DESC"
     )->fetchAll();
     $invoiceSettings = invoiceSettings($pdo);
@@ -167,6 +174,23 @@ try {
         if ($iv['status'] !== 'void' && $iv['status'] !== 'paid') {
             $invoiceOutstanding += (float)$iv['balance_due'];
         }
+    }
+
+    // What each rep has sold and earned. Voided invoices are excluded — a
+    // cancelled sale is not commission owed.
+    $salesReps = invoiceSalesReps($pdo);
+    $repTotals = [];
+    foreach ($invoices as $iv) {
+        $repId = (int)($iv['sales_rep_id'] ?? 0);
+        if ($repId <= 0 || $iv['status'] === 'void') {
+            continue;
+        }
+        if (!isset($repTotals[$repId])) {
+            $repTotals[$repId] = ['count' => 0, 'sold' => 0.0, 'commission' => 0.0];
+        }
+        $repTotals[$repId]['count']++;
+        $repTotals[$repId]['sold']       += (float)$iv['total'] - (float)$iv['vat_amount'];
+        $repTotals[$repId]['commission'] += invoiceCommission($iv);
     }
 } catch (PDOException $e) {
     error_log('Invoice load failed: ' . $e->getMessage());
@@ -296,6 +320,8 @@ if ($activeTab === 'revenue') {
     $catRevenue      = [];
     $productAllTime  = [];
     $productThisMonth = [];
+    $productRevenue      = [];
+    $productMonthRevenue = [];
     $thisYear  = (int)date('Y');
     $thisMonth = (int)date('n');
 
@@ -336,8 +362,14 @@ if ($activeTab === 'revenue') {
                 // actually sells.
                 $nm  = trim(($it['name'] ?? 'Item') . ' ' . ($it['variant_name'] ?? ''));
                 $qty = (int)$it['quantity'];
+                $val = (float)($it['price'] ?? 0) * $qty;
+
                 $productAllTime[$nm]  = ($productAllTime[$nm]  ?? 0) + $qty;
-                if ($isThisMonth) $productThisMonth[$nm] = ($productThisMonth[$nm] ?? 0) + $qty;
+                $productRevenue[$nm]  = ($productRevenue[$nm]  ?? 0) + $val;
+                if ($isThisMonth) {
+                    $productThisMonth[$nm]    = ($productThisMonth[$nm]    ?? 0) + $qty;
+                    $productMonthRevenue[$nm] = ($productMonthRevenue[$nm] ?? 0) + $val;
+                }
             }
         }
     } catch (PDOException $e) {}
@@ -345,6 +377,8 @@ if ($activeTab === 'revenue') {
     arsort($productThisMonth);
     $revData['chart_alltime']   = array_slice($productAllTime,   0, 10, true);
     $revData['chart_thismonth'] = array_slice($productThisMonth, 0, 10, true);
+    $revData['revenue_alltime']   = $productRevenue;
+    $revData['revenue_thismonth'] = $productMonthRevenue;
     $revData['cat_revenue']     = $catRevenue;
     $revData['from']            = $revFrom;
     $revData['to']              = $revTo;
@@ -547,6 +581,9 @@ $pageTitles = [
                 </h2>
                 <div class="cbi-btn-row">
                     <?php // "New invoice" lives in the topbar — not repeated here. ?>
+                    <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="document.getElementById('salesRepPanel').classList.toggle('is-hidden')">
+                        <i class="fa-solid fa-user-tie"></i> Sales Reps
+                    </button>
                     <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="document.getElementById('invSettings').classList.toggle('is-hidden')">
                         <i class="fa-solid fa-gear"></i> Settings
                     </button>
@@ -583,6 +620,71 @@ $pageTitles = [
                 <span class="cbi-inv-picker-note"><?= count($uninvoicedOrders) ?> order(s) not yet invoiced</span>
             </form>
             <?php endif; ?>
+
+            <!-- Sales reps / agents -->
+            <div id="salesRepPanel" class="cbi-inv-settings-panel is-hidden">
+                <h3 class="cbi-inv-settings-title">Sales reps &amp; agents</h3>
+                <p class="cbi-rep-intro">
+                    Anyone here can be picked on an invoice as who sold it. Their
+                    name appears on the customer's copy; the commission does not.
+                </p>
+
+                <form method="POST" action="handlers/invoice_handler.php" class="cbi-rep-add-form">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="add_rep">
+                    <input type="text" name="rep_name"  class="form-control cbi-rep-input" placeholder="Name *" required>
+                    <input type="text" name="rep_phone" class="form-control cbi-rep-input" placeholder="Phone">
+                    <input type="email" name="rep_email" class="form-control cbi-rep-input" placeholder="Email">
+                    <button type="submit" class="btn-primary cbi-rep-add-btn">
+                        <i class="fa-solid fa-plus"></i> Add
+                    </button>
+                </form>
+
+                <?php if (empty($salesReps)): ?>
+                <p class="cbi-rep-empty">No reps yet. Add one above.</p>
+                <?php else: ?>
+                <table class="data-table cbi-rep-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Contact</th>
+                            <th class="cbi-col-right">Invoices</th>
+                            <th class="cbi-col-right">Sold (ex-VAT)</th>
+                            <th class="cbi-col-right">Commission</th>
+                            <th class="cbi-col-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($salesReps as $rep):
+                            $rs = $repTotals[(int)$rep['id']] ?? ['count' => 0, 'sold' => 0.0, 'commission' => 0.0];
+                        ?>
+                        <tr>
+                            <td><strong><?= htmlspecialchars($rep['name']) ?></strong></td>
+                            <td class="cbi-rep-contact">
+                                <?= htmlspecialchars(trim($rep['phone'] . ' ' . $rep['email'])) ?: '<span class="cbi-muted">—</span>' ?>
+                            </td>
+                            <td class="cbi-col-right"><?= (int)$rs['count'] ?></td>
+                            <td class="cbi-col-right">£<?= number_format($rs['sold'], 2) ?></td>
+                            <td class="cbi-col-right"><strong>£<?= number_format($rs['commission'], 2) ?></strong></td>
+                            <td class="cbi-col-right">
+                                <form method="POST" action="handlers/invoice_handler.php" class="cbi-rep-toggle-form"
+                                      data-confirm="<?= $rep['active'] ? 'Deactivate' : 'Reactivate' ?> <?= htmlspecialchars($rep['name'], ENT_QUOTES) ?>? Invoices they already sold keep their name either way."
+                                      data-confirm-title="<?= $rep['active'] ? 'Deactivate rep?' : 'Reactivate rep?' ?>"
+                                      data-confirm-ok="<?= $rep['active'] ? 'Deactivate' : 'Reactivate' ?>">
+                                    <?= csrfField() ?>
+                                    <input type="hidden" name="action" value="toggle_rep">
+                                    <input type="hidden" name="rep_id" value="<?= (int)$rep['id'] ?>">
+                                    <button type="submit" class="cbi-rep-toggle <?= $rep['active'] ? 'is-active' : 'is-inactive' ?>">
+                                        <?= $rep['active'] ? 'Active' : 'Inactive' ?>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php endif; ?>
+            </div>
 
             <!-- Settings -->
             <div id="invSettings" class="cbi-inv-settings-panel is-hidden">
@@ -651,7 +753,8 @@ $pageTitles = [
                             <th class="inv-sort" data-col="2" data-type="text"   onclick="sortInvoices(2,'text',this)">Bill To <i class="fa-solid fa-sort"></i></th>
                             <th class="inv-sort cbi-col-right" data-col="3" data-type="number" onclick="sortInvoices(3,'number',this)">Total <i class="fa-solid fa-sort"></i></th>
                             <th class="inv-sort cbi-col-right" data-col="4" data-type="number" onclick="sortInvoices(4,'number',this)">Balance <i class="fa-solid fa-sort"></i></th>
-                            <th class="inv-sort" data-col="5" data-type="text"   onclick="sortInvoices(5,'text',this)">Status <i class="fa-solid fa-sort"></i></th>
+                            <th class="inv-sort" data-col="5" data-type="text"   onclick="sortInvoices(5,'text',this)">Sold By <i class="fa-solid fa-sort"></i></th>
+                            <th class="inv-sort" data-col="6" data-type="text"   onclick="sortInvoices(6,'text',this)">Status <i class="fa-solid fa-sort"></i></th>
                             <th class="cbi-col-right">Actions</th>
                         </tr>
                     </thead>
@@ -666,6 +769,7 @@ $pageTitles = [
                             data-sort4="<?= number_format((float)$iv['balance_due'], 2, '.', '') ?>"
                             data-number="<?= htmlspecialchars($iv['invoice_number'], ENT_QUOTES) ?>"
                             data-to="<?= htmlspecialchars($iv['to_name'], ENT_QUOTES) ?>"
+                            data-sort5="<?= htmlspecialchars($iv['rep_name'] ?: 'zzz', ENT_QUOTES) ?>"
                             data-total="<?= number_format((float)$iv['total'], 2, '.', '') ?>"
                             data-status="<?= htmlspecialchars($iv['status'], ENT_QUOTES) ?>">
                             <td class="cbi-inv-number-cell">
@@ -681,6 +785,11 @@ $pageTitles = [
                             <td class="cbi-inv-total-cell">£<?= number_format((float)$iv['total'], 2) ?></td>
                             <td class="cbi-inv-balance-cell <?= $bal > 0.001 ? 'is-due' : 'is-clear' ?>">
                                 £<?= number_format($bal, 2) ?>
+                            </td>
+                            <td class="cbi-inv-rep-cell">
+                                <?= $iv['rep_name'] !== null && $iv['rep_name'] !== ''
+                                      ? htmlspecialchars($iv['rep_name'])
+                                      : '<span class="cbi-muted">House</span>' ?>
                             </td>
                             <td>
                                 <span class="cbi-inv-status-badge <?= invoiceStatusClass($iv['status']) ?>">
@@ -1075,6 +1184,20 @@ $pageTitles = [
             </div>
             <?php else: ?>
             
+            <!-- Search by store or contact person -->
+            <div class="cbi-trade-searchbar">
+                <div class="cbi-trade-search-wrap">
+                    <i class="fa-solid fa-magnifying-glass cbi-trade-search-icon"></i>
+                    <input type="text" id="tradeSearch" class="form-control cbi-trade-search-input"
+                           placeholder="Search by store name or contact person…"
+                           autocomplete="off" oninput="filterTradeAccounts(this.value)">
+                    <button type="button" id="tradeSearchClear" class="cbi-trade-search-clear is-hidden"
+                            onclick="clearTradeSearch()" aria-label="Clear search">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
             <!-- Applications Table -->
             <div class="table-wrapper">
                 <table class="data-table cbi-table-full" id="tradeTable">
@@ -1085,28 +1208,37 @@ $pageTitles = [
                                       Contact person now sits under the business name, and the
                                       applied date under the status, giving eight columns that fit. */ ?>
                             <th>ID</th>
-                            <th>Store / Business</th>
+                            <th class="inv-sort" onclick="sortTrade(1,'text',this)">Store / Business <i class="fa-solid fa-sort"></i></th>
                             <th>Email & Phone</th>
                             <th>🔑 Password</th>
                             <th>Delivery Address</th>
                             <th>VAT / Reg No</th>
-                            <th>Status</th>
+                            <th class="inv-sort" onclick="sortTrade(6,'number',this)">Status <i class="fa-solid fa-sort"></i></th>
                             <th class="cbi-col-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($tradeUsers as $tu):
                             $st = $tu['status'];
+                            // Rank rather than label, so sorting by status puts the
+                            // applications that need a decision at the top instead of
+                            // ordering them alphabetically.
                             if ($st === 'approved') {
                                 $stBadge = '<span class="cbi-trade-badge-approved"><i class="fa-solid fa-circle-check"></i> Approved</span>';
+                                $stRank  = 1;
                             } elseif ($st === 'rejected') {
                                 $stBadge = '<span class="cbi-trade-badge-rejected"><i class="fa-solid fa-circle-xmark"></i> Rejected</span>';
+                                $stRank  = 2;
                             } else {
                                 $stBadge = '<span class="cbi-trade-badge-pending"><i class="fa-solid fa-clock"></i> Pending Review</span>';
+                                $stRank  = 0;
                             }
                             $rawPass = !empty($tu['raw_password']) ? htmlspecialchars($tu['raw_password']) : null;
                         ?>
-                        <tr class="cbi-row-divider">
+                        <tr class="cbi-row-divider trade-row"
+                            data-sort1="<?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?>"
+                            data-sort6="<?= $stRank ?>"
+                            data-search="<?= htmlspecialchars($tu['business_name'] . ' ' . $tu['contact_name'] . ' ' . $tu['email'], ENT_QUOTES) ?>">
                             <td class="cbi-trade-id">#<?= $tu['id'] ?></td>
                             <td>
                                 <strong class="cbi-trade-business-name">
@@ -1149,6 +1281,9 @@ $pageTitles = [
                             </td>
                             <td class="cbi-actions-cell">
                                 <div class="cbi-trade-actions">
+                                    <a href="trade_report.php?id=<?= (int)$tu['id'] ?>" class="btn-sm btn-sm-info cbi-trade-action-btn" title="Sales history, top products and order frequency">
+                                        <i class="fa-solid fa-chart-line"></i> Report
+                                    </a>
                                     <?php if ($st !== 'approved'): ?>
                                     <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=trade&action=approve_trade&id=' . (int)$tu['id'])) ?>" class="btn-sm btn-sm-success cbi-trade-action-btn" data-confirm="Approve <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?> as a trade partner? They will get wholesale pricing immediately." data-confirm-title="Approve trade account?" data-confirm-tone="success" data-confirm-ok="Approve">
                                         <i class="fa-solid fa-check"></i> Approve
@@ -1163,6 +1298,11 @@ $pageTitles = [
                             </td>
                         </tr>
                         <?php endforeach; ?>
+                        <tr id="tradeNoMatch" class="is-hidden">
+                            <td colspan="8" class="cbi-trade-nomatch">
+                                No trade account matches that search.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -1638,6 +1778,7 @@ $pageTitles = [
                             <option value="products">Products — what sold</option>
                             <option value="payments">Payments — how it was paid</option>
                             <option value="invoices">Invoices — issued and outstanding</option>
+                            <option value="reps">Sales reps — sold, stores and commission</option>
                         </select>
                     </div>
 
@@ -1722,29 +1863,100 @@ $pageTitles = [
                 <?php endif; ?>
             </div>
 
-            <!-- Charts column -->
+            <!-- Product performance -->
+            <?php
+            /**
+             * A product's colour, fixed by its name.
+             *
+             * The point is that the same product is the same colour in BOTH
+             * tables — so you can see at a glance that this month's number one
+             * is also the all-time number three. Deriving the hue from a hash of
+             * the name means that holds across page loads and however the
+             * rankings shuffle, with no colour column to maintain.
+             */
+            function cbProductHue(string $name): int
+            {
+                return (int)(hexdec(substr(md5($name), 0, 6)) % 360);
+            }
+
+            /** One product table: rank, colour, bar, units, revenue, share. */
+            function cbRenderProductTable(array $rows, array $revenue, string $emptyText): void
+            {
+                if (empty($rows)) {
+                    echo '<p class="cbi-muted-md">' . htmlspecialchars($emptyText) . '</p>';
+                    return;
+                }
+                $top   = max($rows);
+                $total = array_sum($rows);
+                ?>
+                <table class="cbi-prod-table">
+                    <thead>
+                        <tr>
+                            <th class="cbi-prod-col-rank">#</th>
+                            <th>Product</th>
+                            <th class="cbi-prod-col-bar">Share of units</th>
+                            <th class="cbi-prod-col-num">Units</th>
+                            <th class="cbi-prod-col-num">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php $i = 0; foreach ($rows as $name => $qty): $i++; ?>
+                        <tr>
+                            <td class="cbi-prod-rank"><?= $i ?></td>
+                            <td class="cbi-prod-name">
+                                <span class="cbi-prod-dot" data-hue="<?= cbProductHue($name) ?>"></span>
+                                <?= htmlspecialchars($name) ?>
+                            </td>
+                            <td class="cbi-prod-col-bar">
+                                <div class="cbi-prod-bar-track">
+                                    <div class="cbi-prod-bar-fill"
+                                         data-hue="<?= cbProductHue($name) ?>"
+                                         data-pct="<?= $top > 0 ? round($qty / $top * 100, 1) : 0 ?>"></div>
+                                </div>
+                                <span class="cbi-prod-share">
+                                    <?= $total > 0 ? number_format($qty / $total * 100, 1) : '0.0' ?>%
+                                </span>
+                            </td>
+                            <td class="cbi-prod-col-num"><strong><?= (int)$qty ?></strong></td>
+                            <td class="cbi-prod-col-num">£<?= number_format((float)($revenue[$name] ?? 0), 2) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3">Top <?= count($rows) ?></td>
+                            <td class="cbi-prod-col-num"><strong><?= (int)$total ?></strong></td>
+                            <td class="cbi-prod-col-num">
+                                £<?= number_format(array_sum(array_intersect_key($revenue, $rows)), 2) ?>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <?php
+            }
+            ?>
             <div class="cbi-rev-charts-col">
-                <!-- Chart 1: All-time -->
                 <div class="glass-panel cbi-panel-sm">
                     <h3 class="cbi-rev-chart-heading">
-                        <i class="fa-solid fa-chart-bar cbi-text-violet"></i> All-time Top Products (by qty sold)
+                        <i class="fa-solid fa-trophy cbi-text-violet"></i> All-time top products
+                        <span class="cbi-rev-chart-sub">by units sold, paid orders only</span>
                     </h3>
-                    <?php if (empty($revData['chart_alltime'])): ?>
-                    <p class="cbi-muted-md">No data yet.</p>
-                    <?php else: ?>
-                    <canvas id="chartAllTime" height="180"></canvas>
-                    <?php endif; ?>
+                    <?php cbRenderProductTable(
+                        $revData['chart_alltime'] ?? [],
+                        $revData['revenue_alltime'] ?? [],
+                        'No paid orders yet.'
+                    ); ?>
                 </div>
-                <!-- Chart 2: This month -->
                 <div class="glass-panel cbi-panel-sm">
                     <h3 class="cbi-rev-chart-heading">
-                        <i class="fa-solid fa-chart-bar cbi-text-green"></i> This Month's Products (by qty sold)
+                        <i class="fa-solid fa-calendar-days cbi-text-green"></i> This month
+                        <span class="cbi-rev-chart-sub">same colours as above, so you can compare</span>
                     </h3>
-                    <?php if (empty($revData['chart_thismonth'])): ?>
-                    <p class="cbi-muted-md">No sales this month yet.</p>
-                    <?php else: ?>
-                    <canvas id="chartThisMonth" height="180"></canvas>
-                    <?php endif; ?>
+                    <?php cbRenderProductTable(
+                        $revData['chart_thismonth'] ?? [],
+                        $revData['revenue_thismonth'] ?? [],
+                        'No sales this month yet.'
+                    ); ?>
                 </div>
             </div>
         </div>
@@ -2621,20 +2833,25 @@ async function removeOrderItem(orderId, itemIndex, itemName) {
     });
 })();
 
-// ── Invoice table sorting ───────────────────────────────────
-// Sorts the rows already on the page. data-sort-N holds a machine-readable
-// value (timestamp, unpadded number) where the visible cell is formatted for
-// people — sorting "£1,200.00" as text would put it before "£9.00".
-let invSortState = { col: null, dir: 1 };
+// ── Table sorting ───────────────────────────────────────────
+// Sorts the rows already on the page. data-sortN holds a machine-readable
+// value (timestamp, unpadded number, status rank) where the visible cell is
+// formatted for people — sorting "£1,200.00" as text would put it before
+// "£9.00", and "Pending Review" would sort after "Approved".
+//
+// Keyed by table id so two sortable tables on one page keep their own
+// direction instead of fighting over a single shared flag.
+const tableSortState = {};
 
-function sortInvoices(col, type, th) {
-    const tbody = document.querySelector('#invoicesTable tbody');
+function sortTable(tableId, rowClass, col, type, th) {
+    const tbody = document.querySelector('#' + tableId + ' tbody');
     if (!tbody) return;
 
-    invSortState.dir = (invSortState.col === col) ? -invSortState.dir : 1;
-    invSortState.col = col;
+    const state = tableSortState[tableId] || (tableSortState[tableId] = { col: null, dir: 1 });
+    state.dir = (state.col === col) ? -state.dir : 1;
+    state.col = col;
 
-    const rows = Array.from(tbody.querySelectorAll('.invoice-row'));
+    const rows = Array.from(tbody.querySelectorAll('.' + rowClass));
     const keyOf = (row) => {
         const pre = row.dataset['sort' + col];
         if (pre !== undefined) return type === 'text' ? pre.toLowerCase() : parseFloat(pre) || 0;
@@ -2647,22 +2864,48 @@ function sortInvoices(col, type, th) {
 
     rows.sort((a, b) => {
         const x = keyOf(a), y = keyOf(b);
-        if (x < y) return -1 * invSortState.dir;
-        if (x > y) return  1 * invSortState.dir;
+        if (x < y) return -1 * state.dir;
+        if (x > y) return  1 * state.dir;
         return 0;
     });
     rows.forEach(r => tbody.appendChild(r));
 
-    // Reset every icon, then mark the active one.
-    document.querySelectorAll('#invoicesTable th.inv-sort i').forEach(i => {
+    // Reset every icon in THIS table, then mark the active one.
+    document.querySelectorAll('#' + tableId + ' th.inv-sort i').forEach(i => {
         i.className = 'fa-solid fa-sort';
-        i.style.opacity = '.35';
+        i.classList.remove('is-sorted');
     });
     const icon = th.querySelector('i');
     if (icon) {
-        icon.className = 'fa-solid fa-sort-' + (invSortState.dir === 1 ? 'up' : 'down');
-        icon.style.opacity = '1';
+        icon.className = 'fa-solid fa-sort-' + (state.dir === 1 ? 'up' : 'down');
+        icon.classList.add('is-sorted');
     }
+}
+
+function sortInvoices(col, type, th) { sortTable('invoicesTable', 'invoice-row', col, type, th); }
+function sortTrade(col, type, th)    { sortTable('tradeTable',    'trade-row',   col, type, th); }
+
+// ── Trade account search ────────────────────────────────────
+// Matches the contact person as well as the store name: the admin often knows
+// "Ravi" without remembering which shop that is.
+function filterTradeAccounts(query) {
+    const q = (query || '').toLowerCase().trim();
+    let shown = 0;
+    document.querySelectorAll('#tradeTable .trade-row').forEach(row => {
+        const hay = (row.dataset.search || '').toLowerCase();
+        const hit = !q || hay.includes(q);
+        row.classList.toggle('is-hidden', !hit);
+        if (hit) shown++;
+    });
+    const empty = document.getElementById('tradeNoMatch');
+    if (empty) empty.classList.toggle('is-hidden', shown !== 0);
+    const clear = document.getElementById('tradeSearchClear');
+    if (clear) clear.classList.toggle('is-hidden', q === '');
+}
+
+function clearTradeSearch() {
+    const input = document.getElementById('tradeSearch');
+    if (input) { input.value = ''; filterTradeAccounts(''); input.focus(); }
 }
 
 // ── Searchable "raise invoice from order" picker ────────────
@@ -2904,59 +3147,22 @@ function sortOrders() {
 }
 </script>
 
-<?php if ($activeTab === 'revenue'): ?>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.dataset.theme !== 'light';
-    const textColor = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)';
-    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
-
-    Chart.defaults.color = textColor;
-    Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.font.size   = 12;
-
-    function buildChart(canvasId, labels, values, bgColor) {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-        new Chart(canvas, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Qty Sold',
-                    data: values,
-                    backgroundColor: bgColor,
-                    borderRadius: 6,
-                    borderSkipped: false,
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { precision: 0 } },
-                    y: { grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    // Chart 1: All-time
-    const atLabels = <?= json_encode(array_keys($revData['chart_alltime'] ?? [])) ?>;
-    const atValues = <?= json_encode(array_values($revData['chart_alltime'] ?? [])) ?>;
-    buildChart('chartAllTime', atLabels, atValues, 'rgba(139,92,246,0.7)');
-
-    // Chart 2: This month
-    const tmLabels = <?= json_encode(array_keys($revData['chart_thismonth'] ?? [])) ?>;
-    const tmValues = <?= json_encode(array_values($revData['chart_thismonth'] ?? [])) ?>;
-    buildChart('chartThisMonth', tmLabels, tmValues, 'rgba(16,185,129,0.7)');
+// Product colours: the hue comes from the product's name (computed server-side
+// in cbProductHue), so the same product is the same colour in the all-time and
+// this-month tables — that pairing is the whole point of colouring them.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-hue]').forEach(function (el) {
+        var hue = parseInt(el.getAttribute('data-hue'), 10);
+        if (isNaN(hue)) return;
+        el.style.backgroundColor = 'hsl(' + hue + ' 62% 55%)';
+    });
+    document.querySelectorAll('.cbi-prod-bar-fill[data-pct]').forEach(function (el) {
+        var pct = parseFloat(el.getAttribute('data-pct'));
+        el.style.width = (isNaN(pct) ? 0 : Math.max(0, Math.min(100, pct))) + '%';
+    });
 });
-</script>
-<?php endif; ?>
-<script>
+
 // Revenue bars: the width is data, not styling, so it rides on data-pct and
 // is applied here rather than written into a style attribute in the markup.
 document.addEventListener('DOMContentLoaded', function () {

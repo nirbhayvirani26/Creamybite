@@ -81,13 +81,16 @@ try {
                     to_phone = :to_phone, to_vat_number = :to_vat_number,
                     payment_instructions = :payment_instructions, notes = :notes,
                     discount_type = :discount_type, discount_value = :discount_value,
-                    delivery = :delivery, vat_rate = :vat_rate
+                    delivery = :delivery, vat_rate = :vat_rate,
+                    sales_rep_id = :sales_rep_id, commission_percent = :commission_percent
                  WHERE id = :id"
             )->execute([
                 'issue_date'           => $issueDate,
                 'due_terms'            => trim($_POST['due_terms'] ?? 'On Receipt'),
                 'due_date'             => $dueDate !== '' ? $dueDate : null,
-                'currency'             => trim($_POST['currency'] ?? 'GBP'),
+                // The shop bills in pounds only, so there is no currency field
+                // on the form any more and nothing to read from the request.
+                'currency'             => 'GBP',
                 'from_name'            => trim($_POST['from_name'] ?? ''),
                 'from_address'         => trim($_POST['from_address'] ?? ''),
                 'from_phone'           => trim($_POST['from_phone'] ?? ''),
@@ -106,6 +109,16 @@ try {
                 'discount_value'       => max(0, round((float)($_POST['discount_value'] ?? 0), 2)),
                 'delivery'             => round((float)($_POST['delivery'] ?? 0), 2),
                 'vat_rate'             => round((float)($_POST['vat_rate'] ?? 0) / 100, 4),
+                'sales_rep_id'         => max(0, (int)($_POST['sales_rep_id'] ?? 0)),
+                // Clamped, not merely cast: the agreed band is 2–20%, and a
+                // stray 200 typed into the box would otherwise be stored and
+                // quietly inflate every commission report from then on. 0 is
+                // kept as a valid value meaning "no commission on this one".
+                'commission_percent'   => (function (): float {
+                    $pct = round((float)($_POST['commission_percent'] ?? 0), 2);
+                    if ($pct <= 0) { return 0.0; }
+                    return max(2.0, min(20.0, $pct));
+                })(),
                 'id'                   => $id,
             ]);
 
@@ -145,7 +158,18 @@ try {
             }
 
             recalcInvoice($pdo, $id);
-            backTo('../invoice_edit.php?id=' . $id, 'Invoice saved.');
+
+            // An invoice raised from an order the customer has already settled
+            // should not sit there saying UNPAID. Record the payment against it
+            // once, then let the normal sync decide the status — so the balance
+            // is right rather than the label merely being overwritten.
+            $flash = 'Invoice saved.';
+            if (invoiceSettleFromPaidOrder($pdo, $id)) {
+                $flash = 'Invoice saved and marked PAID — the order it came from was already paid.';
+            }
+            syncInvoicePaymentState($pdo, $id);
+
+            backTo('../invoice_edit.php?id=' . $id, $flash);
         }
 
         // ── Record a payment ─────────────────────────────────
@@ -294,6 +318,40 @@ try {
                 'vr'  => round((float)($_POST['default_vat_rate'] ?? 0) / 100, 4),
             ]);
             backTo('../index.php?tab=invoices', 'Invoice settings saved.');
+        }
+
+        // ── Sales reps / agents ──────────────────────────────
+        case 'add_rep': {
+            $name = trim($_POST['rep_name'] ?? '');
+            if ($name === '') {
+                backTo('../index.php?tab=invoices', 'Enter the rep or agent name.', 'error');
+            }
+            try {
+                $pdo->prepare(
+                    "INSERT INTO sales_reps (name, phone, email) VALUES (:n, :p, :e)"
+                )->execute([
+                    'n' => $name,
+                    'p' => trim($_POST['rep_phone'] ?? ''),
+                    'e' => trim($_POST['rep_email'] ?? ''),
+                ]);
+                backTo('../index.php?tab=invoices', $name . ' added.');
+            } catch (PDOException $e) {
+                // The name is unique so the same person cannot end up on the
+                // list twice with their sales split between the copies.
+                $dup = str_contains($e->getMessage(), 'Duplicate');
+                backTo('../index.php?tab=invoices',
+                       $dup ? $name . ' is already on the list.' : 'Could not add that rep.',
+                       'error');
+            }
+        }
+
+        case 'toggle_rep': {
+            $repId = (int)($_POST['rep_id'] ?? $_GET['rep_id'] ?? 0);
+            // Deactivated rather than deleted: their name still has to render
+            // on the invoices they already sold.
+            $pdo->prepare("UPDATE sales_reps SET active = 1 - active WHERE id = :id")
+                ->execute(['id' => $repId]);
+            backTo('../index.php?tab=invoices', 'Rep updated.');
         }
 
         default:
