@@ -13,22 +13,7 @@
 // ============================================================
 
 return [
-
-    // ── Database ─────────────────────────────────────────────
-    'db_local' => [
-        'host' => 'localhost',
-        'port' => '8889',          // MAMP's MySQL port
-        'name' => 'creamybite',
-        'user' => 'root',
-        'pass' => 'root',
-    ],
-    'db_live' => [
-        'host' => 'localhost',
-        'port' => '3306',
-        'name' => 'u167013900_creamybite',
-        'user' => 'u167013900_creamyuser',
-        'pass' => 'Creamyorder@2026*',
-    ],
+    // Database logins now live in config.php, where they are easy to find.
 
     // ── Admin panel login ────────────────────────────────────
     'admin' => [

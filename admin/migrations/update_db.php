@@ -5,7 +5,10 @@
 //  every table/column added by setup_v6 .. setup_v12 in one place.
 //  Safe to run more than once — every step checks first and is
 //  skipped if already present.
-//  Visit: /admin/update_db.php
+//
+//  Visit: /admin/migrations/update_db.php
+//  (admin/update_db.php is the old address and now only redirects here —
+//   that stale URL is why a live database once went un-migrated.)
 // ============================================================
 require_once __DIR__ . '/../_guard.php';
 require_once __DIR__ . '/../../includes/config.php';
@@ -25,11 +28,33 @@ function cb_table_exists(PDO $pdo, string $table): bool {
     return (int)$q->fetchColumn() > 0;
 }
 
+/**
+ * The exact column type of an existing column, e.g. "int unsigned".
+ *
+ * InnoDB refuses a foreign key unless the two columns match exactly, and that
+ * includes signedness. Hard-coding `INT UNSIGNED` for a child column works
+ * only while the parent happens to agree: point it at a database whose
+ * products.id is a plain signed INT and CREATE TABLE dies with
+ * "1215 Cannot add foreign key constraint" — which is easy to do, because
+ * a table imported from an older dump can differ from the schema on disk.
+ * Reading the parent's real type keeps the child in step with whatever the
+ * database actually has.
+ */
+function cb_column_type(PDO $pdo, string $table, string $col, string $fallback): string {
+    $q = $pdo->prepare("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+    $q->execute([$table, $col]);
+    $type = $q->fetchColumn();
+    return $type ? strtoupper((string)$type) : $fallback;
+}
+
+// Match product_variants.product_id to whatever products.id really is.
+$productIdType = cb_column_type($pdo, 'products', 'id', 'INT UNSIGNED');
+
 // ── 1. Tables that must exist (CREATE TABLE IF NOT EXISTS is safe on its own) ──
 $tables = [
     'product_variants' => "CREATE TABLE IF NOT EXISTS `product_variants` (
         `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-        `product_id`      INT UNSIGNED  NOT NULL,
+        `product_id`      {$productIdType}  NOT NULL,
         `name`            VARCHAR(100)  NOT NULL,
         `price`           DECIMAL(10,2) NOT NULL DEFAULT 0.00,
         `wholesale_price` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
@@ -159,6 +184,37 @@ foreach ($tables as $name => $sql) {
         $pdo->exec($sql);
         $results[] = ['table' => $name, 'col' => '(table)', 'status' => $existed ? 'already exists ✓' : '✅ table created', 'ok' => true];
     } catch (PDOException $e) {
+        // A rejected foreign key must not cost us the whole table. The code
+        // reads and writes these tables by id regardless of whether the
+        // constraint exists, so a table without its FK still works, while no
+        // table at all takes the site down with a "Network error" that says
+        // nothing about the real cause. Retry without the constraint and say
+        // plainly what was dropped.
+        // Matches the whole clause including any trailing ON DELETE/UPDATE
+        // action. Stopping at the closing bracket of REFERENCES would leave a
+        // stray "ON DELETE CASCADE" behind and turn a recoverable error into
+        // a syntax error.
+        $withoutFk = preg_replace(
+            '/,\s*CONSTRAINT\s+`[^`]+`\s+FOREIGN\s+KEY\s*\([^)]*\)\s*REFERENCES\s*`[^`]+`\s*\([^)]*\)'
+            . '(?:\s+ON\s+(?:DELETE|UPDATE)\s+(?:CASCADE|RESTRICT|SET\s+NULL|NO\s+ACTION|SET\s+DEFAULT))*/is',
+            '',
+            $sql
+        );
+
+        if ($withoutFk !== null && $withoutFk !== $sql) {
+            try {
+                $pdo->exec($withoutFk);
+                $results[] = [
+                    'table'  => $name,
+                    'col'    => '(table)',
+                    'status' => '⚠️ created WITHOUT its foreign key — parent column type differs (' . $e->getMessage() . ')',
+                    'ok'     => false,
+                ];
+                continue;
+            } catch (PDOException $e2) {
+                $e = $e2;
+            }
+        }
         $results[] = ['table' => $name, 'col' => '(table)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
     }
 }
@@ -226,7 +282,12 @@ try {
     $results[] = ['table' => 'invoice_settings', 'col' => '(seed row)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
 }
 
-$allOk = array_reduce($results, fn($c, $r) => $c && $r['ok'], true);
+$failures = array_values(array_filter($results, fn($r) => !$r['ok']));
+$allOk    = ($failures === []);
+
+// The whole point of this page is telling you whether the database is ready.
+// A red row buried among nineteen green ones is not that, so failures are
+// repeated at the top where they cannot be scrolled past.
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -242,7 +303,28 @@ $allOk = array_reduce($results, fn($c, $r) => $c && $r['ok'], true);
 <div class="su-wrap">
     <div class="glass-panel su-card">
         <h1 class="su-h1">⚙️ Update DB – Bring Schema Up To Date</h1>
-        <p class="su-lead">Environment: <strong><?= IS_LOCAL ? 'LOCAL' : 'LIVE' ?></strong> (<?= htmlspecialchars(DB_NAME) ?>). Applies every table/column from setup v6&ndash;v12 that is still missing. Safe to run again.</p>
+        <p class="su-lead">Applies every table/column from setup v6&ndash;v12 that is still missing. Safe to run again.</p>
+
+        <!-- Which database this touched, stated loudly: running the updater
+             against the wrong one and seeing all-green is indistinguishable
+             from success unless the environment is impossible to overlook. -->
+        <p class="su-env <?= IS_LOCAL ? 'su-env-local' : 'su-env-live' ?>">
+            <?= IS_LOCAL ? '💻 LOCAL database' : '🌍 LIVE database' ?>
+            &mdash; <?= htmlspecialchars(DB_NAME) ?> on <?= htmlspecialchars(DB_HOST) ?>:<?= htmlspecialchars(DB_PORT) ?>
+        </p>
+
+        <?php if ($failures): ?>
+        <div class="su-failbox">
+            <h2 class="su-failbox-h"><?= count($failures) ?> step<?= count($failures) === 1 ? '' : 's' ?> failed &mdash; the database is NOT up to date</h2>
+            <ul class="su-failbox-list">
+                <?php foreach ($failures as $f): ?>
+                <li><strong><?= htmlspecialchars($f['table']) ?></strong>
+                    <?= htmlspecialchars($f['col']) ?>: <?= htmlspecialchars($f['status']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+        <?php endif; ?>
+
         <table class="su-table">
             <?php foreach ($results as $r): ?>
             <tr class="su-row">

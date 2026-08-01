@@ -265,6 +265,25 @@ function loadInvoice(PDO $pdo, int $invoiceId): ?array
 }
 
 /**
+ * "Trade £3.50  ·  Retail £5.00" for one picker entry.
+ *
+ * Both prices are shown, not just the one this invoice will use, so whoever
+ * is typing a rate can see the price they are NOT charging and catch a
+ * trade-priced line on a retail invoice (or the reverse) before it reaches
+ * the customer. Products with no separate wholesale price show one figure.
+ */
+function invoicePriceLabel(array $po): string
+{
+    $retail = (float)($po['retail'] ?? 0);
+    $whole  = (float)($po['wholesale'] ?? 0);
+
+    if ($whole > 0 && abs($whole - $retail) > 0.005) {
+        return 'Trade £' . number_format($whole, 2) . '  ·  Retail £' . number_format($retail, 2);
+    }
+    return '£' . number_format($retail, 2);
+}
+
+/**
  * Every sellable line for the invoice product picker: each product, plus one
  * entry per variant. Trade invoices get wholesale pricing where it is set.
  *
@@ -349,5 +368,23 @@ function invoiceStatusLabel(string $status): array
         'sent'      => ['SENT',      '#fffbeb', '#b45309', '#fde68a'],
         'void'      => ['VOID',      '#f3f4f6', '#6b7280', '#e5e7eb'],
         default     => ['DRAFT',     '#f9fafb', '#6b7280', '#e5e7eb'],
+    };
+}
+
+/**
+ * The CSS class carrying a status pill's colours, e.g. "is-paid".
+ *
+ * Preferred over the colours from invoiceStatusLabel(): those have to be
+ * injected as a style attribute, and this project keeps all styling in the
+ * stylesheets. Restyling a status is then a CSS edit, not a PHP one.
+ */
+function invoiceStatusClass(string $status): string
+{
+    return match ($status) {
+        'paid'      => 'is-paid',
+        'part_paid' => 'is-part-paid',
+        'sent'      => 'is-sent',
+        'void'      => 'is-void',
+        default     => 'is-draft',
     };
 }

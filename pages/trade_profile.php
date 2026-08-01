@@ -15,7 +15,9 @@
 //  email would show this partner other customers' orders whenever a
 //  detail happens to coincide.
 // ============================================================
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
@@ -140,14 +142,20 @@ function tradeCustomerNumber(int $id): string
 
 $customerNo = tradeCustomerNumber($userId);
 
-/** Small helper for the status pills, so the four tabs stay consistent. */
+/**
+ * Small helper for the status pills, so the four tabs stay consistent.
+ *
+ * Returns a CSS class rather than three colours: the colours belong in the
+ * stylesheet, and a class also means the pill can be restyled without
+ * touching PHP.
+ */
 function statusPill(string $status): array
 {
     return match ($status) {
-        'Delivered'  => ['#ecfdf5', '#047857', '#a7f3d0', 'fa-circle-check',   'Delivered'],
-        'Processing' => ['#eff6ff', '#1d4ed8', '#bfdbfe', 'fa-spinner',        'Processing'],
-        'Cancelled'  => ['#fef2f2', '#b91c1c', '#fecaca', 'fa-ban',            'Cancelled'],
-        default      => ['#fffbeb', '#b45309', '#fde68a', 'fa-clock',          $status ?: 'Pending'],
+        'Delivered'  => ['is-delivered',  'fa-circle-check', 'Delivered'],
+        'Processing' => ['is-processing', 'fa-spinner',      'Processing'],
+        'Cancelled'  => ['is-cancelled',  'fa-ban',          'Cancelled'],
+        default      => ['is-pending',    'fa-clock',        $status ?: 'Pending'],
     };
 }
 ?>
@@ -362,7 +370,7 @@ function statusPill(string $status): array
                         $items    = json_decode($o['items_json'] ?? '', true) ?? [];
                         $totalQty = array_sum(array_column($items, 'quantity'));
                         $first    = $items[0] ?? null;
-                        [$bg, $fg, $bd, $ic, $lbl] = statusPill($o['status'] ?? '');
+                        [$pillClass, $ic, $lbl] = statusPill($o['status'] ?? '');
                     ?>
                         <tr class="cbtp-row">
                             <td class="cbtp-cell-code">
@@ -389,7 +397,7 @@ function statusPill(string $status): array
                                 £<?= number_format((float)$o['total_price'], 2) ?>
                             </td>
                             <td>
-                                <span class="cbtp-status-pill" style="background:<?= $bg ?>; color:<?= $fg ?>; border:1px solid <?= $bd ?>;">
+                                <span class="cbtp-status-pill <?= $pillClass ?>">
                                     <i class="fa-solid <?= $ic ?>"></i> <?= htmlspecialchars($lbl) ?>
                                 </span>
                             </td>
@@ -420,9 +428,9 @@ function statusPill(string $status): array
                     <div class="cbtp-card-label cbtp-ink-success">Total Paid</div>
                     <div class="cbtp-card-value cbtp-ink-success">£<?= number_format($totalSpent, 2) ?></div>
                 </div>
-                <div class="cbtp-card" style="background:<?= $totalOutstanding > 0 ? '#fffbeb' : 'var(--bg-main)' ?>; border:1px solid <?= $totalOutstanding > 0 ? '#fde68a' : 'var(--border-light)' ?>;">
-                    <div class="cbtp-card-label" style="color:<?= $totalOutstanding > 0 ? '#b45309' : 'var(--text-muted)' ?>;">Outstanding</div>
-                    <div class="cbtp-card-value" style="color:<?= $totalOutstanding > 0 ? '#b45309' : 'var(--text-muted)' ?>;">£<?= number_format($totalOutstanding, 2) ?></div>
+                <div class="cbtp-card<?= $totalOutstanding > 0 ? ' is-owing' : '' ?>">
+                    <div class="cbtp-card-label">Outstanding</div>
+                    <div class="cbtp-card-value">£<?= number_format($totalOutstanding, 2) ?></div>
                 </div>
                 <div class="cbtp-card cbtp-tone-plain">
                     <div class="cbtp-card-label cbtp-muted">Transactions</div>
@@ -513,7 +521,7 @@ function statusPill(string $status): array
                                 <?= htmlspecialchars($o['order_code']) ?>
                             </div>
                         </div>
-                        <span class="cbtp-pay-badge" style="background:<?= $paid ? '#ecfdf5' : '#fef2f2' ?>; color:<?= $paid ? '#047857' : '#b91c1c' ?>; border:1px solid <?= $paid ? '#a7f3d0' : '#fecaca' ?>;">
+                        <span class="cbtp-pay-badge <?= $paid ? 'is-paid' : 'is-unpaid' ?>">
                             <?= $paid ? 'PAID' : 'UNPAID' ?>
                         </span>
                     </div>

@@ -3,7 +3,9 @@
 // Creamy Bite – B2B Trade Delivery Note & Invoice
 // URL: /admin/delivery_note.php?code=SCO-123456
 // ============================================================
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 $isAdmin     = !empty($_SESSION['admin_logged_in']);
 $isTradeUser = !empty($_SESSION['trade_user']);
 
@@ -58,142 +60,10 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
 <head>
     <meta charset="UTF-8">
     <title>Delivery Note & Invoice – <?= htmlspecialchars($order['order_code']) ?></title>
-    <!-- This page carried no stylesheet link; the .cbdn-* classes extracted from the
-         former inline styles live in admin.css. Linked before the <style> block below
-         so the page's own rules keep winning any equal-specificity tie. -->
+    <!-- Shared .cbdn-* classes come from admin.css; this page's own print rules
+         follow in delivery-note.css, so they win any equal-specificity tie. -->
     <link rel="stylesheet" href="assets/css/admin.css">
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            color: #1f2937;
-            margin: 0;
-            padding: 40px;
-            background: #fff;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .dn-container {
-            max-width: 800px;
-            margin: 0 auto;
-            border: 1px solid #e5e7eb;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-        }
-        .dn-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 2px solid #5C1D24;
-            padding-bottom: 20px;
-            margin-bottom: 24px;
-        }
-        .dn-logo {
-            font-size: 26px;
-            font-weight: 900;
-            color: #5C1D24;
-            letter-spacing: -0.5px;
-        }
-        /* Real logo. Kept in this block rather than admin.css so the printed
-           document still brands correctly if the stylesheet fails to load.
-           print-color-adjust stops it dropping out when the browser strips
-           backgrounds for printing. Logo is 994x253, so height drives it. */
-        .dn-logo-img {
-            height: 54px;
-            width: auto;
-            max-width: 240px;
-            display: block;
-            margin-bottom: 8px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-        .dn-badge {
-            background: #5C1D24;
-            color: #fff;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            display: inline-block;
-            margin-top: 4px;
-        }
-        .dn-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 28px;
-        }
-        .dn-card {
-            background: #f9fafb;
-            border: 1px solid #f3f4f6;
-            padding: 16px;
-            border-radius: 8px;
-        }
-        .dn-card h3 {
-            margin: 0 0 10px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #6b7280;
-        }
-        .dn-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 28px;
-        }
-        .dn-table th {
-            background: #f3f4f6;
-            color: #374151;
-            text-align: left;
-            padding: 10px 14px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        .dn-table td {
-            padding: 12px 14px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .dn-totals {
-            width: 260px;
-            margin-left: auto;
-            margin-bottom: 36px;
-        }
-        .dn-totals row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            font-size: 14px;
-        }
-        .dn-totals .grand-total {
-            font-weight: 800;
-            font-size: 18px;
-            color: #5C1D24;
-            border-top: 2px solid #5C1D24;
-            padding-top: 10px;
-            margin-top: 6px;
-        }
-        .dn-signatures {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-top: 40px;
-            padding-top: 24px;
-            border-top: 1px dashed #d1d5db;
-        }
-        .sig-box {
-            border-bottom: 1px solid #9ca3af;
-            height: 40px;
-            margin-top: 10px;
-        }
-        @media print {
-            body { padding: 0; background: #fff; }
-            .dn-container { border: none; box-shadow: none; padding: 0; }
-            .no-print { display: none !important; }
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/delivery-note.css">
 </head>
 <body>
 

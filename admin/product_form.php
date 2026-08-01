@@ -520,8 +520,8 @@ function addVariant(productId) {
     const price   = parseFloat(priceEl.value);
     const wp      = parseFloat(wpEl.value) || 0;
 
-    if (!name) { alert('Please enter a size name (e.g. 500ml)'); nameEl.focus(); return; }
-    if (!price || price <= 0) { alert('Please enter a valid price'); priceEl.focus(); return; }
+    if (!name) { cbAlert('Please enter a size name, for example 500ml or 1L.', {title:'Size name needed'}); nameEl.focus(); return; }
+    if (!price || price <= 0) { cbAlert('Please enter a price greater than zero.', {title:'Price needed'}); priceEl.focus(); return; }
 
     fetch('handlers/variant_handler.php', {
         method: 'POST',
@@ -530,37 +530,39 @@ function addVariant(productId) {
     })
     .then(r => r.json())
     .then(data => {
-        if (!data.success) { alert(data.message || 'Error adding variant'); return; }
+        if (!data.success) { cbAlert(data.message || 'Could not add that size.', {title:'Could not add size', tone:'danger'}); return; }
         // Append new row to list
         const list = document.getElementById('variantsList');
         const id = data.id;
         const row = document.createElement('div');
-        row.className = 'variant-row';
+        // Same classes as the server-rendered rows above, so a size added
+        // without a reload is indistinguishable from one that was there when
+        // the page loaded.
+        row.className = 'variant-row cbpf-variant-row';
         row.id = 'vrow-' + id;
-        row.style.cssText = 'display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--bg-main); border-radius:var(--radius-sm); margin-bottom:10px; border:1px solid var(--border-light); flex-wrap:wrap;';
         row.innerHTML = `
-            <i class="fa-solid fa-grip-vertical" style="color:var(--text-muted); font-size:14px;"></i>
+            <i class="fa-solid fa-grip-vertical cbpf-variant-grip"></i>
             <input type="text" value="${escHtml(name)}" placeholder="Size name"
-                class="form-control" style="flex:1; min-width:120px;"
+                class="form-control cbpf-variant-name"
                 onchange="updateVariant(${id}, this.value, document.getElementById('vp-${id}').value, document.getElementById('vwp-${id}').value, document.getElementById('va-${id}').checked)">
-            <div style="display:flex; align-items:center; gap:4px;">
-                <span style="font-size:12px; font-weight:700; color:var(--text-secondary);">Retail: £</span>
+            <div class="cbpf-price-field">
+                <span class="cbpf-price-label">Retail: £</span>
                 <input type="number" id="vp-${id}" value="${price.toFixed(2)}" step="0.01" min="0.01" placeholder="Retail"
-                    class="form-control" style="width:85px;"
+                    class="form-control cbpf-price-input"
                     onchange="updateVariant(${id}, document.querySelector('#vrow-${id} input[type=text]').value, this.value, document.getElementById('vwp-${id}').value, document.getElementById('va-${id}').checked)">
             </div>
-            <div style="display:flex; align-items:center; gap:4px;">
-                <span style="font-size:12px; font-weight:700; color:var(--color-primary);">Trade: £</span>
+            <div class="cbpf-price-field">
+                <span class="cbpf-price-label cbpf-price-label-trade">Trade: £</span>
                 <input type="number" id="vwp-${id}" value="${wp.toFixed(2)}" step="0.01" min="0.00" placeholder="Trade"
-                    class="form-control" style="width:85px; border-color:var(--color-primary-light);"
+                    class="form-control cbpf-price-input cbpf-price-input-trade"
                     onchange="updateVariant(${id}, document.querySelector('#vrow-${id} input[type=text]').value, document.getElementById('vp-${id}').value, this.value, document.getElementById('va-${id}').checked)">
             </div>
-            <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); white-space:nowrap; cursor:pointer;">
+            <label class="cbpf-variant-avail">
                 <input type="checkbox" id="va-${id}" checked
                     onchange="updateVariant(${id}, document.querySelector('#vrow-${id} input[type=text]').value, document.getElementById('vp-${id}').value, document.getElementById('vwp-${id}').value, this.checked)">
                 Available
             </label>
-            <button type="button" class="btn-danger" style="padding:6px 12px; flex-shrink:0;" onclick="deleteVariant(${id}, ${productId})">
+            <button type="button" class="btn-danger cbpf-variant-delete" onclick="deleteVariant(${id}, ${productId})">
                 <i class="fa-solid fa-trash"></i>
             </button>`;
         list.appendChild(row);
@@ -569,7 +571,7 @@ function addVariant(productId) {
         wpEl.value    = '';
         nameEl.focus();
     })
-    .catch(() => alert('Network error. Please try again.'));
+    .catch(err => cbAlert('Could not reach the server: ' + err.message, {title:'Request failed', tone:'danger'}));
 }
 
 let updateTimer = {};
@@ -592,8 +594,9 @@ function updateVariant(id, name, price, wholesalePrice, available) {
     }, 600);
 }
 
-function deleteVariant(id, productId) {
-    if (!confirm('Remove this variant? This cannot be undone.')) return;
+async function deleteVariant(id, productId) {
+    if (!await cbConfirm('Remove this size? Any price set on it is lost.', {title:'Remove size?', tone:'danger', okText:'Remove'})) return;
+    
     fetch('handlers/variant_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

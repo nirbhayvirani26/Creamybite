@@ -1,0 +1,137 @@
+/* ============================================================
+   Creamy Bite – Delivery note (printed)
+
+   Moved out of a <style> block in delivery_note.php. Browsers fetch linked
+   stylesheets before printing, so the printed output is unchanged — and
+   this project keeps every rule in a stylesheet.
+   ============================================================ */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            color: #1f2937;
+            margin: 0;
+            padding: 40px;
+            background: #fff;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .dn-container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #e5e7eb;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+        .dn-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #5C1D24;
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+        }
+        .dn-logo {
+            font-size: 26px;
+            font-weight: 900;
+            color: #5C1D24;
+            letter-spacing: -0.5px;
+        }
+        /* Real logo. Kept in this block rather than admin.css so the printed
+           document still brands correctly if the stylesheet fails to load.
+           print-color-adjust stops it dropping out when the browser strips
+           backgrounds for printing. Logo is 994x253, so height drives it. */
+        .dn-logo-img {
+            height: 54px;
+            width: auto;
+            max-width: 240px;
+            display: block;
+            margin-bottom: 8px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .dn-badge {
+            background: #5C1D24;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        .dn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+        .dn-card {
+            background: #f9fafb;
+            border: 1px solid #f3f4f6;
+            padding: 16px;
+            border-radius: 8px;
+        }
+        .dn-card h3 {
+            margin: 0 0 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #6b7280;
+        }
+        .dn-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 28px;
+        }
+        .dn-table th {
+            background: #f3f4f6;
+            color: #374151;
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .dn-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .dn-totals {
+            width: 260px;
+            margin-left: auto;
+            margin-bottom: 36px;
+        }
+        .dn-totals row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+        }
+        .dn-totals .grand-total {
+            font-weight: 800;
+            font-size: 18px;
+            color: #5C1D24;
+            border-top: 2px solid #5C1D24;
+            padding-top: 10px;
+            margin-top: 6px;
+        }
+        .dn-signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px dashed #d1d5db;
+        }
+        .sig-box {
+            border-bottom: 1px solid #9ca3af;
+            height: 40px;
+            margin-top: 10px;
+        }
+        @media print {
+            body { padding: 0; background: #fff; }
+            .dn-container { border: none; box-shadow: none; padding: 0; }
+            .no-print { display: none !important; }
+        }

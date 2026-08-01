@@ -1030,3 +1030,49 @@ a.btn-primary.cboc-directions-btn {
     font-size: 13px;
     color: var(--text-muted);
 }
+
+/* ── Checkout status messages ─────────────────────────────────────
+   Built by JS as the postcode and payment checks come back. The colours
+   used to be written into each string; keeping them here means a status
+   reads the same wherever it is produced, and the JS just names a state. */
+.cbco-status        { font-weight: 600; }
+.cbco-status-ok     { color: #10b981; }
+.cbco-status-warn   { color: #f59e0b; }
+.cbco-status-err    { color: #ef4444; }
+.cbco-status-muted  { color: var(--text-muted); }
+
+/* Out-of-range and similar blocking messages: a box, not just coloured text,
+   because they stop the order going through and must not read as a hint. */
+.cbco-status-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.4;
+}
+.cbco-inline-error { color: #ef4444; font-size: 13px; padding: 10px; }
+
+/* ── Trade account: status and payment pills ──────────────────────
+   One class per state. These used to be three hex values interpolated into
+   a style attribute from PHP, which meant restyling a status was a PHP edit
+   and the same colours were repeated on every row. */
+.cbtp-status-pill.is-delivered  { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; }
+.cbtp-status-pill.is-processing { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+.cbtp-status-pill.is-cancelled  { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+.cbtp-status-pill.is-pending    { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+
+.cbtp-pay-badge.is-paid   { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; }
+.cbtp-pay-badge.is-unpaid { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+
+/* Money still owed is worth noticing, so the card changes as a whole
+   rather than only its number. */
+.cbtp-card.is-owing                   { background:#fffbeb; border:1px solid #fde68a; }
+.cbtp-card.is-owing .cbtp-card-label,
+.cbtp-card.is-owing .cbtp-card-value  { color:#b45309; }
+
+/* Variant name under an order line, built by JS on the order page. */
+.cbo-variant-label { font-size:11px; color:var(--text-muted); font-weight:500; }

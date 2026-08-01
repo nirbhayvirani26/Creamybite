@@ -3,12 +3,37 @@
 //  Sweet Scoops – Admin Login
 //  URL: /Orders/admin/login.php
 // ============================================================
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../includes/config.php';
+
+/**
+ * Where to go once the password checks out.
+ *
+ * The guard stores the page you were originally after, so a one-off admin URL
+ * (a migration runner, a report) survives the login detour instead of quietly
+ * turning into "you are now on the dashboard". Anything that is not a plain
+ * same-site path is discarded rather than trusted.
+ */
+function adminLoginDestination(): string
+{
+    $wanted = $_SESSION['admin_redirect_after_login'] ?? '';
+    unset($_SESSION['admin_redirect_after_login']);
+
+    if (!is_string($wanted) || $wanted === '' || $wanted[0] !== '/' || str_starts_with($wanted, '//')) {
+        return 'index.php';
+    }
+    // Never bounce straight back to the login form.
+    if (str_contains($wanted, 'login.php') || str_contains($wanted, 'logout')) {
+        return 'index.php';
+    }
+    return $wanted;
+}
 
 // Already logged in → redirect
 if (!empty($_SESSION['admin_logged_in'])) {
-    header('Location: index.php'); exit;
+    header('Location: ' . adminLoginDestination()); exit;
 }
 
 // ── Throttle repeated failures ───────────────────────────────
@@ -38,10 +63,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($ok) {
             // New session id on privilege change, so a session id planted
             // before login cannot be reused afterwards (session fixation).
+            // Read (and clear) the destination while it is still needed; the
+            // regeneration below only swaps the session id, so the order here
+            // is for clarity rather than correctness.
+            $dest = adminLoginDestination();
             session_regenerate_id(true);
             $_SESSION['admin_logged_in'] = true;
             unset($_SESSION['admin_login_attempts'], $_SESSION['admin_login_locked_until']);
-            header('Location: index.php'); exit;
+            header('Location: ' . $dest); exit;
         }
 
         $attempts++;
@@ -104,16 +133,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group lg-head" >
                 <label for="password" class="form-label">Password</label>
                 <div class="lg-field">
-                    <input type="password" id="password" name="password" class="form-control"
-                        placeholder="••••••••" required autocomplete="current-password"
-                        class="lg-input-pad">
+                    <!-- One class attribute, not two: a second one is ignored
+                         outright, which is why the padding that keeps typed
+                         text clear of the eye button was never applied. -->
+                    <input type="password" id="password" name="password"
+                        class="form-control lg-input-pad"
+                        placeholder="••••••••" required autocomplete="current-password">
                     <button type="button" id="togglePwd"
                         onclick="togglePassword()"
                         aria-label="Toggle password visibility"
-                        style="position:absolute; right:12px; top:50%; transform:translateY(-50%);
-                               background:none; border:none; cursor:pointer;
-                               color:var(--text-muted); font-size:16px; padding:4px;
-                               display:flex; align-items:center; transition:color 0.2s;">
+                        class="lg-pwd-toggle">
                         <i class="fa-solid fa-eye" id="eyeIcon"></i>
                     </button>
                 </div>
@@ -126,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <footer class="footer">
-    <div class="container" style="text-align:center;">
+    <div class="container lg-footer-inner">
         <span class="footer-copy">© <?= date('Y') ?> <?= SHOP_NAME ?> Admin Panel</span>
     </div>
 </footer>
@@ -136,15 +165,12 @@ function togglePassword() {
     const input = document.getElementById('password');
     const icon  = document.getElementById('eyeIcon');
     const btn   = document.getElementById('togglePwd');
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className  = 'fa-solid fa-eye-slash';
-        btn.style.color = 'var(--color-primary)';
-    } else {
-        input.type = 'password';
-        icon.className  = 'fa-solid fa-eye';
-        btn.style.color = 'var(--text-muted)';
-    }
+    const showing = (input.type === 'password');
+    input.type     = showing ? 'text' : 'password';
+    icon.className = showing ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+    // The lit state is a class, so its colour stays with the rest of the
+    // button's styling instead of being written here.
+    btn.classList.toggle('is-showing', showing);
 }
 </script>
 </body>

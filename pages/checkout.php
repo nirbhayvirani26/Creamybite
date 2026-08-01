@@ -485,7 +485,7 @@ $grandTotal     = $totals['total'];
                     </div>
 
                     <!-- Discount row (hidden if no promo) -->
-                    <div id="discountRow" class="cbco-summary-row cbco-summary-row-discount" style="display:<?= $appliedPromo ? 'flex' : 'none' ?>;">
+                    <div id="discountRow" class="cbco-summary-row cbco-summary-row-discount<?= $appliedPromo ? '' : ' cbco-hidden' ?>">
                         <span><i class="fa-solid fa-ticket"></i> Discount</span>
                         <span id="discountDisplay">−£<?= number_format($discountAmount, 2) ?></span>
                     </div>
@@ -622,12 +622,12 @@ function applyPromo() {
             document.getElementById('promoInputRow').style.display = 'none';
             document.getElementById('promoApplied').style.display = 'flex';
             document.getElementById('promoApplied').innerHTML = `
-                <div style="font-size:13px;">
-                    <i class="fa-solid fa-check-circle" style="color:#10b981;"></i>
-                    <strong style="color:#10b981; letter-spacing:1px;">${data.code}</strong>
-                    <span style="color:var(--text-secondary);">&nbsp;— ${data.discount_label}</span>
+                <div class="cbco-promo-applied-text">
+                    <i class="fa-solid fa-check-circle cbco-text-success"></i>
+                    <strong class="cbco-promo-code cbco-text-success">${data.code}</strong>
+                    <span class="cbco-text-secondary">&nbsp;— ${data.discount_label}</span>
                 </div>
-                <button onclick="removePromo()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;" title="Remove promo">
+                <button onclick="removePromo()" class="cbco-promo-remove" title="Remove promo">
                     <i class="fa-solid fa-xmark"></i>
                 </button>`;
             
@@ -695,11 +695,11 @@ function reEvaluateCharges() {
 
         if (lastCalculatedMiles <= FREE_MILES) {
             if (chargeInput) chargeInput.value = '0';
-            if (statusEl) statusEl.innerHTML = '<span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-circle-check"></i> 🎉 Free delivery! You are within ' + lastCalculatedMiles.toFixed(1) + ' miles.</span>';
+            if (statusEl) statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> 🎉 Free delivery! You are within ' + lastCalculatedMiles.toFixed(1) + ' miles.</span>';
             updateDeliveryDisplay(0);
         } else {
             if (chargeInput) chargeInput.value = DELIVERY_CHARGE.toFixed(2);
-            if (statusEl) statusEl.innerHTML = '<span style="color:#f59e0b; font-weight:600;"><i class="fa-solid fa-truck-fast"></i> £1.99 delivery charge – ' + lastCalculatedMiles.toFixed(1) + ' miles from us.</span>';
+            if (statusEl) statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-truck-fast"></i> £1.99 delivery charge – ' + lastCalculatedMiles.toFixed(1) + ' miles from us.</span>';
             updateDeliveryDisplay(DELIVERY_CHARGE);
         }
     } else {
@@ -789,7 +789,7 @@ let currentPaymentMethod = 'online';
 
         if (data.error) {
             document.getElementById('stripeElement').innerHTML =
-                `<div style="color:#ef4444;font-size:13px;padding:10px;"><i class="fa-solid fa-triangle-exclamation"></i> ${data.error}</div>`;
+                `<div class="cbco-inline-error"><i class="fa-solid fa-triangle-exclamation"></i> ${data.error}</div>`;
             // Auto-switch to Pay Later if Stripe keys not set yet
             if (data.error.includes('REPLACE_ME') || data.error.includes('setup')) {
                 selectPayment('later');
@@ -822,7 +822,7 @@ let currentPaymentMethod = 'online';
 
     } catch (err) {
         document.getElementById('stripeElement').innerHTML =
-            '<div style="color:#ef4444;font-size:13px;padding:10px;"><i class="fa-solid fa-triangle-exclamation"></i> Could not load payment form. You can still choose Pay Later.</div>';
+            '<div class="cbco-inline-error"><i class="fa-solid fa-triangle-exclamation"></i> Could not load payment form. You can still choose Pay Later.</div>';
     }
 })();
 
@@ -878,7 +878,7 @@ async function handleCheckout() {
 
     // Pay Online — process via Stripe
     if (!stripeReady) {
-        alert('Payment form is still loading. Please wait a moment or choose Pay Later.');
+        cbAlert('The card form is still loading. Give it a moment, or choose Pay Later.', {title:'Nearly ready'});
         return;
     }
 
@@ -1030,13 +1030,13 @@ function onPostcodeInput() {
 
     if (!isValidUKPostcode(pc)) {
         statusEl.style.display = 'block';
-        statusEl.innerHTML = '<span style="color:#ef4444;"><i class="fa-solid fa-circle-xmark"></i> Please enter a valid UK postcode</span>';
+        statusEl.innerHTML = '<span class="cbco-status cbco-status-err"><i class="fa-solid fa-circle-xmark"></i> Please enter a valid UK postcode</span>';
         resetAddressModes();
         return;
     }
 
     statusEl.style.display = 'block';
-    statusEl.innerHTML = '<span style="color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Checking delivery distance...</span>';
+    statusEl.innerHTML = '<span class="cbco-status cbco-status-muted"><i class="fa-solid fa-spinner fa-spin"></i> Checking delivery distance...</span>';
 
     postcodeTimeout = setTimeout(() => {
         const cleanPc = pc.replace(/\s/g, '');
@@ -1044,7 +1044,7 @@ function onPostcodeInput() {
             .then(r => r.json())
             .then(data => {
                 if (!data.result) {
-                    statusEl.innerHTML = '<span style="color:#ef4444;"><i class="fa-solid fa-circle-xmark"></i> Postcode not found. Please check and try again.</span>';
+                    statusEl.innerHTML = '<span class="cbco-status cbco-status-err"><i class="fa-solid fa-circle-xmark"></i> Postcode not found. Please check and try again.</span>';
                     resetAddressModes();
                     return;
                 }
@@ -1058,7 +1058,7 @@ function onPostcodeInput() {
 
                 if (miles > MAX_DELIVERY_MILES) {
                     chargeInput.value = '0';
-                    statusEl.innerHTML = '<div style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; padding:12px 14px; border-radius:8px; margin-top:8px; font-weight:600; font-size:13px; line-height:1.4;">' +
+                    statusEl.innerHTML = '<div class="cbco-status-box">' +
                         '<i class="fa-solid fa-triangle-exclamation"></i> <strong>Distance Limit Exceeded (' + miles.toFixed(1) + ' miles):</strong><br>' +
                         'We cannot deliver to locations more than 6 miles from our Harrow warehouse (HA1 2SP / HA1 4EX).<br>' +
                         'Please select <strong>Warehouse Collection</strong> or contact support at <strong>+44 7497 779997</strong> for special orders.</div>';
@@ -1071,11 +1071,11 @@ function onPostcodeInput() {
 
                 if (miles <= FREE_MILES) {
                     chargeInput.value = '0';
-                    statusEl.innerHTML = '<span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-circle-check"></i> 🎉 Free delivery! You are within ' + miles.toFixed(1) + ' miles.</span>';
+                    statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> 🎉 Free delivery! You are within ' + miles.toFixed(1) + ' miles.</span>';
                     updateDeliveryDisplay(0);
                 } else {
                     chargeInput.value = DELIVERY_CHARGE.toFixed(2);
-                    statusEl.innerHTML = '<span style="color:#f59e0b; font-weight:600;"><i class="fa-solid fa-truck-fast"></i> £1.99 delivery charge – ' + miles.toFixed(1) + ' miles from us.</span>';
+                    statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-truck-fast"></i> £1.99 delivery charge – ' + miles.toFixed(1) + ' miles from us.</span>';
                     updateDeliveryDisplay(DELIVERY_CHARGE);
                 }
 
@@ -1083,7 +1083,7 @@ function onPostcodeInput() {
                 switchToStructuredMode(city);
             })
             .catch(() => {
-                statusEl.innerHTML = '<span style="color:#f59e0b;"><i class="fa-solid fa-triangle-exclamation"></i> Could not check postcode. Delivery charge will be calculated at checkout.</span>';
+                statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-triangle-exclamation"></i> Could not check postcode. Delivery charge will be calculated at checkout.</span>';
                 chargeInput.value = '0';
                 resetAddressModes();
             });
@@ -1108,11 +1108,11 @@ function updateDeliveryDisplay(charge) {
         if (charge === 0) {
             infoBanner.style.background = 'rgba(16,185,129,0.06)';
             infoBanner.style.borderColor = 'rgba(16,185,129,0.25)';
-            infoBanner.innerHTML = '<p style="font-size:13px; color:#10b981; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-truck-fast"></i><strong>Free delivery</strong> to your postcode!</p>';
+            infoBanner.innerHTML = '<p class="cbco-delivery-banner-text cbco-text-success"><i class="fa-solid fa-truck-fast"></i><strong>Free delivery</strong> to your postcode!</p>';
         } else {
             infoBanner.style.background = 'rgba(245,158,11,0.06)';
             infoBanner.style.borderColor = 'rgba(245,158,11,0.25)';
-            infoBanner.innerHTML = '<p style="font-size:13px; color:#f59e0b; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-truck-fast"></i><strong>£1.99</strong> delivery charge applies</p>';
+            infoBanner.innerHTML = '<p class="cbco-delivery-banner-text cbco-status-warn"><i class="fa-solid fa-truck-fast"></i><strong>£1.99</strong> delivery charge applies</p>';
         }
     }
     recalculateTotals();

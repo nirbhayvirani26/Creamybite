@@ -107,6 +107,9 @@ body.admin-wrapper.has-sidebar {
     letter-spacing: .02em;
 }
 .sb-badge.alert { background: #ef4444; }
+/* The badge is a flex item sitting next to the label, so any inherited
+   bottom margin only knocks it off the link's centre line. */
+.sb-link .sb-badge { margin-bottom: 0; }
 .sb-link.active .sb-badge { background: #5C1D24; color: #fff; }
 .sb-link.active .sb-badge.alert { background: #ef4444; }
 
@@ -636,7 +639,10 @@ body.admin-wrapper.has-sidebar {
 
 /* ── Revenue tab ─────────────────────────────── */
 .admin-wrapper.has-sidebar .cbi-rev-apply-btn { height:36px; padding:0 16px; font-size:13px; }
-.admin-wrapper.has-sidebar .cbi-rev-bar-fill { height:4px; background:var(--color-primary); border-radius:2px; }
+/* width:0 is the starting point, not a placeholder — the real width is data
+   and is applied from data-pct on load. Without it the bar is a full-width
+   block for the split second before that runs. */
+.admin-wrapper.has-sidebar .cbi-rev-bar-fill { height:4px; width:0; background:var(--color-primary); border-radius:2px; transition:width .5s ease; }
 .admin-wrapper.has-sidebar .cbi-rev-bar-track { height:4px; background:rgba(var(--color-primary-rgb),0.15); border-radius:2px; margin-top:4px; width:100%; }
 .admin-wrapper.has-sidebar .cbi-rev-card-cash { border-left:4px solid #f59e0b; }
 .admin-wrapper.has-sidebar .cbi-rev-card-invoices { border-left:4px solid #0ea5e9; }
@@ -1074,3 +1080,96 @@ button.cbpf-add-variant-btn{ padding: 10px 18px; flex-shrink: 0; }
     color: #9ca3af;
     margin-top: 4px;
 }
+
+/* ── Invoice editor: both prices under each Rate box ──────────────
+   The rate charged is only half the story: showing the price NOT being
+   charged is what makes a trade-priced line on a retail invoice visible.
+   [data-using] marks which of the two this invoice is actually applying. */
+.cbie-rate-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--text-muted, #6b7280);
+    white-space: nowrap;
+}
+.cbie-rate-hint[data-using="trade"]  { color: #047857; }
+.cbie-rate-hint[data-using="retail"] { color: #6b7280; }
+.cbie-pick-price { font-weight: 700; color: var(--color-primary); white-space: nowrap; }
+
+/* ── Invoice editor layout ────────────────────────────────────────
+   Moved out of a <style> block in invoice_edit.php so the page carries
+   no inline CSS. Purely a relocation — the rules are unchanged. */
+.inv-grid   { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; }
+.inv-card   { background:var(--bg-surface,#fff); border:1px solid var(--border-light);
+              border-radius:var(--radius-md); padding:20px; margin-bottom:18px; }
+.inv-card h3{ margin:0 0 14px; font-size:14px; text-transform:uppercase; letter-spacing:.08em;
+              color:var(--text-muted); font-weight:800; }
+.lines      { width:100%; border-collapse:collapse; }
+.lines th   { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.07em;
+              color:var(--text-muted); padding:8px 6px; border-bottom:1px solid var(--border-light); }
+.lines td   { padding:6px; vertical-align:top; }
+.lines input{ width:100%; }
+.amt        { font-weight:800; color:var(--color-primary); white-space:nowrap; padding-top:14px; }
+.totbox     { max-width:340px; margin-left:auto; }
+.totrow     { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
+.totrow.grand { border-top:2px solid var(--color-primary); margin-top:6px; padding-top:10px;
+                font-size:18px; font-weight:800; color:var(--color-primary); }
+
+/* ── Flash messages ───────────────────────────────────────────── */
+.flash       { padding:12px 18px; border-radius:var(--radius-sm); margin-bottom:16px;
+               font-size:14px; font-weight:600; }
+.flash-ok    { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; }
+.flash-warn  { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+.flash-error { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+
+/* ── Invoice status pills ─────────────────────────────────────────
+   One class per status, replacing colours that used to be injected into a
+   style attribute from PHP. Restyling a status is now a CSS-only change. */
+.cbie-status-pill.is-paid,      .pill.is-paid      { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; }
+.cbie-status-pill.is-part-paid, .pill.is-part-paid { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+.cbie-status-pill.is-sent,      .pill.is-sent      { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+.cbie-status-pill.is-void,      .pill.is-void      { background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; }
+.cbie-status-pill.is-draft,     .pill.is-draft     { background:#f9fafb; color:#6b7280; border:1px solid #e5e7eb; }
+
+/* ── Admin state classes ──────────────────────────────────────────
+   These replace colours and display values that used to be written into
+   style attributes from PHP and JS. */
+.is-hidden { display: none; }
+
+.cbi-inv-balance-cell.is-due   { color: #b91c1c; }
+.cbi-inv-balance-cell.is-clear { color: #047857; }
+
+.cbi-inv-status-badge.is-paid      { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+.cbi-inv-status-badge.is-part-paid { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+.cbi-inv-status-badge.is-sent      { background:#fffbeb; color:#b45309; border-color:#fde68a; }
+.cbi-inv-status-badge.is-void      { background:#f3f4f6; color:#6b7280; border-color:#e5e7eb; }
+.cbi-inv-status-badge.is-draft     { background:#f9fafb; color:#6b7280; border-color:#e5e7eb; }
+
+.cbi-ord-pay-badge.is-paid   { background: rgba(16,185,129,0.10); color: #10b981; }
+.cbi-ord-pay-badge.is-cash   { background: rgba(245,158,11,0.10); color: #f59e0b; }
+.cbi-ord-pay-badge.is-unpaid { background: rgba(100,100,100,0.08); color: var(--text-muted); }
+
+.cbi-stock-value-instock.is-in  { color: #10b981; }
+.cbi-stock-value-instock.is-out { color: #ef4444; }
+
+.cbi-promo-badge.is-active   { background: rgba(16,185,129,0.15); color: #10b981; }
+.cbi-promo-badge.is-inactive { background: rgba(100,100,100,0.12); color: var(--text-muted); }
+
+.cbi-inq-card        { border-color: var(--border-light); }
+.cbi-inq-card.is-new { border-color: var(--color-primary); }
+
+.cbi-cat-row  { display: flex; align-items: center; gap: 12px; }
+.cbi-cat-grip { color: var(--text-muted); font-size: 13px; }
+.cbi-cat-msg  { margin-bottom: 12px; }
+
+/* Invoice editor line-row controls */
+.line-amount        { text-align: right; }
+.cbie-line-actions  { padding-top: 12px; }
+.cbie-btn-xs        { padding: 5px 9px; font-size: 11px; }
+
+/* Row expander in the orders/stock tables. Relocated from a <style> block
+   in index.php — same rules, just no longer inline. */
+.expand-btn       { cursor:pointer; background:none; border:none; color:var(--color-secondary);
+                    font-size:13px; display:flex; align-items:center; gap:4px; }
+.expand-btn:hover { color:var(--color-primary); }

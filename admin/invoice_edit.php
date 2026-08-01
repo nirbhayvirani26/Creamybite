@@ -7,7 +7,9 @@
 //  because an invoice is a snapshot: correcting a past invoice must not be
 //  blocked by today's shop settings.
 // ============================================================
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php');
     exit;
@@ -56,25 +58,6 @@ $locked = ($inv['status'] === 'void');
 <!-- This page's own cbie-* layout classes live in admin.css. -->
 <link rel="stylesheet" href="assets/css/admin.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-    .inv-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:18px; }
-    .inv-card{ background:var(--bg-surface,#fff); border:1px solid var(--border-light);
-               border-radius:var(--radius-md); padding:20px; margin-bottom:18px; }
-    .inv-card h3{ margin:0 0 14px; font-size:14px; text-transform:uppercase; letter-spacing:.08em;
-                  color:var(--text-muted); font-weight:800; }
-    .lines{ width:100%; border-collapse:collapse; }
-    .lines th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.07em;
-               color:var(--text-muted); padding:8px 6px; border-bottom:1px solid var(--border-light); }
-    .lines td{ padding:6px; vertical-align:top; }
-    .lines input{ width:100%; }
-    .amt{ font-weight:800; color:var(--color-primary); white-space:nowrap; padding-top:14px; }
-    .totbox{ max-width:340px; margin-left:auto; }
-    .totrow{ display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
-    .totrow.grand{ border-top:2px solid var(--color-primary); margin-top:6px; padding-top:10px;
-                   font-size:18px; font-weight:800; color:var(--color-primary); }
-    .flash{ padding:12px 18px; border-radius:var(--radius-sm); margin-bottom:16px;
-            font-size:14px; font-weight:600; }
-</style>
 <?php include __DIR__ . '/_csrf_js.php'; ?>
 <link rel="stylesheet" href="../assets/css/modal.css">
 <script src="../assets/js/modal.js" defer></script>
@@ -89,7 +72,7 @@ $locked = ($inv['status'] === 'void');
             </a>
             <h1 class="cbie-invoice-title">
                 <?= htmlspecialchars($inv['invoice_number']) ?>
-                <span class="cbie-status-pill" style="background:<?= $stBg ?>; color:<?= $stFg ?>; border:1px solid <?= $stBd ?>;">
+                <span class="cbie-status-pill <?= invoiceStatusClass($inv['status']) ?>">
                     <?= $stLabel ?>
                 </span>
             </h1>
@@ -110,9 +93,7 @@ $locked = ($inv['status'] === 'void');
     </div>
 
     <?php if ($flash): ?>
-    <div class="flash" style="background:<?= $flash['type']==='error' ? '#fef2f2' : ($flash['type']==='warn' ? '#fffbeb' : '#ecfdf5') ?>;
-                              color:<?= $flash['type']==='error' ? '#b91c1c' : ($flash['type']==='warn' ? '#b45309' : '#047857') ?>;
-                              border:1px solid <?= $flash['type']==='error' ? '#fecaca' : ($flash['type']==='warn' ? '#fde68a' : '#a7f3d0') ?>;">
+    <div class="flash flash-<?= htmlspecialchars($flash['type'] === 'error' ? 'error' : ($flash['type'] === 'warn' ? 'warn' : 'ok')) ?>">
         <?= htmlspecialchars($flash['msg']) ?>
     </div>
     <?php endif; ?>
@@ -219,7 +200,7 @@ $locked = ($inv['status'] === 'void');
                     <datalist id="productList">
                         <?php foreach ($productOptions as $po): ?>
                         <option value="<?= htmlspecialchars($po['label'], ENT_QUOTES) ?>">
-                            £<?= number_format($po['price'], 2) ?><?= $isTradeInvoice && $po['wholesale'] > 0 ? ' wholesale' : '' ?>
+                            <?= htmlspecialchars(invoicePriceLabel($po)) ?>
                         </option>
                         <?php endforeach; ?>
                     </datalist>
@@ -251,7 +232,7 @@ $locked = ($inv['status'] === 'void');
                 <?php foreach ($inv['items'] as $it): ?>
                     <tr class="line-row">
                         <td><input type="text"   name="item_description[]" class="form-control line-desc" list="productList" autocomplete="off" value="<?= htmlspecialchars($it['description']) ?>"></td>
-                        <td><input type="number" name="item_rate[]"        class="form-control line-rate" step="0.01" min="0" value="<?= htmlspecialchars(number_format((float)$it['rate'], 2, '.', '')) ?>"></td>
+                        <td><input type="number" name="item_rate[]"        class="form-control line-rate" step="0.01" min="0" value="<?= htmlspecialchars(number_format((float)$it['rate'], 2, '.', '')) ?>"><small class="cbie-rate-hint"></small></td>
                         <td><input type="text"   name="item_rate_note[]"   class="form-control" value="<?= htmlspecialchars($it['rate_note']) ?>" placeholder="e.g. don't have 1L Tub"></td>
                         <td><input type="number" name="item_qty[]"         class="form-control line-qty" step="0.001" min="0" value="<?= htmlspecialchars(rtrim(rtrim(number_format((float)$it['qty'], 3, '.', ''), '0'), '.')) ?>"></td>
                         <td><input type="text"   name="item_qty_unit[]"    class="form-control" value="<?= htmlspecialchars($it['qty_unit']) ?>" placeholder="Litre"></td>
@@ -337,7 +318,7 @@ $locked = ($inv['status'] === 'void');
                     <td class="cbie-cell-pad-top cbie-pay-cell"><?= htmlspecialchars($p['method']) ?></td>
                     <td class="cbie-cell-pad-top cbie-pay-cell"><?= htmlspecialchars($p['reference']) ?: '—' ?></td>
                     <td>
-                        <form method="POST" action="handlers/invoice_handler.php" onsubmit="return confirm('Remove this payment?')" class="cbie-form-flat">
+                        <form method="POST" action="handlers/invoice_handler.php" data-confirm="Remove this payment? The balance goes back up by that amount." data-confirm-title="Remove payment?" data-confirm-tone="danger" data-confirm-ok="Remove" class="cbie-form-flat">
         <?= csrfField() ?>
                             <input type="hidden" name="action" value="delete_payment">
                             <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -390,7 +371,7 @@ $locked = ($inv['status'] === 'void');
                 <button class="btn-secondary cbie-btn-sm"><i class="fa-solid fa-rotate-left"></i> Reopen as draft</button>
             </form>
             <?php else: ?>
-            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat" onsubmit="return confirm('Void this invoice? It stays on record and its number is never reused.')">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat" data-confirm="Void this invoice? It stays on record and its number is never reused." data-confirm-title="Void invoice?" data-confirm-tone="warn" data-confirm-ok="Void it">
         <?= csrfField() ?>
                 <input type="hidden" name="action" value="set_status">
                 <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -407,7 +388,7 @@ $locked = ($inv['status'] === 'void');
             </form>
 
             <?php if ($inv['status'] === 'draft'): ?>
-            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat cbie-form-push-right" onsubmit="return confirm('Delete this draft permanently?')">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat cbie-form-push-right" data-confirm="Delete this draft permanently? Only drafts can be deleted." data-confirm-title="Delete draft?" data-confirm-tone="danger" data-confirm-ok="Delete">
         <?= csrfField() ?>
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
@@ -428,22 +409,60 @@ $locked = ($inv['status'] === 'void');
 // so this is only for immediate feedback while editing.
 function money(n){ return '£' + (Math.round(n * 100) / 100).toFixed(2); }
 
-// Product catalogue for the picker: label -> price.
-const PRODUCT_PRICES = <?= json_encode(array_combine(
+// Product catalogue for the picker.
+//   p = the rate this invoice will use, t = trade price, r = retail price.
+// Both prices travel with every entry so the hints can show the one that is
+// NOT being charged as well — that is what makes a mispriced line obvious.
+const PRODUCT_INFO = <?= json_encode(array_combine(
     array_column($productOptions, 'label'),
-    array_map(fn($p) => round($p['price'], 2), $productOptions)
+    array_map(fn($p) => [
+        'p' => round((float)$p['price'], 2),
+        't' => round((float)$p['wholesale'], 2),
+        'r' => round((float)$p['retail'], 2),
+    ], $productOptions)
 ) ?: new stdClass()) ?>;
 
-// Show the price as soon as a product is chosen, before it is added.
+// This invoice prices at <?= $isTradeInvoice ? 'trade' : 'retail' ?> rates.
+const USES_TRADE = <?= $isTradeInvoice ? 'true' : 'false' ?>;
+
+/** "Trade £3.50 · Retail £5.00" — mirrors invoicePriceLabel() in invoice.php. */
+function priceHint(info) {
+    if (!info) return '';
+    if (info.t > 0 && Math.abs(info.t - info.r) > 0.005) {
+        return 'Trade ' + money(info.t) + '  ·  Retail ' + money(info.r);
+    }
+    return money(info.r);
+}
+
+/** Put both prices under a line's Rate box, flagging the one in use. */
+function showRateHint(row, info) {
+    if (!row) return;
+    var el = row.querySelector('.cbie-rate-hint');
+    if (!el) return;
+    if (!info) { el.textContent = ''; el.removeAttribute('data-using'); return; }
+    el.textContent = priceHint(info);
+    el.setAttribute('data-using', USES_TRADE && info.t > 0 ? 'trade' : 'retail');
+}
+
+// Show both prices as soon as a product is chosen, before it is added.
 (function () {
     var search = document.getElementById('productSearch');
     var hint   = document.getElementById('pickPrice');
     if (!search || !hint) return;
     search.addEventListener('input', function () {
-        var p = PRODUCT_PRICES[search.value];
-        hint.textContent = (p === undefined) ? '' : 'Rate ' + money(p);
+        var info = PRODUCT_INFO[search.value.trim()];
+        hint.textContent = info ? priceHint(info) : '';
     });
 })();
+
+// Existing lines get their hint on load, so an invoice opened for editing
+// shows both prices without having to retype anything.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('#lineBody .line-row').forEach(function (row) {
+        var desc = row.querySelector('.line-desc');
+        if (desc) showRateHint(row, PRODUCT_INFO[desc.value.trim()]);
+    });
+});
 
 function addPickedProduct() {
     var search = document.getElementById('productSearch');
@@ -451,17 +470,18 @@ function addPickedProduct() {
     var label  = (search.value || '').trim();
     if (!label) { search.focus(); return; }
 
-    var price = PRODUCT_PRICES[label];
-    if (price === undefined) {
-        alert('Pick a product from the list — "' + label + '" is not on the menu.\n\nYou can still type a free-text line directly in the table below.');
+    var info = PRODUCT_INFO[label];
+    if (info === undefined) {
+        cbAlert('"' + label + '" is not on the menu. You can still type a free-text line straight into the table below.', {title:'Not a listed product'});
         return;
     }
 
     addLine();
     var row = document.querySelector('#lineBody .line-row:last-child');
     row.querySelector('[name="item_description[]"]').value = label;
-    row.querySelector('.line-rate').value = price.toFixed(2);
+    row.querySelector('.line-rate').value = info.p.toFixed(2);
     row.querySelector('.line-qty').value  = parseFloat(qtyEl.value) || 1;
+    showRateHint(row, info);
 
     search.value = ''; qtyEl.value = 1;
     document.getElementById('pickPrice').textContent = '';
@@ -476,16 +496,19 @@ function addPickedProduct() {
 document.addEventListener('change', function (e) {
     if (!e.target.classList || !e.target.classList.contains('line-desc')) return;
 
-    const price = PRODUCT_PRICES[e.target.value.trim()];
-    if (price === undefined) return;
-
     const row  = e.target.closest('.line-row');
+    const info = PRODUCT_INFO[e.target.value.trim()];
+
+    // Unknown text is a legitimate free-text line — just clear the stale hint.
+    showRateHint(row, info);
+    if (info === undefined) return;
+
     const rate = row && row.querySelector('.line-rate');
     if (!rate) return;
 
     const current = parseFloat(rate.value) || 0;
     if (current === 0) {
-        rate.value = price.toFixed(2);
+        rate.value = info.p.toFixed(2);
         const qty = row.querySelector('.line-qty');
         if (qty && !(parseFloat(qty.value) > 0)) qty.value = 1;
         recalc();
@@ -555,12 +578,12 @@ function addLine() {
     tr.className = 'line-row';
     tr.innerHTML =
         '<td><input type="text"   name="item_description[]" class="form-control line-desc" list="productList" autocomplete="off"></td>' +
-        '<td><input type="number" name="item_rate[]" class="form-control line-rate" step="0.01" min="0" value="0.00"></td>' +
+        '<td><input type="number" name="item_rate[]" class="form-control line-rate" step="0.01" min="0" value="0.00"><small class="cbie-rate-hint"></small></td>' +
         '<td><input type="text"   name="item_rate_note[]" class="form-control" placeholder="e.g. don\'t have 1L Tub"></td>' +
         '<td><input type="number" name="item_qty[]" class="form-control line-qty" step="0.001" min="0" value="1"></td>' +
         '<td><input type="text"   name="item_qty_unit[]" class="form-control" placeholder="Litre"></td>' +
-        '<td class="amt line-amount" style="text-align:right;">£0.00</td>' +
-        '<td style="padding-top:12px;"><button type="button" class="btn-danger" style="padding:5px 9px; font-size:11px;" onclick="removeLine(this)"><i class="fa-solid fa-xmark"></i></button></td>';
+        '<td class="amt line-amount">£0.00</td>' +
+        '<td class="cbie-line-actions"><button type="button" class="btn-danger cbie-btn-xs" onclick="removeLine(this)"><i class="fa-solid fa-xmark"></i></button></td>';
     tbody.appendChild(tr);
     tr.querySelector('input').focus();
     recalc();

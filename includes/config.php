@@ -1,7 +1,13 @@
 <?php
 // ============================================================
-//  Sweet Scoops – Site Configuration
-//  Real credentials live in secrets.php — never inline them here.
+//  Creamy Bite – Site Configuration
+//
+//  DATABASE LOGINS ARE IN THIS FILE, just below, so they are easy to find
+//  and change when you move hosts.
+//
+//  The other secrets (Stripe keys, the Gmail app password, the admin panel
+//  password) are still in secrets.php, which .htaccess blocks from being
+//  served over the web. Keep this file out of any public repo or ZIP.
 // ============================================================
 
 // Be safe to include more than once.
@@ -19,6 +25,30 @@ if (defined('CB_CONFIG_LOADED')) {
 define('CB_CONFIG_LOADED', true);
 
 $secrets = require __DIR__ . '/secrets.php';
+
+// ════════════════════════════════════════════════════════════
+//  DATABASE LOGINS  —  edit these
+// ════════════════════════════════════════════════════════════
+
+//  On your Mac (MAMP). Port 8889 is MAMP's MySQL, not the usual 3306.
+$DB_LOCAL = [
+    'host' => 'localhost',
+    'port' => '8889',
+    'name' => 'creamybite',
+    'user' => 'root',
+    'pass' => 'root',
+];
+
+//  On the live server (Hostinger). Copy these from hPanel > Databases.
+$DB_LIVE = [
+    'host' => 'localhost',
+    'port' => '3306',
+    'name' => 'u167013900_creamybite',
+    'user' => 'u167013900_creamyuser',
+    'pass' => 'Creamyorder@2026*',
+];
+
+// ════════════════════════════════════════════════════════════
 
 define('SHOP_NAME',      'Creamy Bite');
 define('SHOP_TAGLINE',   'Every Bite Tells a Story 🍦');
@@ -52,7 +82,7 @@ $isLocal = $isCli
     || str_starts_with($host, '127.0.0.1:')
     || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == '8888');
 
-$db = $isLocal ? $secrets['db_local'] : $secrets['db_live'];
+$db = $isLocal ? $DB_LOCAL : $DB_LIVE;
 
 // ── URL path to the project root ─────────────────────────────
 //  "/orders" under MAMP, "" when the site is the domain root.

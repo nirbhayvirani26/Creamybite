@@ -596,7 +596,7 @@ function renderCart() {
         const imgHtml   = item.image
             ? `<img class="cart-item-img" src="../assets/images/products/${escHtml(item.image)}" alt="${escHtml(item.name)}">`
             : `<div class="cart-item-img-placeholder">${escHtml(item.emoji)}</div>`;
-        const variantLabel = item.variant_name ? `<span style="font-size:11px;color:var(--text-muted);font-weight:500;">${escHtml(item.variant_name)}</span>` : '';
+        const variantLabel = item.variant_name ? `<span class="cbo-variant-label">${escHtml(item.variant_name)}</span>` : '';
         html += `
         <div class="cart-item">
             ${imgHtml}

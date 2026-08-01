@@ -359,11 +359,12 @@ if ($activeTab === 'revenue') {
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .expand-btn { cursor: pointer; background: none; border: none; color: var(--color-secondary); font-size: 13px; display: flex; align-items: center; gap: 4px; }
-        .expand-btn:hover { color: var(--color-primary); }
-    </style>
 <link rel="stylesheet" href="assets/css/admin.css">
+<!-- In-page dialogs. Every confirm/alert on this page goes through these, so
+     they must load here — without them cbConfirm() is simply not defined and
+     the delete buttons do nothing at all. -->
+<link rel="stylesheet" href="../assets/css/modal.css">
+<script src="../assets/js/modal.js" defer></script>
 <?php include __DIR__ . '/_csrf_js.php'; ?>
 </head>
 <body class="admin-wrapper has-sidebar">
@@ -531,7 +532,7 @@ $pageTitles = [
         <!-- ═══════════════════ INVOICES TAB ═══════════════════ -->
         <?php if ($activeTab === 'invoices'): ?>
         <?php if ($invoiceFlash): ?>
-        <div class="cbi-inv-flash" style="background:<?= $invoiceFlash['type']==='error' ? '#fef2f2' : ($invoiceFlash['type']==='warn' ? '#fffbeb' : '#ecfdf5') ?>; color:<?= $invoiceFlash['type']==='error' ? '#b91c1c' : ($invoiceFlash['type']==='warn' ? '#b45309' : '#047857') ?>; border-color:<?= $invoiceFlash['type']==='error' ? '#fecaca' : ($invoiceFlash['type']==='warn' ? '#fde68a' : '#a7f3d0') ?>;">
+        <div class="cbi-inv-flash flash-<?= htmlspecialchars($invoiceFlash['type'] === 'error' ? 'error' : ($invoiceFlash['type'] === 'warn' ? 'warn' : 'ok')) ?>">
             <?= htmlspecialchars($invoiceFlash['msg']) ?>
         </div>
         <?php endif; ?>
@@ -546,7 +547,7 @@ $pageTitles = [
                 </h2>
                 <div class="cbi-btn-row">
                     <?php // "New invoice" lives in the topbar — not repeated here. ?>
-                    <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="document.getElementById('invSettings').style.display = document.getElementById('invSettings').style.display==='none' ? 'block' : 'none'">
+                    <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="document.getElementById('invSettings').classList.toggle('is-hidden')">
                         <i class="fa-solid fa-gear"></i> Settings
                     </button>
                 </div>
@@ -584,7 +585,7 @@ $pageTitles = [
             <?php endif; ?>
 
             <!-- Settings -->
-            <div id="invSettings" class="cbi-inv-settings-panel" style="display:none;">
+            <div id="invSettings" class="cbi-inv-settings-panel is-hidden">
                 <form method="POST" action="handlers/invoice_handler.php">
         <?= csrfField() ?>
                     <input type="hidden" name="action" value="save_settings">
@@ -678,11 +679,11 @@ $pageTitles = [
                             </td>
                             <td class="cbi-inv-to-cell"><?= htmlspecialchars($iv['to_name']) ?: '<span class="cbi-muted">—</span>' ?></td>
                             <td class="cbi-inv-total-cell">£<?= number_format((float)$iv['total'], 2) ?></td>
-                            <td class="cbi-inv-balance-cell" style="color:<?= $bal > 0.001 ? '#b91c1c' : '#047857' ?>;">
+                            <td class="cbi-inv-balance-cell <?= $bal > 0.001 ? 'is-due' : 'is-clear' ?>">
                                 £<?= number_format($bal, 2) ?>
                             </td>
                             <td>
-                                <span class="cbi-inv-status-badge" style="background:<?= $bg ?>; color:<?= $fg ?>; border-color:<?= $bd ?>;">
+                                <span class="cbi-inv-status-badge <?= invoiceStatusClass($iv['status']) ?>">
                                     <?= $lbl ?>
                                 </span>
                             </td>
@@ -819,24 +820,24 @@ $pageTitles = [
                                 <?php
                                     $ps = $order['payment_status'] ?? 'Unpaid';
                                     $pm = $order['payment_method'] ?? 'later';
+                                    // The badge's colours come from its state class in
+                                    // admin.css, so only the icon, wording and state
+                                    // are decided here.
                                     if ($ps === 'Paid') {
-                                        $payIcon = '<i class="fa-solid fa-circle-check cbi-text-green"></i>';
-                                        $payColor = '#10b981';
-                                        $payBg = 'rgba(16,185,129,0.1)';
+                                        $payIcon = '<i class="fa-solid fa-circle-check"></i>';
                                         $payLabel = 'Paid';
+                                        $payStateClass = 'is-paid';
                                     } elseif ($ps === 'Cash') {
-                                        $payIcon = '<i class="fa-solid fa-money-bill-wave cbi-text-amber"></i>';
-                                        $payColor = '#f59e0b';
-                                        $payBg = 'rgba(245,158,11,0.1)';
+                                        $payIcon = '<i class="fa-solid fa-money-bill-wave"></i>';
                                         $payLabel = 'Cash';
+                                        $payStateClass = 'is-cash';
                                     } else {
-                                        $payIcon = '<i class="fa-solid fa-clock cbi-muted"></i>';
-                                        $payColor = 'var(--text-muted)';
-                                        $payBg = 'rgba(100,100,100,0.08)';
+                                        $payIcon = '<i class="fa-solid fa-clock"></i>';
                                         $payLabel = 'Unpaid';
+                                        $payStateClass = 'is-unpaid';
                                     }
                                 ?>
-                                <span id="pay-badge-<?= $order['id'] ?>" class="cbi-ord-pay-badge" style="background:<?= $payBg ?>; color:<?= $payColor ?>;">
+                                <span id="pay-badge-<?= $order['id'] ?>" class="cbi-ord-pay-badge <?= $payStateClass ?>">
                                     <?= $payIcon ?> <?= $payLabel ?>
                                 </span>
                             </td>
@@ -1149,12 +1150,12 @@ $pageTitles = [
                             <td class="cbi-actions-cell">
                                 <div class="cbi-trade-actions">
                                     <?php if ($st !== 'approved'): ?>
-                                    <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=trade&action=approve_trade&id=' . (int)$tu['id'])) ?>" class="btn-sm btn-sm-success cbi-trade-action-btn" onclick="return confirm('Approve trade account for <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?>?')">
+                                    <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=trade&action=approve_trade&id=' . (int)$tu['id'])) ?>" class="btn-sm btn-sm-success cbi-trade-action-btn" data-confirm="Approve <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?> as a trade partner? They will get wholesale pricing immediately." data-confirm-title="Approve trade account?" data-confirm-tone="success" data-confirm-ok="Approve">
                                         <i class="fa-solid fa-check"></i> Approve
                                     </a>
                                     <?php endif; ?>
                                     <?php if ($st !== 'rejected'): ?>
-                                    <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=trade&action=reject_trade&id=' . (int)$tu['id'])) ?>" class="btn-sm btn-sm-danger cbi-trade-action-btn" onclick="return confirm('Reject trade account for <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?>?')">
+                                    <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=trade&action=reject_trade&id=' . (int)$tu['id'])) ?>" class="btn-sm btn-sm-danger cbi-trade-action-btn" data-confirm="Reject the trade application from <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?>? They will not get wholesale pricing." data-confirm-title="Reject trade account?" data-confirm-tone="danger" data-confirm-ok="Reject">
                                         <i class="fa-solid fa-xmark"></i> Reject
                                     </a>
                                     <?php endif; ?>
@@ -1303,7 +1304,7 @@ $pageTitles = [
                                     </a>
                                     <a href="<?= htmlspecialchars(csrfUrl('index.php?action=delete_product&tab=products&id=' . (int)$p['id'])) ?>"
                                        class="btn-sm btn-sm-danger"
-                                       onclick="return confirm('Delete &quot;<?= addslashes($p['name']) ?>&quot;? This cannot be undone.')">
+                                       data-confirm="Delete &quot;<?= htmlspecialchars($p['name'], ENT_QUOTES) ?>&quot;? This cannot be undone, and any sizes on it go too." data-confirm-title="Delete product?" data-confirm-tone="danger" data-confirm-ok="Delete">
                                         <i class="fa-solid fa-trash"></i>
                                     </a>
                                 </div>
@@ -1442,7 +1443,7 @@ $pageTitles = [
                             <!-- In Stock (auto, read-only) -->
                             <td class="cbi-stock-col-center">
                                 <?php if ($sp['track_stock']): ?>
-                                <span id="val-in_stock-<?= $sp['id'] ?>" class="cbi-stock-value-instock" style="color:<?= $ins > 0 ? '#10b981' : '#ef4444' ?>;"><?= $ins ?></span>
+                                <span id="val-in_stock-<?= $sp['id'] ?>" class="cbi-stock-value-instock <?= $ins > 0 ? 'is-in' : 'is-out' ?>"><?= $ins ?></span>
                                 <?php else: ?>
                                 <span class="cbi-muted-md">—</span>
                                 <?php endif; ?>
@@ -1618,13 +1619,13 @@ $pageTitles = [
                 </form>
 
                 <button type="button" class="btn-primary cbi-rev-reports-btn"
-                        onclick="var p=document.getElementById('reportPanel'); p.style.display = p.style.display==='none' ? 'block' : 'none';">
+                        onclick="document.getElementById('reportPanel').classList.toggle('is-hidden');">
                     <i class="fa-solid fa-file-arrow-down"></i> Reports
                 </button>
             </div>
 
             <!-- ── Report builder ───────────────────────────── -->
-            <div id="reportPanel" class="cbi-rev-report-panel" style="display:none;">
+            <div id="reportPanel" class="cbi-rev-report-panel is-hidden">
                 <form method="GET" action="reports.php" target="_blank" id="reportForm"
                       class="cbi-rev-report-grid">
 
@@ -1709,7 +1710,7 @@ $pageTitles = [
                             <td class="cbi-rev-cat-cell">
                                 <div class="cbi-rev-cat-name"><?= htmlspecialchars($cat) ?></div>
                                 <div class="cbi-rev-bar-track">
-                                    <div class="cbi-rev-bar-fill" style="width:<?= $pct ?>%;"></div>
+                                    <div class="cbi-rev-bar-fill" data-pct="<?= (float)$pct ?>"></div>
                                 </div>
                             </td>
                             <td class="cbi-rev-cat-revenue">£<?= number_format($cdata['revenue'], 2) ?></td>
@@ -1969,7 +1970,7 @@ $pageTitles = [
                             </td>
                             <td><?= !empty($p['expires_at']) ? date('d M Y', strtotime($p['expires_at'])) : '<span class="cbi-muted">Never</span>' ?></td>
                             <td>
-                                <span id="promo-badge-<?= $p['id'] ?>" class="cbi-promo-badge" style="<?= $p['active'] ? 'background:rgba(16,185,129,0.15); color:#10b981;' : 'background:rgba(100,100,100,0.12); color:var(--text-muted);' ?>">
+                                <span id="promo-badge-<?= $p['id'] ?>" class="cbi-promo-badge <?= $p['active'] ? 'is-active' : 'is-inactive' ?>">
                                     <?= $p['active'] ? 'Active' : 'Disabled' ?>
                                 </span>
                             </td>
@@ -2006,7 +2007,7 @@ $pageTitles = [
                         Total: <strong><?= count($inquiries) ?></strong>
                     </span>
                     <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=inquiries&delete_inquiry=all')) ?>"
-                       onclick="return confirm('Delete ALL inquiries? This cannot be undone.')"
+                       data-confirm="Delete ALL inquiries? This cannot be undone." data-confirm-title="Delete every inquiry?" data-confirm-tone="danger" data-confirm-ok="Delete all"
                        class="btn-danger cbi-inq-btn">
                         <i class="fa-solid fa-trash"></i> Clear All
                     </a>
@@ -2044,12 +2045,12 @@ $pageTitles = [
             <div class="cbi-inq-list">
                 <?php foreach ($inquiries as $inq): ?>
                 <?php $isNew = !$inq['is_read']; ?>
-                <div class="cbi-inq-card" style="border-color:<?= $isNew ? 'var(--color-primary)' : 'var(--border-light)' ?>;">
+                <div class="cbi-inq-card<?= $isNew ? ' is-new' : '' ?>">
                     <?php if ($isNew): ?>
                     <span class="cbi-inq-new-tag">NEW</span>
                     <?php endif; ?>
                     <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=inquiries&delete_inquiry=' . (int)$inq['id'])) ?>"
-                       onclick="return confirm('Delete this inquiry?')"
+                       data-confirm="Delete this inquiry?" data-confirm-title="Delete inquiry?" data-confirm-tone="danger" data-confirm-ok="Delete"
                        class="cbi-inq-delete"
                        title="Delete">
                         <i class="fa-solid fa-trash-can"></i>
@@ -2169,15 +2170,17 @@ function updatePaymentStatus(orderId) {
             // Update the payment badge in the main row
             const badge = document.getElementById('pay-badge-' + orderId);
             if (badge) {
+                // Same three states the PHP above renders, so a badge updated
+                // here looks identical to one rendered on a fresh page load.
                 const map = {
-                    'Paid':   { icon: '<i class="fa-solid fa-circle-check" style="color:#10b981;"></i>', label: 'Paid Online',     color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
-                    'Cash':   { icon: '<i class="fa-solid fa-money-bill-wave" style="color:#f59e0b;"></i>', label: 'Cash Received', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-                    'Unpaid': { icon: '<i class="fa-solid fa-clock" style="color:var(--text-muted);"></i>', label: 'Not Paid',     color: 'var(--text-muted)', bg: 'rgba(100,100,100,0.08)' },
+                    'Paid':   { icon: '<i class="fa-solid fa-circle-check"></i>',    label: 'Paid Online',   cls: 'is-paid'   },
+                    'Cash':   { icon: '<i class="fa-solid fa-money-bill-wave"></i>', label: 'Cash Received', cls: 'is-cash'   },
+                    'Unpaid': { icon: '<i class="fa-solid fa-clock"></i>',           label: 'Not Paid',      cls: 'is-unpaid' },
                 };
                 const m = map[ps] || map['Unpaid'];
                 badge.innerHTML = m.icon + ' ' + m.label;
-                badge.style.color      = m.color;
-                badge.style.background = m.bg;
+                badge.classList.remove('is-paid', 'is-cash', 'is-unpaid');
+                badge.classList.add(m.cls);
             }
 
             const mainRow = document.getElementById('row-' + orderId);
@@ -2244,8 +2247,8 @@ function triggerGalleryUpload(input) {
     });
 }
 
-function deleteGalleryItem(id) {
-    if (!confirm('Delete this photo? This cannot be undone.')) return;
+async function deleteGalleryItem(id) {
+    if (!await cbConfirm('Delete this photo? This cannot be undone.', {title:'Delete photo?', tone:'danger', okText:'Delete'})) return;
     fetch('handlers/gallery_handler.php?action=delete&id=' + id)
     .then(r => r.json())
     .then(data => {
@@ -2253,7 +2256,7 @@ function deleteGalleryItem(id) {
             const el = document.getElementById('gitem-' + id);
             if (el) { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }
         } else {
-            alert('Failed to delete: ' + data.message);
+            cbAlert(data.message, {title:'Could not delete photo', tone:'danger'});
         }
     });
 }
@@ -2281,8 +2284,8 @@ function addCategory() {
             div.id = 'catrow-' + data.id;
             div.setAttribute('data-order', data.sort_order || 999);
             div.innerHTML = `
-                <div style="display:flex;align-items:center;gap:12px;">
-                    <i class="fa-solid fa-grip-vertical" style="color:var(--text-muted);font-size:13px;"></i>
+                <div class="cbi-cat-row">
+                    <i class="fa-solid fa-grip-vertical cbi-cat-grip"></i>
                     <span class="cat-name" id="catname-${data.id}">${escHtml(data.name)}</span>
                 </div>
                 <div class="action-group">
@@ -2303,8 +2306,8 @@ function addCategory() {
     });
 }
 
-function startRename(id, currentName) {
-    const newName = prompt('Rename category:', currentName);
+async function startRename(id, currentName) {
+    const newName = await cbPrompt('New name for this category:', currentName, {title:'Rename category'});
     if (!newName || newName.trim() === currentName) return;
 
     fetch('handlers/category_handler.php', {
@@ -2318,13 +2321,13 @@ function startRename(id, currentName) {
             document.getElementById('catname-' + id).textContent = newName.trim();
             showCatMsg('✅ Renamed!', 'success');
         } else {
-            alert('Failed: ' + data.message);
+            cbAlert(data.message, {title:'Could not rename', tone:'danger'});
         }
     });
 }
 
-function deleteCategory(id, name) {
-    if (!confirm('Delete category "' + name + '"? Products using it will still exist.')) return;
+async function deleteCategory(id, name) {
+    if (!await cbConfirm('Delete the category "' + name + '"? Products using it are not deleted.', {title:'Delete category?', tone:'danger', okText:'Delete'})) return;
     fetch('handlers/category_handler.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -2336,14 +2339,14 @@ function deleteCategory(id, name) {
             const el = document.getElementById('catrow-' + id);
             if (el) { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }
         } else {
-            alert(data.message);
+            cbAlert(data.message, {title:'Could not delete category', tone:'danger'});
         }
     });
 }
 
 function showCatMsg(msg, type) {
     if (!catMsgEl) return;
-    catMsgEl.innerHTML = `<div class="alert alert-${type}" style="margin-bottom:12px;">${msg}</div>`;
+    catMsgEl.innerHTML = `<div class="alert alert-${type} cbi-cat-msg">${msg}</div>`;
     setTimeout(() => { catMsgEl.innerHTML = ''; }, 3500);
 }
 
@@ -2362,7 +2365,7 @@ function createPromo() {
     const exp   = document.getElementById('promoExpires').value;
     const active = document.getElementById('promoActive').checked ? 1 : 0;
 
-    if (!code || !value) { alert('Code and discount value are required.'); return; }
+    if (!code || !value) { cbAlert('Enter both a code and a discount value.', {title:'Missing details'}); return; }
 
     fetch('../promo_handler.php', {
         method: 'POST',
@@ -2371,7 +2374,7 @@ function createPromo() {
     })
     .then(r => r.json())
     .then(data => {
-        if (!data.success) { alert(data.message || 'Error'); return; }
+        if (!data.success) { cbAlert(data.message || 'Could not save the promo code.', {title:'Could not save', tone:'danger'}); return; }
         location.reload();
     });
 }
@@ -2398,8 +2401,8 @@ function togglePromo(id) {
     });
 }
 
-function deletePromo(id, code) {
-    if (!confirm(`Delete promo code "${code}"? This cannot be undone.`)) return;
+async function deletePromo(id, code) {
+    if (!await cbConfirm(`Delete promo code "${code}"? This cannot be undone.`, {title:'Delete promo code?', tone:'danger', okText:'Delete'})) return;
     fetch('../promo_handler.php', {
         method: 'POST',
         headers: {'Content-Type':'application/x-www-form-urlencoded'},
@@ -2551,15 +2554,15 @@ function filterOrdersByName(query) { filterOrders(query); }
 // ── Remove an item we cannot supply from a placed order ──────
 // Asks for a reason (it goes to the customer and onto the delivery note),
 // then lets the server handle stock, totals, the invoice and the email.
-function removeOrderItem(orderId, itemIndex, itemName) {
-    const reason = prompt(
+async function removeOrderItem(orderId, itemIndex, itemName) {
+    const reason = await cbPrompt(
         'Remove "' + itemName + '" from this order?\n\n' +
         'Give a short reason — it is shown to the customer and recorded on the order:',
         'Out of stock'
     );
     if (reason === null) return;   // cancelled
 
-    const notify = confirm('Email the customer to tell them?\n\nOK = send the email\nCancel = change the order quietly');
+    const notify = await cbConfirm('Email the customer to tell them this item was removed?', {title:'Notify the customer?', okText:'Send email', cancelText:'Change quietly'});
 
     const body = new URLSearchParams({
         action: 'remove_item',
@@ -2576,13 +2579,13 @@ function removeOrderItem(orderId, itemIndex, itemName) {
     })
     .then(r => r.json())
     .then(data => {
-        if (!data.success) { alert(data.message || 'Could not remove that item.'); return; }
+        if (!data.success) { cbAlert(data.message || 'Could not remove that item.', {title:'Could not remove item', tone:'danger'}); return; }
         let msg = data.message;
         if (data.refund_due) msg += '\n\nThis order was already paid — £' + data.refund_due + ' is owed back to the customer.';
-        alert(msg);
+        cbAlert(msg, {title:'Item removed', tone:'success'});
         location.reload();
     })
-    .catch(() => alert('Network error. Please try again.'));
+    .catch(err => cbAlert('Could not reach the server: ' + err.message, {title:'Request failed', tone:'danger'}));
 }
 
 // ── Sidebar drawer (mobile) ─────────────────────────────────
@@ -2787,8 +2790,8 @@ document.getElementById('stockEditModal')?.addEventListener('click', function(e)
 });
 
 // ── Delete Order ──────────────────────────────────────────────
-function deleteOrder(orderId, orderCode) {
-    if (!confirm(`Delete order ${orderCode}?\nThis cannot be undone.`)) return;
+async function deleteOrder(orderId, orderCode) {
+    if (!await cbConfirm(`Delete order ${orderCode}?\n\nThis cannot be undone. Any stock it used is returned.`, {title:'Delete order?', tone:'danger', okText:'Delete order'})) return;
     fetch('handlers/update_order.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -2810,10 +2813,10 @@ function deleteOrder(orderId, orderCode) {
                 detailRow?.remove();
             }, 320);
         } else {
-            alert('Failed to delete order: ' + (data.message || 'Unknown error'));
+            cbAlert(data.message || 'Unknown error', {title:'Could not delete order', tone:'danger'});
         }
     })
-    .catch(() => alert('Network error. Please try again.'));
+    .catch(err => cbAlert('Could not reach the server: ' + err.message, {title:'Request failed', tone:'danger'}));
 }
 
 // ── Sorting for Orders ────────────────────────────────────────
@@ -2953,5 +2956,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <?php endif; ?>
+<script>
+// Revenue bars: the width is data, not styling, so it rides on data-pct and
+// is applied here rather than written into a style attribute in the markup.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.cbi-rev-bar-fill[data-pct]').forEach(function (el) {
+        var pct = parseFloat(el.getAttribute('data-pct'));
+        el.style.width = (isNaN(pct) ? 0 : Math.max(0, Math.min(100, pct))) + '%';
+    });
+});
+</script>
 </body>
 </html>

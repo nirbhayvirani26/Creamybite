@@ -40,3 +40,51 @@
 .lg-field     { position: relative; }
 .lg-input-pad { padding-right: 46px; }
 .lg-submit    { width: 100%; justify-content: center; font-size: 15px; padding: 14px; }
+
+/* ── Which database was touched ───────────────────────────────────
+   Loud on purpose. An updater run against the wrong database reports
+   all-green, so the environment has to be the first thing you read. */
+.su-env {
+    font-size: 15px;
+    font-weight: 800;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    border: 2px solid transparent;
+}
+.su-env-local { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.su-env-live  { background: #fff7ed; color: #9a3412; border-color: #fdba74; }
+
+/* ── Failure summary ──────────────────────────────────────────────
+   Repeated above the results table: a single red row among nineteen
+   green ones reads as success to anyone not looking for it. */
+.su-failbox {
+    background: #fef2f2;
+    border: 2px solid #fecaca;
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+}
+.su-failbox-h    { margin: 0 0 10px; font-size: 16px; font-weight: 800; color: #b91c1c; }
+.su-failbox-list { margin: 0; padding-left: 20px; font-size: 13px; color: #7f1d1d; line-height: 1.7; }
+
+/* ── Login: show/hide password button ─────────────────────────────
+   Sits inside .lg-field, which is the positioned ancestor. Its lit state
+   is the .is-showing class rather than a colour written from JS. */
+.lg-pwd-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 16px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color .2s;
+}
+.lg-pwd-toggle.is-showing { color: var(--color-primary); }
+.lg-footer-inner { text-align: center; }
