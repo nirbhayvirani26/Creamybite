@@ -51,8 +51,9 @@ $amountPence    = $totals['total_pence'];   // Stripe works in pence
 // The browser confirms this PaymentIntent BEFORE checkout_handler.php runs,
 // so any rule enforced only in the handler takes the customer's money and
 // then throws the order away. Mirror those rules here.
-if ($orderType === 'delivery' && $totals['subtotal'] < 10.00) {
-    echo json_encode(['error' => 'Minimum order for delivery is £10.00. Please add more items to your basket.']);
+if ($orderType === 'delivery' && $totals['subtotal'] < MIN_DELIVERY_ORDER) {
+    echo json_encode(['error' => 'Minimum order for delivery is £' . number_format(MIN_DELIVERY_ORDER, 2)
+                               . '. Please add more items, or choose collection.']);
     exit;
 }
 

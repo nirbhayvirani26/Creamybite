@@ -398,6 +398,14 @@ $grandTotal     = $totals['total'];
                             </div>
                         </div>
 
+                        <!-- Shown while a delivery basket is under the minimum, and
+                             removed the moment it is met. The rule was previously
+                             enforced only on the server, so the customer met it
+                             without the warning ever going away. -->
+                        <div id="minOrderNotice" class="cbco-min-notice cbco-hidden">
+                            <i class="fa-solid fa-basket-shopping"></i>
+                            <span id="minOrderText"></span>
+                        </div>
                         <button type="button" id="placeOrderBtn" onclick="handleCheckout()" class="btn-primary cbco-place-order-btn">
                             <i class="fa-solid fa-credit-card" id="btnIcon"></i>
                             <span id="btnText">Pay Now</span>
@@ -607,6 +615,8 @@ function recalculateTotals() {
 
     let grandTotal = base + vat;
 
+    checkMinimumOrder();
+
     const totalEl = document.getElementById('summaryTotal');
     if (totalEl) {
         totalEl.textContent = '£' + grandTotal.toFixed(2);
@@ -671,6 +681,11 @@ function showPromoMsg(msg, type) {
 document.addEventListener('DOMContentLoaded', () => {
     const inp = document.getElementById('promoInput');
     if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); applyPromo(); } });
+
+    // Check the minimum on arrival, not only after something changes. A
+    // customer who lands here with a basket that is already too small would
+    // otherwise see no warning until they pressed Place Order.
+    checkMinimumOrder();
 });
 
 // ── Re-evaluate delivery + promo when cart changes ──────────
@@ -938,11 +953,46 @@ const SHOP_LAT = 51.5729;
 const SHOP_LON = -0.3356; // HA1 2SP coordinates
 const DELIVERY_CHARGE   = 1.99;
 const FREE_MILES        = 3;    // Within 3 miles = free delivery
-const MIN_ORDER         = 10.00; // Minimum order value for delivery
+// Comes from MIN_DELIVERY_ORDER in config.php — the same figure the server
+// enforces, so the page can never warn about a different number than the one
+// that actually blocks the order.
+const MIN_ORDER         = <?= json_encode(MIN_DELIVERY_ORDER) ?>;
 
 let lastCalculatedMiles = -1; // cache so we can re-evaluate on cart changes
 
 let manualMode = false;
+
+/**
+ * Warn while a delivery basket is below the minimum, and stop warning as soon
+ * as it is not.
+ *
+ * MIN_ORDER existed as a constant but nothing ever read it, so the rule was
+ * enforced only after the customer pressed Place Order — they would add items,
+ * meet the minimum, and still be looking at the same message. Collection is
+ * exempt: the minimum covers the driver, and there is no driver.
+ */
+function checkMinimumOrder() {
+    const notice = document.getElementById('minOrderNotice');
+    const text   = document.getElementById('minOrderText');
+    const btn    = document.getElementById('placeOrderBtn');
+    if (!notice || !text) return;
+
+    const isCollection = document.querySelector('input[name="order_type"]:checked')?.value === 'collection';
+    const short = MIN_ORDER - cartSubtotal;
+
+    if (!isCollection && short > 0.001) {
+        text.textContent = 'Minimum order for delivery is £' + MIN_ORDER.toFixed(2) +
+            '. Add £' + short.toFixed(2) + ' more, or choose Warehouse Collection.';
+        notice.classList.remove('cbco-hidden');
+        if (btn) btn.disabled = true;
+    } else {
+        notice.classList.add('cbco-hidden');
+        // Only re-enable what THIS rule disabled — the out-of-range postcode
+        // check disables the same button, and clearing it here would let an
+        // undeliverable order through.
+        if (btn && !btn.dataset.blockedByDistance) btn.disabled = false;
+    }
+}
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
     const R = 3958.8; // Earth radius in miles
@@ -1083,11 +1133,18 @@ function onPostcodeInput() {
                         '<strong>We are unable to deliver more than 6 miles radius.</strong><br>' +
                         'Your postcode is ' + miles.toFixed(1) + ' miles from our Harrow warehouse (HA1 2SP).<br>' +
                         'Please choose <strong>Warehouse Collection</strong>, or call <strong>+44 7497 779997</strong> if you need a special arrangement.</div>';
-                    if (submitBtn) submitBtn.disabled = true;
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.dataset.blockedByDistance = '1';
+                    }
                     updateDeliveryDisplay(0);
                     return;
                 } else {
-                    if (submitBtn) submitBtn.disabled = false;
+                    if (submitBtn) {
+                        delete submitBtn.dataset.blockedByDistance;
+                        submitBtn.disabled = false;
+                    }
+                    checkMinimumOrder();   // distance is fine; the basket may not be
                 }
 
                 if (miles <= FREE_MILES) {
@@ -1159,6 +1216,8 @@ function cbRequire(id, required) {
 
 function toggleOrderType(type) {
     const isCollection = (type === 'collection');
+    // Collection has no minimum, so switching to it must clear the warning.
+    setTimeout(checkMinimumOrder, 0);
     const delLabel = document.getElementById('type_delivery_label');
     const colLabel = document.getElementById('type_collection_label');
 

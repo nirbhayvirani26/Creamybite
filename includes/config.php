@@ -75,6 +75,16 @@ define('ORDER_PREFIX', 'SCO');
 // Retail customers are never charged this — shelf prices are inclusive.
 define('TRADE_VAT_RATE', 0.20);   // 20%
 
+// Smallest basket we will deliver. Collection has no minimum — the cost this
+// covers is the driver, not the ice cream.
+//
+// Defined once because it is enforced in three places that must agree: the
+// checkout page (to warn early), stripe_intent.php (so a card is never
+// charged for a basket the handler will reject) and checkout_handler.php (the
+// only one that actually decides). When these were three separate literals,
+// changing the figure in one left the other two quietly enforcing the old one.
+define('MIN_DELIVERY_ORDER', 20.00);
+
 // ── Auto-Detect Environment (Local MAMP vs Live Server) ────────
 //  CLI has no HTTP_HOST. Treat that as LOCAL, not live — otherwise any
 //  command-line script silently connects to the production database.

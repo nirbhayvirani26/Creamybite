@@ -176,13 +176,16 @@ if ($orderType === 'delivery') {
 
 // ── Minimum order check (delivery only) ──────────────────
 if ($orderType === 'delivery') {
-    $minOrderValue = 10.00;
+    $minOrderValue = MIN_DELIVERY_ORDER;
     $preCheckSubtotal = 0.0;
     foreach (($_SESSION['cart'] ?? []) as $item) {
         $preCheckSubtotal += $item['price'] * $item['quantity'];
     }
     if ($preCheckSubtotal < $minOrderValue) {
-        $errors[] = 'Minimum order for delivery is £10.00.';
+        $errors[] = 'Minimum order for delivery is £' . number_format($minOrderValue, 2)
+                  . '. Your basket is £' . number_format($preCheckSubtotal, 2)
+                  . ' — add £' . number_format($minOrderValue - $preCheckSubtotal, 2)
+                  . ' more, or choose collection.';
     }
 }
 

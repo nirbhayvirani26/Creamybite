@@ -1090,3 +1090,12 @@ a.btn-primary.cboc-directions-btn {
 /* Trade profile invoice cards */
 .cbtp-invoice-balance { display: block; font-size: 12px; font-weight: 600; color: #b45309; margin-top: 2px; }
 .cbtp-invoice-pending { display: block; font-size: 12px; color: var(--text-muted); text-align: center; padding: 10px 0; }
+
+/* Basket below the delivery minimum. Amber rather than red: nothing is wrong,
+   the customer just needs to add a little more. */
+.cbco-min-notice {
+    display: flex; align-items: flex-start; gap: 9px;
+    background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+    padding: 12px 14px; border-radius: 8px; margin-bottom: 12px;
+    font-size: 13px; font-weight: 600; line-height: 1.5;
+}
