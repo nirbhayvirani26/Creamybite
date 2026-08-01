@@ -1054,6 +1054,13 @@ function isValidUKPostcode(pc) {
 }
 
 function updateConcatenatedAddress() {
+    // The structured address block is RETAIL-ONLY — a trade partner delivers
+    // to their registered address and never types one. Without this guard the
+    // first getElementById here returns null on the trade checkout, the
+    // TypeError kills the postcode handler mid-flight, and everything that
+    // runs after it — including loading the card form — never happens. That
+    // is why "Pay Online is not loading" appeared on trade orders only.
+    if (!document.getElementById('structuredAddressSection')) return;
     const house = document.getElementById('addr_house').value.trim();
     const street = document.getElementById('addr_street').value.trim();
     const city = document.getElementById('addr_city').value.trim();
@@ -1069,6 +1076,13 @@ function updateConcatenatedAddress() {
 }
 
 function switchToManualMode() {
+    // The structured address block is RETAIL-ONLY — a trade partner delivers
+    // to their registered address and never types one. Without this guard the
+    // first getElementById here returns null on the trade checkout, the
+    // TypeError kills the postcode handler mid-flight, and everything that
+    // runs after it — including loading the card form — never happens. That
+    // is why "Pay Online is not loading" appeared on trade orders only.
+    if (!document.getElementById('structuredAddressSection')) return;
     manualMode = true;
     document.getElementById('structuredAddressSection').style.display = 'none';
     document.getElementById('manualAddressSection').style.display = 'block';
@@ -1080,6 +1094,13 @@ function switchToManualMode() {
 }
 
 function switchToStructuredMode(cityValue) {
+    // The structured address block is RETAIL-ONLY — a trade partner delivers
+    // to their registered address and never types one. Without this guard the
+    // first getElementById here returns null on the trade checkout, the
+    // TypeError kills the postcode handler mid-flight, and everything that
+    // runs after it — including loading the card form — never happens. That
+    // is why "Pay Online is not loading" appeared on trade orders only.
+    if (!document.getElementById('structuredAddressSection')) return;
     if (manualMode) return;
     
     const currentAddr = document.getElementById('address').value.trim();
@@ -1104,6 +1125,13 @@ function switchToStructuredMode(cityValue) {
 }
 
 function resetAddressModes() {
+    // The structured address block is RETAIL-ONLY — a trade partner delivers
+    // to their registered address and never types one. Without this guard the
+    // first getElementById here returns null on the trade checkout, the
+    // TypeError kills the postcode handler mid-flight, and everything that
+    // runs after it — including loading the card form — never happens. That
+    // is why "Pay Online is not loading" appeared on trade orders only.
+    if (!document.getElementById('structuredAddressSection')) return;
     document.getElementById('structuredAddressSection').style.display = 'none';
     document.getElementById('manualAddressSection').style.display = 'block';
     
