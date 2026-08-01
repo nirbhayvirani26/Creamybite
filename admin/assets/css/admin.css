@@ -1343,3 +1343,6 @@ th.inv-sort i.is-sorted   { opacity: 1; }
                   display: inline-flex; align-items: center; gap: 7px; }
 .cbie-wa-btn:hover { background: #1da851; color: #fff; }
 .cbie-wa-btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* A disabled send button should look disabled, not merely inert. */
+.cbie-btn-sm[disabled] { opacity: .45; cursor: not-allowed; }

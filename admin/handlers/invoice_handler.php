@@ -364,19 +364,24 @@ try {
                    'Could not send the email. The invoice is marked as sent — check the mail settings.', 'warn');
         }
 
-        // ── Mark as sent so a WhatsApp link can be shared ────
-        case 'prepare_share': {
+        // ── Shared by WhatsApp: record it, answer with JSON ──
+        // Called by fetch from the invoice editor as the chat opens, so it must
+        // NOT redirect: a redirect response is meaningless here, and the old
+        // form-submit version cancelled the very window the click had opened.
+        case 'mark_shared': {
+            header('Content-Type: application/json');
             $id  = (int)($_POST['invoice_id'] ?? 0);
             $inv = loadInvoice($pdo, $id);
-            if (!$inv) {
-                backTo('../index.php?tab=invoices', 'Invoice not found.', 'error');
+            if (!$inv || $inv['status'] === 'void') {
+                echo json_encode(['success' => false]);
+                exit;
             }
             if ($inv['status'] === 'draft') {
                 $pdo->prepare("UPDATE invoices SET status = 'sent' WHERE id = :id")->execute(['id' => $id]);
             }
             $pdo->prepare("UPDATE invoices SET sent_at = NOW() WHERE id = :id")->execute(['id' => $id]);
-            invoicePublicUrl($pdo, $inv);   // mint the token before sharing
-            backTo('../invoice_edit.php?id=' . $id . '&share=whatsapp', 'Invoice is ready to share.');
+            echo json_encode(['success' => true]);
+            exit;
         }
 
         // ── Sales reps / agents ──────────────────────────────

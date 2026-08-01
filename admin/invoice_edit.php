@@ -419,8 +419,12 @@ $locked = ($inv['status'] === 'void');
         $sendEmail = trim((string)$inv['to_email']);
         $canEmail  = $sendEmail !== '' && filter_var($sendEmail, FILTER_VALIDATE_EMAIL);
         $waNumber  = invoiceWhatsAppNumber((string)$inv['to_phone']);
-        $shareLink = ($inv['status'] !== 'draft' && $inv['status'] !== 'void')
-            ? invoicePublicUrl($pdo, $inv) : '';
+        // Minted for drafts too. Waiting until the invoice was "sent" meant the
+        // first WhatsApp click only prepared the link and reloaded the page —
+        // the customer's chat never opened, and you had to click again. Now the
+        // link is ready immediately and the click both opens WhatsApp and marks
+        // the invoice sent.
+        $shareLink = ($inv['status'] !== 'void') ? invoicePublicUrl($pdo, $inv) : '';
         $waText    = 'Hello ' . trim((string)$inv['to_name']) . ', here is your invoice '
                    . $inv['invoice_number'] . ' from ' . SHOP_NAME . ' for £'
                    . number_format((float)$inv['balance_due'], 2) . '.';
@@ -440,19 +444,20 @@ $locked = ($inv['status'] === 'void');
             </form>
 
             <?php if ($shareLink !== '' && $waNumber !== ''): ?>
+            <?php // A real link, so one click opens WhatsApp. Marking the invoice
+                  // sent rides along as a background request rather than a page
+                  // submit — a redirect here would cancel the window the click
+                  // just opened. ?>
             <a href="https://wa.me/<?= htmlspecialchars($waNumber) ?>?text=<?= rawurlencode($waText . ' ' . $shareLink) ?>"
-               target="_blank" rel="noopener" class="btn-secondary cbie-btn-sm cbie-wa-btn">
+               target="_blank" rel="noopener" class="btn-secondary cbie-btn-sm cbie-wa-btn"
+               onclick="cbMarkInvoiceShared(<?= (int)$inv['id'] ?>)">
                 <i class="fa-brands fa-whatsapp"></i> Send by WhatsApp
             </a>
             <?php else: ?>
-            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat">
-                <?= csrfField() ?>
-                <input type="hidden" name="action" value="prepare_share">
-                <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
-                <button class="btn-secondary cbie-btn-sm cbie-wa-btn" <?= $waNumber !== '' ? '' : 'disabled' ?>>
-                    <i class="fa-brands fa-whatsapp"></i> Send by WhatsApp
-                </button>
-            </form>
+            <button class="btn-secondary cbie-btn-sm cbie-wa-btn" disabled
+                    title="<?= $waNumber === '' ? 'No mobile number on this invoice' : 'This invoice is void' ?>">
+                <i class="fa-brands fa-whatsapp"></i> Send by WhatsApp
+            </button>
             <?php endif; ?>
         </div>
 
@@ -771,6 +776,23 @@ recalc();
         if (next) due.value = next;
     });
 })();
+
+// Record that an invoice was shared, without navigating.
+//
+// The WhatsApp button is a real link so one click opens the chat. A form
+// submit would redirect this page and cancel the window that click just
+// opened — which is why the old version needed two clicks and looked broken.
+// keepalive lets the request finish as the browser switches away.
+function cbMarkInvoiceShared(invoiceId) {
+    try {
+        fetch('handlers/invoice_handler.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'action=mark_shared&invoice_id=' + encodeURIComponent(invoiceId),
+            keepalive: true,
+        }).catch(function () {});
+    } catch (e) { /* sharing must not fail because recording it did */ }
+}
 </script>
 </body>
 </html>
