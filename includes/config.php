@@ -62,7 +62,11 @@ define('ADMIN_USERNAME', $secrets['admin']['username']);
 define('ADMIN_PASSWORD', $secrets['admin']['password']);
 
 // Base URL (no trailing slash)
-define('SITE_URL', 'https://creamybite.com');   // Your live domain
+// The address the shop actually answers on. Order emails build their links
+// from this, so getting it wrong sends staff to a domain that does not serve
+// the admin panel — the "view this order" and "print delivery note" buttons
+// in those emails simply fail.
+define('SITE_URL', 'https://orders.creamybite.com');
 
 // Order code prefix
 define('ORDER_PREFIX', 'SCO');
