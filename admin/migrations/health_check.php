@@ -46,6 +46,7 @@ $fileMarkers = [
     'checkout_handler.php'     => ['MIN_DELIVERY_ORDER',        'the server-side minimum'],
     'admin/handlers/invoice_handler.php' => ['send_email',      'the invoice send button'],
     'admin/handlers/update_order.php'    => ['invoiceSettleFromPaidOrder', 'invoices settling when an order is paid'],
+    'stripe_intent.php'        => ['fallback_to_later',      'falling back to Pay Later when cards are down'],
 ];
 foreach ($fileMarkers as $rel => [$marker, $whatItDoes]) {
     $path = __DIR__ . '/../../' . $rel;
@@ -109,6 +110,38 @@ foreach ($needCols as [$t, $c]) {
     $ok = (int)$q->fetchColumn() > 0;
     cbCheck('Columns', $t . '.' . $c, $ok, $ok ? 'present' : 'MISSING',
         $ok ? '' : 'Run update_db.php on this server.');
+}
+
+// ── Card payments ────────────────────────────────────────────
+// The commonest cause of "Pay Online is not loading" is a secret key that
+// works on the machine it was pasted into and nowhere else, because
+// includes/secrets.php is the one file people skip when uploading — it holds
+// the database password, so overwriting it feels dangerous.
+//
+// Balance::retrieve() is a read: it proves the key is accepted without
+// creating a payment, a customer or anything else on the Stripe account.
+if (!defined('STRIPE_SECRET_KEY') || STRIPE_SECRET_KEY === '') {
+    cbCheck('Card payments', 'Stripe secret key', false, 'not configured',
+        'Add it to includes/secrets.php.');
+} elseif (!is_file(__DIR__ . '/../../vendor/autoload.php')) {
+    cbCheck('Card payments', 'Stripe library', false, 'vendor/ is missing on this server',
+        'Upload the whole site, including the vendor folder.');
+} else {
+    require_once __DIR__ . '/../../vendor/autoload.php';
+    $keyTail = substr((string)STRIPE_SECRET_KEY, -4);
+    try {
+        \Stripe\Stripe::setApiKey(STRIPE_SECRET_KEY);
+        \Stripe\Balance::retrieve();
+        cbCheck('Card payments', 'Stripe secret key', true, 'accepted (ending ' . $keyTail . ')');
+    } catch (Throwable $e) {
+        $msg = preg_replace('/sk_live_[A-Za-z0-9]+/', 'sk_live_…', $e->getMessage());
+        $expired = str_contains($msg, 'Expired') || str_contains($msg, 'Invalid API Key');
+        cbCheck('Card payments', 'Stripe secret key', false,
+            'REJECTED (ending ' . $keyTail . ') — ' . substr($msg, 0, 140),
+            $expired
+                ? 'This server has an old or revoked key. Roll it at dashboard.stripe.com, put it in includes/secrets.php, and upload THAT FILE — it is the one most often skipped.'
+                : 'Check the key in includes/secrets.php.');
+    }
 }
 
 // ── Can an order actually be written? ────────────────────────
@@ -185,7 +218,7 @@ $failures = array_values(array_filter($checks, fn($c) => !$c['ok']));
         </p>
         <?php endif; ?>
 
-        <?php foreach (['Files', 'Settings', 'Functions', 'Tables', 'Columns', 'Order path'] as $group): ?>
+        <?php foreach (['Files', 'Settings', 'Card payments', 'Functions', 'Tables', 'Columns', 'Order path'] as $group): ?>
         <h2 class="cbtr-card-title"><?= $group ?></h2>
         <table class="su-table">
             <?php foreach ($checks as $c): if ($c['group'] !== $group) continue; ?>
