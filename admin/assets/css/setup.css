@@ -88,3 +88,8 @@
 }
 .lg-pwd-toggle.is-showing { color: var(--color-primary); }
 .lg-footer-inner { text-align: center; }
+
+/* Which copy of the updater is running. Answers "I uploaded it but nothing
+   changed" without anyone having to count rows. */
+.su-build      { font-size: 12.5px; color: var(--text-muted, #6b7280); margin: -8px 0 18px; line-height: 1.6; }
+.su-build-warn { color: #b45309; font-weight: 600; }

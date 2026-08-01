@@ -330,7 +330,29 @@ $allOk    = ($failures === []);
 <div class="su-wrap">
     <div class="glass-panel su-card">
         <h1 class="su-h1">⚙️ Update DB – Bring Schema Up To Date</h1>
-        <p class="su-lead">Applies every table/column from setup v6&ndash;v12 that is still missing. Safe to run again.</p>
+        <p class="su-lead">Applies every table/column that is still missing. Safe to run again.</p>
+
+        <?php
+        // The page states which copy of itself is running.
+        //
+        // "I uploaded it but the new rows are not there" has been impossible to
+        // answer without this: a stale file and a correctly-updated one looked
+        // identical apart from rows you had to know to look for. The date is
+        // the file's own mtime, so it cannot claim to be newer than it is.
+        $selfDate = @filemtime(__FILE__);
+        $stepCount = count($results);
+        ?>
+        <p class="su-build">
+            This file was last changed <strong><?= $selfDate ? date('d M Y, H:i', $selfDate) : 'unknown' ?></strong>
+            and is checking <strong><?= $stepCount ?></strong> things.
+            <?php if ($stepCount < 24): ?>
+            <br><span class="su-build-warn">
+                An older copy — the current one checks 24. If you have just uploaded,
+                PHP may still be running the previous version: restart PHP in hPanel,
+                or wait two minutes and reload.
+            </span>
+            <?php endif; ?>
+        </p>
 
         <!-- Which database this touched, stated loudly: running the updater
              against the wrong one and seeing all-green is indistinguishable
