@@ -1346,3 +1346,6 @@ th.inv-sort i.is-sorted   { opacity: 1; }
 
 /* A disabled send button should look disabled, not merely inert. */
 .cbie-btn-sm[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* Trade / retail filter beside the order picker */
+.cbi-inv-kind-filter { max-width: 150px; height: 40px; font-size: 13px; }

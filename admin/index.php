@@ -203,7 +203,7 @@ unset($_SESSION['invoice_flash']);
 $uninvoicedOrders = [];
 try {
     $uninvoicedOrders = $pdo->query(
-        "SELECT o.id, o.order_code, o.customer_name, o.trade_business_name, o.total_price, o.created_at
+        "SELECT o.id, o.order_code, o.customer_name, o.trade_business_name, o.trade_user_id, o.total_price, o.created_at
            FROM orders o
       LEFT JOIN invoices i ON i.order_id = o.id AND i.status <> 'void'
           WHERE i.id IS NULL
@@ -683,18 +683,34 @@ $pageTitles = [
                        oninput="filterOrderPicker(this.value)" autocomplete="off">
 
                 <select name="order_id" id="orderPicker" class="form-control cbi-inv-order-select">
-                    <?php foreach ($uninvoicedOrders as $uo): ?>
-                    <option value="<?= (int)$uo['id'] ?>">
+                    <?php foreach ($uninvoicedOrders as $uo):
+                        // trade_user_id is the only reliable marker: a retail
+                        // customer can be called anything, including a shop name.
+                        $uoIsTrade = (int)($uo['trade_user_id'] ?? 0) > 0;
+                    ?>
+                    <option value="<?= (int)$uo['id'] ?>" data-kind="<?= $uoIsTrade ? 'trade' : 'retail' ?>">
+                        <?= $uoIsTrade ? '[TRADE]' : '[Retail]' ?>
                         <?= htmlspecialchars($uo['order_code']) ?> —
                         <?= htmlspecialchars($uo['trade_business_name'] ?: $uo['customer_name']) ?>
                         (£<?= number_format((float)$uo['total_price'], 2) ?>, <?= date('d M Y', strtotime($uo['created_at'])) ?>)
                     </option>
                     <?php endforeach; ?>
                 </select>
+                <select id="orderKindFilter" class="form-control cbi-inv-kind-filter" onchange="filterOrderPicker(document.getElementById('orderSearch')?.value || '')">
+                    <option value="all">All orders</option>
+                    <option value="trade">Trade only</option>
+                    <option value="retail">Retail only</option>
+                </select>
                 <button class="btn-secondary cbi-inv-create-btn">Create</button>
                 <span id="orderPickerCount" class="cbi-inv-picker-count"></span>
+                <?php
+                    $uoTrade  = count(array_filter($uninvoicedOrders, fn($u) => (int)($u['trade_user_id'] ?? 0) > 0));
+                    $uoRetail = count($uninvoicedOrders) - $uoTrade;
+                ?>
                 <span class="cbi-inv-picker-note">
-                    <?= count($uninvoicedOrders) ?> order(s) not yet invoiced<?= $uninvoicedCapped ? ' — showing the 100 most recent' : '' ?>
+                    <?= count($uninvoicedOrders) ?> waiting to be invoiced
+                    (<?= $uoTrade ?> trade, <?= $uoRetail ?> retail)<?= $uninvoicedCapped ? ' — showing the 100 most recent' : '' ?>.
+                    An order disappears from this list once it has an invoice.
                 </span>
             </form>
             <?php endif; ?>
@@ -2992,9 +3008,13 @@ function filterOrderPicker(query) {
     const q = (query || '').toLowerCase().trim();
     if (!sel) return;
 
+    const kind = document.getElementById('orderKindFilter')?.value || 'all';
+
     let shown = 0;
     Array.from(sel.options).forEach(o => {
-        const match = q === '' || o.text.toLowerCase().includes(q);
+        const matchesText = q === '' || o.text.toLowerCase().includes(q);
+        const matchesKind = kind === 'all' || o.dataset.kind === kind;
+        const match = matchesText && matchesKind;
         o.hidden = !match;
         if (match) shown++;
     });
