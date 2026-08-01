@@ -125,8 +125,9 @@ $locked = ($inv['status'] === 'void');
                     <small class="cbie-hint">Shown as “DUE” when no due date is set.</small>
                 </div>
                 <div>
-                    <label class="form-label">Due Date <small class="cbie-muted">(optional)</small></label>
-                    <input type="date" name="due_date" class="form-control" value="<?= htmlspecialchars((string)$inv['due_date']) ?>">
+                    <label class="form-label">Due Date <small class="cbie-muted">(3 weeks by default)</small></label>
+                    <input type="date" name="due_date" id="fDueDate" class="form-control" value="<?= htmlspecialchars((string)$inv['due_date']) ?>">
+                    <small class="cbie-hint">Moves with the issue date until you set it yourself.</small>
                 </div>
             </div>
         </div>
@@ -678,6 +679,36 @@ document.addEventListener('change', e => {
     if (['fCommission','fDiscountType'].includes(e.target.id)) recalc();
 });
 recalc();
+
+// ── Due date follows the issue date ─────────────────────────
+// Three weeks is the house term, so moving the issue date moves the due date
+// with it. It stops doing that the moment someone picks their own date —
+// tracked with a flag rather than by comparing values, so deliberately
+// choosing the same date the suggestion would have produced still counts as
+// a manual choice.
+(function () {
+    var issue = document.querySelector('[name="issue_date"]');
+    var due   = document.getElementById('fDueDate');
+    if (!issue || !due) return;
+
+    var manual = false;
+    due.addEventListener('change', function () { manual = true; });
+
+    function threeWeeksAfter(dateStr) {
+        var d = new Date(dateStr + 'T00:00:00');
+        if (isNaN(d)) return '';
+        d.setDate(d.getDate() + 21);
+        return d.getFullYear() + '-' +
+               String(d.getMonth() + 1).padStart(2, '0') + '-' +
+               String(d.getDate()).padStart(2, '0');
+    }
+
+    issue.addEventListener('change', function () {
+        if (manual && due.value !== '') return;
+        var next = threeWeeksAfter(issue.value);
+        if (next) due.value = next;
+    });
+})();
 </script>
 </body>
 </html>

@@ -399,6 +399,19 @@ if ($activeTab === 'revenue') {
      the delete buttons do nothing at all. -->
 <link rel="stylesheet" href="../assets/css/modal.css">
 <script src="../assets/js/modal.js" defer></script>
+<script>
+// Panels open and close on the `hidden` ATTRIBUTE, not a CSS class.
+//
+// A class only hides things while its stylesheet is present. When admin.css
+// was missing (a partial upload), .is-hidden meant nothing: the panels sat
+// permanently open and clicking the button toggled a class with no rule
+// behind it, so the buttons looked broken. `hidden` is honoured by the
+// browser itself, so these keep working even with no CSS at all.
+function cbTogglePanel(id) {
+    var el = document.getElementById(id);
+    if (el) el.hidden = !el.hidden;
+}
+</script>
 <?php include __DIR__ . '/_csrf_js.php'; ?>
 </head>
 <body class="admin-wrapper has-sidebar">
@@ -581,10 +594,10 @@ $pageTitles = [
                 </h2>
                 <div class="cbi-btn-row">
                     <?php // "New invoice" lives in the topbar — not repeated here. ?>
-                    <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="document.getElementById('salesRepPanel').classList.toggle('is-hidden')">
+                    <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="cbTogglePanel('salesRepPanel')">
                         <i class="fa-solid fa-user-tie"></i> Sales Reps
                     </button>
-                    <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="document.getElementById('invSettings').classList.toggle('is-hidden')">
+                    <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="cbTogglePanel('invSettings')">
                         <i class="fa-solid fa-gear"></i> Settings
                     </button>
                 </div>
@@ -622,7 +635,7 @@ $pageTitles = [
             <?php endif; ?>
 
             <!-- Sales reps / agents -->
-            <div id="salesRepPanel" class="cbi-inv-settings-panel is-hidden">
+            <div id="salesRepPanel" class="cbi-inv-settings-panel" hidden>
                 <h3 class="cbi-inv-settings-title">Sales reps &amp; agents</h3>
                 <p class="cbi-rep-intro">
                     Anyone here can be picked on an invoice as who sold it. Their
@@ -687,7 +700,7 @@ $pageTitles = [
             </div>
 
             <!-- Settings -->
-            <div id="invSettings" class="cbi-inv-settings-panel is-hidden">
+            <div id="invSettings" class="cbi-inv-settings-panel" hidden>
                 <form method="POST" action="handlers/invoice_handler.php">
         <?= csrfField() ?>
                     <input type="hidden" name="action" value="save_settings">
@@ -1759,13 +1772,13 @@ $pageTitles = [
                 </form>
 
                 <button type="button" class="btn-primary cbi-rev-reports-btn"
-                        onclick="document.getElementById('reportPanel').classList.toggle('is-hidden');">
+                        onclick="cbTogglePanel('reportPanel');">
                     <i class="fa-solid fa-file-arrow-down"></i> Reports
                 </button>
             </div>
 
             <!-- ── Report builder ───────────────────────────── -->
-            <div id="reportPanel" class="cbi-rev-report-panel is-hidden">
+            <div id="reportPanel" class="cbi-rev-report-panel" hidden>
                 <form method="GET" action="reports.php" target="_blank" id="reportForm"
                       class="cbi-rev-report-grid">
 

@@ -295,17 +295,30 @@ if (!empty($products)) {
                     <div class="product-footer">
                         <div>
                             <?php
+                            // Sizes decide the price whenever a product has them.
+                            //
+                            // This used to check the product-level trade price
+                            // FIRST, so a product with sizes advertised a price
+                            // no size actually sold at — Rajbhog showed "Trade
+                            // £4.59" on the card while its cheapest size cost
+                            // £5.00. $minPrice/$maxPrice already come from the
+                            // trade-adjusted variant rows, so they are correct
+                            // for whoever is logged in.
                             $wPrice = (float)($product['wholesale_price'] ?? 0);
-                            if ($isTradeUser && $wPrice > 0):
+                            if ($hasVariants):
                             ?>
+                            <?php if ($isTradeUser): ?>
                             <div class="product-price-from cbor-price-trade-label">Trade Wholesale</div>
-                            <div class="product-price">£<?= number_format($wPrice, 2) ?> <s class="cbor-price-strike">£<?= number_format($product['price'], 2) ?></s></div>
-                            <?php elseif ($hasVariants): ?>
+                            <?php else: ?>
                             <div class="product-price-from">From</div>
+                            <?php endif; ?>
                             <div class="product-price">£<?= number_format($minPrice, 2) ?></div>
                             <?php if ($minPrice < $maxPrice): ?>
                             <div class="product-price-range">up to £<?= number_format($maxPrice, 2) ?></div>
                             <?php endif; ?>
+                            <?php elseif ($isTradeUser && $wPrice > 0): ?>
+                            <div class="product-price-from cbor-price-trade-label">Trade Wholesale</div>
+                            <div class="product-price">£<?= number_format($wPrice, 2) ?> <s class="cbor-price-strike">£<?= number_format($product['price'], 2) ?></s></div>
                             <?php else: ?>
                             <div class="product-price">£<?= number_format($product['price'], 2) ?></div>
                             <?php endif; ?>

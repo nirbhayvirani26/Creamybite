@@ -453,7 +453,12 @@ $grandTotal     = $totals['total'];
 
                     <hr class="summary-divider">
 
-                    <!-- Promo Code Input -->
+                    <!-- Promo Code Input.
+                         Not offered on a wholesale basket: trade already buys at
+                         trade prices, and promo_handler.php refuses trade
+                         accounts anyway — so showing the box only invited a
+                         code to be typed and rejected. -->
+                    <?php if (!$isTradeUser): ?>
                     <div id="promoSection" class="cbco-promo-section">
                         <?php if ($appliedPromo): ?>
                         <div id="promoApplied" class="cbco-promo-applied">
@@ -477,6 +482,7 @@ $grandTotal     = $totals['total'];
                         <div id="promoMsg" class="cbco-promo-msg"></div>
                         <?php endif; ?>
                     </div>
+                    <?php endif; ?>
 
                     <!-- Subtotal row -->
                     <div class="cbco-summary-row">
@@ -490,11 +496,17 @@ $grandTotal     = $totals['total'];
                         <span id="discountDisplay">−£<?= number_format($discountAmount, 2) ?></span>
                     </div>
 
-                    <!-- Delivery charge row (hidden until postcode entered) -->
+                    <!-- Delivery charge row (hidden until postcode entered).
+                         Wholesale deliveries are not charged per drop, so trade
+                         never sees this row — it was appearing on trade baskets
+                         the moment the summary refreshed, adding £1.99 to an
+                         order that is not billed that way. -->
+                    <?php if (!$isTradeUser): ?>
                     <div id="deliveryChargeRow" class="cbco-summary-row cbco-summary-row-delivery">
                         <span><i class="fa-solid fa-truck-fast"></i> Delivery</span>
                         <span id="deliveryChargeAmt">+ £1.99</span>
                     </div>
+                    <?php endif; ?>
 
                     <!-- VAT row (trade partners with a VAT number only) -->
                     <?php if ($vatApplies): ?>
@@ -517,12 +529,14 @@ $grandTotal     = $totals['total'];
                     </div>
                     <?php endif; ?>
 
+                    <?php if (!$isTradeUser): ?>
                     <div id="deliveryInfoBanner" class="cbco-delivery-banner">
                         <p class="cbco-delivery-banner-text">
                             <i class="fa-solid fa-location-dot"></i>
                             Enter your postcode above to see delivery cost
                         </p>
                     </div>
+                    <?php endif; ?>
 
                     <div class="cbco-add-more-row">
                         <a href="order.php" class="cbco-add-more-link">
@@ -604,7 +618,11 @@ function applyPromo() {
     const msgEl = document.getElementById('promoMsg');
     if (!code) { showPromoMsg('Please enter a promo code.', 'error'); return; }
 
-    fetch(`promo_handler.php?action=validate&code=${encodeURIComponent(code)}&cart_total=${cartSubtotal}`)
+    // ../ because this page lives in pages/ and the handler sits at the
+    // project root. Without it the request resolved to
+    // /orders/pages/promo_handler.php — a 404, whose HTML body then broke
+    // r.json(), so every valid code came back looking invalid.
+    fetch(`../promo_handler.php?action=validate&code=${encodeURIComponent(code)}`)
         .then(r => r.json())
         .then(data => {
             if (!data.success) { showPromoMsg(data.message, 'error'); return; }
@@ -1059,9 +1077,10 @@ function onPostcodeInput() {
                 if (miles > MAX_DELIVERY_MILES) {
                     chargeInput.value = '0';
                     statusEl.innerHTML = '<div class="cbco-status-box">' +
-                        '<i class="fa-solid fa-triangle-exclamation"></i> <strong>Distance Limit Exceeded (' + miles.toFixed(1) + ' miles):</strong><br>' +
-                        'We cannot deliver to locations more than 6 miles from our Harrow warehouse (HA1 2SP / HA1 4EX).<br>' +
-                        'Please select <strong>Warehouse Collection</strong> or contact support at <strong>+44 7497 779997</strong> for special orders.</div>';
+                        '<i class="fa-solid fa-triangle-exclamation"></i> ' +
+                        '<strong>We are unable to deliver more than 6 miles radius.</strong><br>' +
+                        'Your postcode is ' + miles.toFixed(1) + ' miles from our Harrow warehouse (HA1 2SP).<br>' +
+                        'Please choose <strong>Warehouse Collection</strong>, or call <strong>+44 7497 779997</strong> if you need a special arrangement.</div>';
                     if (submitBtn) submitBtn.disabled = true;
                     updateDeliveryDisplay(0);
                     return;

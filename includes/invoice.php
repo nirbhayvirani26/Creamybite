@@ -55,7 +55,10 @@ function createBlankInvoice(PDO $pdo, array $overrides = []): int
         'status'               => 'draft',
         'issue_date'           => date('Y-m-d'),
         'due_terms'            => $s['default_terms'],
-        'due_date'             => null,
+        // Three weeks is the house payment term, so a new invoice arrives with
+        // a due date already on it. It stays editable — this is a starting
+        // point, not a rule.
+        'due_date'             => date('Y-m-d', strtotime('+3 weeks')),
         'currency'             => 'GBP',
         'from_name'            => $s['from_name'],
         'from_address'         => $s['from_address'],

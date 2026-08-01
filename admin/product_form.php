@@ -414,8 +414,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="cbpf-price-field">
                         <span class="cbpf-price-label cbpf-price-label-trade">Trade: £</span>
+                        <?php
+                        // A trade price at or above retail is almost always a
+                        // typo, and it silently costs the partner money on
+                        // every order until someone notices.
+                        $tradeAboveRetail = (float)($v['wholesale_price'] ?? 0) > 0
+                                         && (float)$v['wholesale_price'] >= (float)$v['price'];
+                        ?>
                         <input type="number" id="vwp-<?= $v['id'] ?>" value="<?= number_format($v['wholesale_price'] ?? 0, 2) ?>" step="0.01" min="0.00" placeholder="Trade"
-                            class="form-control cbpf-price-input cbpf-price-input-trade"
+                            <?= $tradeAboveRetail ? 'title="Trade price is not below the retail price — check this."' : '' ?>
+                            class="form-control cbpf-price-input cbpf-price-input-trade<?= $tradeAboveRetail ? ' is-suspect' : '' ?>"
                             onchange="updateVariant(<?= $v['id'] ?>, document.querySelector('#vrow-<?= $v['id'] ?> input[type=text]').value, document.getElementById('vp-<?= $v['id'] ?>').value, this.value, document.getElementById('va-<?= $v['id'] ?>').checked)">
                     </div>
                     <label class="cbpf-variant-avail">

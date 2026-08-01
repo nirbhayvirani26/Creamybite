@@ -102,10 +102,21 @@ function clearDeliveryCache(): void
  */
 function tradeVatApplies(): bool
 {
-    if (empty($_SESSION['trade_user'])) {
+    if (!tradeIsLoggedIn()) {
         return false;
     }
     return trim((string)($_SESSION['trade_user']['vat_number'] ?? '')) !== '';
+}
+
+/**
+ * Is a wholesale partner signed in?
+ *
+ * One place to ask, so the rules that hang off it — trade pricing, no promo
+ * codes, no per-drop delivery charge — cannot get out of step with each other.
+ */
+function tradeIsLoggedIn(): bool
+{
+    return !empty($_SESSION['trade_user']);
 }
 
 /** The VAT number being charged against, for display on invoices. */
@@ -146,8 +157,15 @@ function computeOrderTotals(array $cart, ?array $promoRow, string $orderType, st
     }
 
     // ── Delivery ─────────────────────────────────────────────
+    //
+    // Wholesale is not billed per drop, so a trade basket never carries a
+    // delivery charge. Deciding it here rather than only hiding the row means
+    // the amount charged and the amount shown cannot drift apart — the row was
+    // reappearing on trade baskets whenever the summary refreshed, quietly
+    // adding £1.99 to an order that is not billed that way.
     $delivery = 0.0;
-    if ($orderType === 'delivery'
+    if (!tradeIsLoggedIn()
+        && $orderType === 'delivery'
         && $postcode !== ''
         && preg_match('/^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i', $postcode)) {
         $delivery = calculateDeliveryCharge($postcode, $subtotal - $discount);
