@@ -411,6 +411,68 @@ $locked = ($inv['status'] === 'void');
     <!-- ── Document actions ──────────────────────────── -->
     <div class="inv-card">
         <h3>Document actions</h3>
+
+        <?php
+        // Sending needs the invoice to be a real document, so a draft is
+        // promoted to "sent" as part of sending rather than needing a separate
+        // click first — nobody sends a bill and then wants it still called a draft.
+        $sendEmail = trim((string)$inv['to_email']);
+        $canEmail  = $sendEmail !== '' && filter_var($sendEmail, FILTER_VALIDATE_EMAIL);
+        $waNumber  = invoiceWhatsAppNumber((string)$inv['to_phone']);
+        $shareLink = ($inv['status'] !== 'draft' && $inv['status'] !== 'void')
+            ? invoicePublicUrl($pdo, $inv) : '';
+        $waText    = 'Hello ' . trim((string)$inv['to_name']) . ', here is your invoice '
+                   . $inv['invoice_number'] . ' from ' . SHOP_NAME . ' for £'
+                   . number_format((float)$inv['balance_due'], 2) . '.';
+        ?>
+
+        <?php if ($inv['status'] !== 'void'): ?>
+        <div class="cbie-send-row">
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat"
+                  data-confirm="Email invoice <?= htmlspecialchars($inv['invoice_number'], ENT_QUOTES) ?> to <?= htmlspecialchars($sendEmail ?: 'the customer', ENT_QUOTES) ?>?<?= $inv['status'] === 'draft' ? ' It will be marked as sent.' : '' ?>"
+                  data-confirm-title="Send this invoice?" data-confirm-ok="Send it">
+                <?= csrfField() ?>
+                <input type="hidden" name="action" value="send_email">
+                <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
+                <button class="btn-primary cbie-btn-sm" <?= $canEmail ? '' : 'disabled' ?>>
+                    <i class="fa-solid fa-envelope"></i> Send by email
+                </button>
+            </form>
+
+            <?php if ($shareLink !== '' && $waNumber !== ''): ?>
+            <a href="https://wa.me/<?= htmlspecialchars($waNumber) ?>?text=<?= rawurlencode($waText . ' ' . $shareLink) ?>"
+               target="_blank" rel="noopener" class="btn-secondary cbie-btn-sm cbie-wa-btn">
+                <i class="fa-brands fa-whatsapp"></i> Send by WhatsApp
+            </a>
+            <?php else: ?>
+            <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat">
+                <?= csrfField() ?>
+                <input type="hidden" name="action" value="prepare_share">
+                <input type="hidden" name="invoice_id" value="<?= (int)$inv['id'] ?>">
+                <button class="btn-secondary cbie-btn-sm cbie-wa-btn" <?= $waNumber !== '' ? '' : 'disabled' ?>>
+                    <i class="fa-brands fa-whatsapp"></i> Send by WhatsApp
+                </button>
+            </form>
+            <?php endif; ?>
+        </div>
+
+        <p class="cbie-hint cbie-send-note">
+            <?php if (!$canEmail): ?>
+                No email address on this invoice — add one in <strong>Bill To</strong> to enable sending.
+            <?php elseif ($waNumber === ''): ?>
+                Emails to <strong><?= htmlspecialchars($sendEmail) ?></strong>.
+                Add a mobile number in <strong>Bill To</strong> to enable WhatsApp.
+            <?php else: ?>
+                Emails to <strong><?= htmlspecialchars($sendEmail) ?></strong>,
+                WhatsApp to <strong><?= htmlspecialchars($inv['to_phone']) ?></strong>.
+                Both send a link the customer opens and saves as a PDF.
+            <?php endif; ?>
+            <?php if (!empty($inv['sent_at'])): ?>
+            <br>Last sent <?= date('d M Y, H:i', strtotime((string)$inv['sent_at'])) ?>.
+            <?php endif; ?>
+        </p>
+        <?php endif; ?>
+
         <div class="cbie-doc-actions">
             <?php if ($inv['status'] === 'draft'): ?>
             <form method="POST" action="handlers/invoice_handler.php" class="cbie-form-flat">

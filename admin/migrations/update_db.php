@@ -252,6 +252,12 @@ $columns = [
     // someone edited their standard rate.
     ['invoices', 'sales_rep_id',       "ALTER TABLE `invoices` ADD COLUMN `sales_rep_id` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `trade_user_id`"],
     ['invoices', 'commission_percent', "ALTER TABLE `invoices` ADD COLUMN `commission_percent` DECIMAL(5,2) NOT NULL DEFAULT 0.00 AFTER `sales_rep_id`"],
+
+    // Lets a customer open their own invoice without an account. The token is
+    // the only thing protecting it, so it is long and random rather than the
+    // invoice id — sequential ids would let anyone walk the whole ledger.
+    ['invoices', 'public_token', "ALTER TABLE `invoices` ADD COLUMN `public_token` VARCHAR(64) NOT NULL DEFAULT '' AFTER `invoice_number`"],
+    ['invoices', 'sent_at',      "ALTER TABLE `invoices` ADD COLUMN `sent_at` DATETIME NULL DEFAULT NULL AFTER `status`"],
 ];
 
 foreach ($columns as [$table, $col, $sql]) {

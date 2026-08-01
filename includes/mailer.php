@@ -753,3 +753,148 @@ function sendDeliveryNoteEmail(array $order): bool {
 
     return sendGenericEmail($order['customer_email'], $subject, $body);
 }
+
+
+/**
+ * Send one HTML email through the shop's SMTP account.
+ *
+ * The three existing senders each build their own PHPMailer by hand, which is
+ * why a change to the SMTP settings has to be made in three places. New
+ * senders use this instead; the older ones are left alone rather than
+ * refactored blind.
+ *
+ * $replyTo lets a customer reply to the shop even though the message is sent
+ * through the SMTP account — without it, replies go to the mailbox the site
+ * authenticates as, which nobody reads.
+ */
+function cbSendMail(string $to, string $subject, string $htmlBody, string $replyTo = ''): bool
+{
+    global $_phpmailerLoaded;
+    if (empty($_phpmailerLoaded)) {
+        error_log('cbSendMail: PHPMailer not available');
+        return false;
+    }
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        error_log('cbSendMail: refusing to send to "' . $to . '"');
+        return false;
+    }
+
+    $mail = new PHPMailer(true);
+    try {
+        $mail->SMTPDebug  = 0;
+        $mail->isSMTP();
+        $mail->Host       = SMTP_HOST;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = SMTP_USER;
+        $mail->Password   = SMTP_PASS;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = SMTP_PORT;
+        $mail->CharSet    = 'UTF-8';
+        $mail->setFrom(SMTP_USER, SHOP_NAME);
+        $mail->addAddress($to);
+        $mail->addReplyTo($replyTo !== '' ? $replyTo : ADMIN_EMAIL, SHOP_NAME);
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body    = $htmlBody;
+        $mail->AltBody = trim(html_entity_decode(strip_tags(str_replace(['<br>', '</tr>'], "\n", $htmlBody))));
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log('cbSendMail failed to ' . $to . ': ' . $mail->ErrorInfo);
+        return false;
+    }
+}
+
+/**
+ * Email an invoice to the customer.
+ *
+ * The invoice is laid out INSIDE the email rather than attached. There is no
+ * PDF library on this server, and a link on its own reads like a phishing
+ * message — showing the figures in the body means the customer can check the
+ * amount without clicking anything, and the link is there when they want a
+ * copy to keep.
+ *
+ * Every rule is written inline: mail clients strip <style> blocks, so this is
+ * the one place in the project where inline CSS is correct.
+ */
+function sendInvoiceEmail(array $inv, string $publicLink = ''): bool
+{
+    global $_phpmailerLoaded;
+    if (empty($_phpmailerLoaded)) {
+        error_log('sendInvoiceEmail: PHPMailer not available');
+        return false;
+    }
+
+    $to = trim((string)($inv['to_email'] ?? ''));
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    }
+
+    $symbol   = ($inv['currency'] ?? 'GBP') === 'GBP' ? '£' : '';
+    $number   = htmlspecialchars((string)$inv['invoice_number']);
+    $name     = htmlspecialchars((string)$inv['to_name']);
+    $balance  = (float)($inv['balance_due'] ?? 0);
+    $due      = !empty($inv['due_date'])
+        ? date('d/m/Y', strtotime((string)$inv['due_date']))
+        : htmlspecialchars((string)($inv['due_terms'] ?? 'On Receipt'));
+
+    $rows = '';
+    foreach (($inv['items'] ?? []) as $it) {
+        $rows .= '<tr>'
+              . '<td style="padding:9px 10px;border-bottom:1px solid #eef0f3;font-size:13px;">'
+              . htmlspecialchars((string)$it['description']) . '</td>'
+              . '<td style="padding:9px 10px;border-bottom:1px solid #eef0f3;font-size:13px;text-align:right;white-space:nowrap;">'
+              . $symbol . number_format((float)$it['rate'], 2) . '</td>'
+              . '<td style="padding:9px 10px;border-bottom:1px solid #eef0f3;font-size:13px;text-align:right;">'
+              . htmlspecialchars(formatInvoiceQty((float)$it['qty'], (string)$it['qty_unit'])) . '</td>'
+              . '<td style="padding:9px 10px;border-bottom:1px solid #eef0f3;font-size:13px;text-align:right;white-space:nowrap;">'
+              . $symbol . number_format((float)$it['amount'], 2) . '</td>'
+              . '</tr>';
+    }
+
+    $linkBlock = '';
+    if ($publicLink !== '') {
+        $linkBlock = '<div style="text-align:center;margin:26px 0 6px;">'
+                   . '<a href="' . htmlspecialchars($publicLink) . '" '
+                   . 'style="display:inline-block;background:#5C1D24;color:#ffffff;font-weight:700;'
+                   . 'padding:13px 26px;border-radius:8px;text-decoration:none;font-size:14px;">'
+                   . 'View invoice &amp; save as PDF</a></div>'
+                   . '<p style="text-align:center;font-size:12px;color:#9ca3af;margin:6px 0 0;">'
+                   . 'Opens in your browser — choose “Save as PDF” to keep a copy.</p>';
+    }
+
+    $body = '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Helvetica,Arial,sans-serif;'
+          . 'max-width:640px;margin:0 auto;padding:28px 22px;color:#1f2937;">'
+          . '<h1 style="font-size:22px;margin:0 0 4px;color:#5C1D24;">Invoice ' . $number . '</h1>'
+          . '<p style="font-size:14px;color:#6b7280;margin:0 0 22px;">From ' . htmlspecialchars(SHOP_NAME) . '</p>'
+          . '<p style="font-size:15px;">Hello ' . $name . ',</p>'
+          . '<p style="font-size:14px;line-height:1.7;">Your invoice is below. '
+          . 'The balance due is <strong>' . $symbol . number_format($balance, 2) . '</strong>, '
+          . 'payable by <strong>' . $due . '</strong>.</p>'
+          . '<table style="width:100%;border-collapse:collapse;margin:20px 0 0;">'
+          . '<thead><tr>'
+          . '<th style="text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;padding:8px 10px;border-bottom:2px solid #5C1D24;">Description</th>'
+          . '<th style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;padding:8px 10px;border-bottom:2px solid #5C1D24;">Rate</th>'
+          . '<th style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;padding:8px 10px;border-bottom:2px solid #5C1D24;">Qty</th>'
+          . '<th style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#6b7280;padding:8px 10px;border-bottom:2px solid #5C1D24;">Amount</th>'
+          . '</tr></thead><tbody>' . $rows . '</tbody></table>'
+          . '<table style="width:100%;max-width:280px;margin:16px 0 0 auto;border-collapse:collapse;">'
+          . '<tr><td style="padding:5px 0;font-size:13px;">Total</td>'
+          . '<td style="padding:5px 0;font-size:13px;text-align:right;">' . $symbol . number_format((float)$inv['total'], 2) . '</td></tr>'
+          . (((float)($inv['amount_paid'] ?? 0) > 0)
+                ? '<tr><td style="padding:5px 0;font-size:13px;">Paid</td><td style="padding:5px 0;font-size:13px;text-align:right;">−' . $symbol . number_format((float)$inv['amount_paid'], 2) . '</td></tr>'
+                : '')
+          . '<tr><td style="padding:9px 0;font-size:16px;font-weight:800;color:#5C1D24;border-top:2px solid #5C1D24;">Balance Due</td>'
+          . '<td style="padding:9px 0;font-size:16px;font-weight:800;color:#5C1D24;text-align:right;border-top:2px solid #5C1D24;">' . $symbol . number_format($balance, 2) . '</td></tr>'
+          . '</table>'
+          . $linkBlock
+          . (trim((string)($inv['payment_instructions'] ?? '')) !== ''
+                ? '<div style="margin-top:26px;padding-top:16px;border-top:1px solid #eef0f3;font-size:13px;color:#4b5563;line-height:1.7;">'
+                  . '<strong>Payment instructions</strong><br>' . nl2br(htmlspecialchars((string)$inv['payment_instructions'])) . '</div>'
+                : '')
+          . '<p style="font-size:13px;color:#6b7280;margin-top:26px;">'
+          . 'Any questions, reply to this email or call ' . htmlspecialchars(SHOP_PHONE) . '.<br>'
+          . '— ' . htmlspecialchars(SHOP_NAME) . '</p></div>';
+
+    return cbSendMail($to, 'Invoice ' . $inv['invoice_number'] . ' from ' . SHOP_NAME, $body);
+}

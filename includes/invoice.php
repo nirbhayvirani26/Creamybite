@@ -352,6 +352,62 @@ function invoiceSettleFromPaidOrder(PDO $pdo, int $invoiceId): bool
     }
 }
 
+/**
+ * The customer-facing link for an invoice, minting a token on first use.
+ *
+ * The token is what protects the document, so it is long and random. Using
+ * the invoice id would let anyone change a number in the address bar and read
+ * every invoice the shop has ever issued.
+ *
+ * Returns '' when SITE_URL is not configured — a half-built link in an email
+ * is worse than no link at all.
+ */
+function invoicePublicUrl(PDO $pdo, array $inv): string
+{
+    if (!defined('SITE_URL') || SITE_URL === '') {
+        return '';
+    }
+
+    $token = trim((string)($inv['public_token'] ?? ''));
+    if ($token === '') {
+        try {
+            $token = bin2hex(random_bytes(24));
+            $pdo->prepare("UPDATE invoices SET public_token = :t WHERE id = :id")
+                ->execute(['t' => $token, 'id' => (int)$inv['id']]);
+        } catch (Throwable $e) {
+            error_log('invoicePublicUrl token failed: ' . $e->getMessage());
+            return '';
+        }
+    }
+
+    return rtrim(SITE_URL, '/') . '/invoice.php?t=' . urlencode($token);
+}
+
+/**
+ * A phone number in the form wa.me needs: digits only, country code included.
+ *
+ * UK numbers are stored the way people write them — "07823 606928",
+ * "+44 7823 606928" — and wa.me accepts neither. A leading 0 is the national
+ * trunk prefix and has to become 44, or WhatsApp opens a chat with nobody.
+ */
+function invoiceWhatsAppNumber(string $raw): string
+{
+    $digits = preg_replace('/\D+/', '', $raw) ?? '';
+    if ($digits === '') {
+        return '';
+    }
+    if (str_starts_with($digits, '00')) {
+        $digits = substr($digits, 2);
+    }
+    if (str_starts_with($digits, '0')) {
+        $digits = '44' . substr($digits, 1);      // UK national -> international
+    }
+    if (strlen($digits) < 10 || strlen($digits) > 15) {
+        return '';                                 // not a phone number
+    }
+    return $digits;
+}
+
 /** Full invoice with its items and payments. Null when not found. */
 function loadInvoice(PDO $pdo, int $invoiceId): ?array
 {

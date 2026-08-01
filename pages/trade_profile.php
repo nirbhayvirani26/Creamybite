@@ -122,6 +122,25 @@ try {
     $errorMsg = $errorMsg ?: 'Could not load your order history right now.';
 }
 
+// ── Invoices the shop has actually issued ────────────────────
+// Only documents the admin has raised AND sent. A draft is a working copy —
+// the figures on it can still change — so showing one to the customer invites
+// a query about a bill that was never issued. Void invoices are withdrawn.
+$tradeInvoices = [];
+try {
+    $ti = $pdo->prepare(
+        "SELECT id, invoice_number, public_token, issue_date, due_date, due_terms,
+                status, total, amount_paid, sent_at
+           FROM invoices
+          WHERE trade_user_id = :uid AND status IN ('sent', 'part_paid', 'paid')
+          ORDER BY issue_date DESC, id DESC"
+    );
+    $ti->execute(['uid' => $userId]);
+    $tradeInvoices = $ti->fetchAll();
+} catch (PDOException $e) {
+    error_log('Trade invoice list failed: ' . $e->getMessage());
+}
+
 // ── Account totals ───────────────────────────────────────────
 $totalSpent   = 0.0;   // money actually received
 $totalOutstanding = 0.0;
@@ -500,41 +519,58 @@ function statusPill(string $status): array
                 <i class="fa-solid fa-file-invoice cbtp-accent"></i> Invoices
             </h2>
             <p class="cbtp-section-sub">
-                Open an invoice to view or print it. Each one is numbered from its order code.
+                Invoices we have issued to you. Open one to view it or save it as a PDF.
             </p>
 
-            <?php if (empty($orders)): ?>
+            <?php if (empty($tradeInvoices)): ?>
             <div class="cbtp-empty">
-                No invoices yet — they appear here once you place an order.
+                No invoices yet. They appear here once we have issued and sent one —
+                your orders are on the <a href="?tab=orders">Orders</a> tab.
             </div>
             <?php else: ?>
             <div class="cbtp-invoice-grid">
-                <?php foreach ($orders as $o):
-                    $ps = $o['payment_status'] ?? 'Unpaid';
-                    $paid = ($ps !== 'Unpaid');
+                <?php foreach ($tradeInvoices as $iv):
+                    $balance = (float)$iv['total'] - (float)$iv['amount_paid'];
+                    $isPaid  = $iv['status'] === 'paid' || $balance <= 0.001;
+                    $isPart  = !$isPaid && (float)$iv['amount_paid'] > 0;
+                    // A token is minted when the invoice is sent; fall back to
+                    // the order-based view for anything issued before that.
+                    $link = !empty($iv['public_token'])
+                        ? '../invoice.php?t=' . urlencode($iv['public_token'])
+                        : '';
                 ?>
                 <div class="cbtp-card cbtp-tone-plain cbtp-invoice-card">
                     <div class="cbtp-invoice-head">
                         <div>
                             <div class="cbtp-invoice-eyebrow">Invoice</div>
                             <div class="cbtp-invoice-code">
-                                <?= htmlspecialchars($o['order_code']) ?>
+                                <?= htmlspecialchars($iv['invoice_number']) ?>
                             </div>
                         </div>
-                        <span class="cbtp-pay-badge <?= $paid ? 'is-paid' : 'is-unpaid' ?>">
-                            <?= $paid ? 'PAID' : 'UNPAID' ?>
+                        <span class="cbtp-pay-badge <?= $isPaid ? 'is-paid' : 'is-unpaid' ?>">
+                            <?= $isPaid ? 'PAID' : ($isPart ? 'PART PAID' : 'DUE') ?>
                         </span>
                     </div>
                     <div class="cbtp-invoice-date">
-                        <?= date('d M Y', strtotime($o['created_at'])) ?>
+                        Issued <?= date('d M Y', strtotime($iv['issue_date'])) ?>
+                        <?php if (!empty($iv['due_date'])): ?>
+                        &middot; due <?= date('d M Y', strtotime($iv['due_date'])) ?>
+                        <?php endif; ?>
                     </div>
                     <div class="cbtp-invoice-total">
-                        £<?= number_format((float)$o['total_price'], 2) ?>
+                        £<?= number_format((float)$iv['total'], 2) ?>
+                        <?php if (!$isPaid && $balance > 0.001): ?>
+                        <small class="cbtp-invoice-balance">£<?= number_format($balance, 2) ?> outstanding</small>
+                        <?php endif; ?>
                     </div>
-                    <a href="trade_invoice.php?code=<?= urlencode($o['order_code']) ?>" target="_blank"
+                    <?php if ($link !== ''): ?>
+                    <a href="<?= htmlspecialchars($link) ?>" target="_blank" rel="noopener"
                        class="btn-primary cbtp-btn-block">
-                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Invoice
+                        <i class="fa-solid fa-file-pdf"></i> View / Save as PDF
                     </a>
+                    <?php else: ?>
+                    <span class="cbtp-invoice-pending">Being prepared — please check back shortly.</span>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>

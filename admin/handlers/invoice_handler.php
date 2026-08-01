@@ -22,6 +22,7 @@ csrfCheck();
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/invoice.php';
+require_once __DIR__ . '/../../includes/mailer.php';   // sendInvoiceEmail()
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
@@ -328,6 +329,54 @@ try {
                 'vr'  => round((float)($_POST['default_vat_rate'] ?? 0) / 100, 4),
             ]);
             backTo('../index.php?tab=invoices', 'Invoice settings saved.');
+        }
+
+        // ── Email the invoice to the customer ────────────────
+        case 'send_email': {
+            $id  = (int)($_POST['invoice_id'] ?? 0);
+            $inv = loadInvoice($pdo, $id);
+            if (!$inv) {
+                backTo('../index.php?tab=invoices', 'Invoice not found.', 'error');
+            }
+            if ($inv['status'] === 'void') {
+                backTo('../invoice_edit.php?id=' . $id, 'This invoice is void — reopen it as a draft first.', 'error');
+            }
+
+            $to = trim((string)$inv['to_email']);
+            if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                backTo('../invoice_edit.php?id=' . $id,
+                       'No valid email address on this invoice. Add one in the Bill To panel, then send.', 'error');
+            }
+
+            // A draft becomes sent the moment it actually goes out, so the
+            // status reflects what happened rather than needing a second click.
+            if ($inv['status'] === 'draft') {
+                $pdo->prepare("UPDATE invoices SET status = 'sent' WHERE id = :id")->execute(['id' => $id]);
+                $inv['status'] = 'sent';
+            }
+            $pdo->prepare("UPDATE invoices SET sent_at = NOW() WHERE id = :id")->execute(['id' => $id]);
+
+            $link = invoicePublicUrl($pdo, $inv);
+            if (sendInvoiceEmail($inv, $link)) {
+                backTo('../invoice_edit.php?id=' . $id, 'Invoice emailed to ' . $to . '.');
+            }
+            backTo('../invoice_edit.php?id=' . $id,
+                   'Could not send the email. The invoice is marked as sent — check the mail settings.', 'warn');
+        }
+
+        // ── Mark as sent so a WhatsApp link can be shared ────
+        case 'prepare_share': {
+            $id  = (int)($_POST['invoice_id'] ?? 0);
+            $inv = loadInvoice($pdo, $id);
+            if (!$inv) {
+                backTo('../index.php?tab=invoices', 'Invoice not found.', 'error');
+            }
+            if ($inv['status'] === 'draft') {
+                $pdo->prepare("UPDATE invoices SET status = 'sent' WHERE id = :id")->execute(['id' => $id]);
+            }
+            $pdo->prepare("UPDATE invoices SET sent_at = NOW() WHERE id = :id")->execute(['id' => $id]);
+            invoicePublicUrl($pdo, $inv);   // mint the token before sharing
+            backTo('../invoice_edit.php?id=' . $id . '&share=whatsapp', 'Invoice is ready to share.');
         }
 
         // ── Sales reps / agents ──────────────────────────────

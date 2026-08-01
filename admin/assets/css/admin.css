@@ -1335,3 +1335,11 @@ th.inv-sort i.is-sorted   { opacity: 1; }
 .cbtr-bar-track  { display: inline-block; vertical-align: middle; width: calc(100% - 46px); }
 .cbtr-share-pct  { display: inline-block; width: 40px; text-align: right;
                    font-size: 11px; color: var(--text-muted); }
+
+/* Invoice send row */
+.cbie-send-row  { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.cbie-send-note { margin: 0 0 16px; line-height: 1.6; }
+.cbie-wa-btn    { background: #25D366; color: #fff; border-color: #25D366;
+                  display: inline-flex; align-items: center; gap: 7px; }
+.cbie-wa-btn:hover { background: #1da851; color: #fff; }
+.cbie-wa-btn[disabled] { opacity: .45; cursor: not-allowed; }

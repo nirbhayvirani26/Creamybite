@@ -808,8 +808,10 @@ let currentPaymentMethod = 'online';
         if (data.error) {
             document.getElementById('stripeElement').innerHTML =
                 `<div class="cbco-inline-error"><i class="fa-solid fa-triangle-exclamation"></i> ${data.error}</div>`;
-            // Auto-switch to Pay Later if Stripe keys not set yet
-            if (data.error.includes('REPLACE_ME') || data.error.includes('setup')) {
+            // Fall back to Pay Later when card payment cannot work at all —
+            // an expired key, or keys never configured. Leaving the customer
+            // on a card form that will never load loses the order outright.
+            if (data.fallback_to_later || data.error.includes('REPLACE_ME') || data.error.includes('setup')) {
                 selectPayment('later');
             }
             return;

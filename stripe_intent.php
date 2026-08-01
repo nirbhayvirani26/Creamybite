@@ -125,5 +125,25 @@ try {
 
 } catch (\Stripe\Exception\ApiErrorException $e) {
     error_log('Stripe error: ' . $e->getMessage());
-    echo json_encode(['error' => 'Payment setup failed. Please try again or choose Pay Later.']);
+
+    // A customer is told the same thing whatever went wrong — the detail is
+    // for the shop, not for them. But an expired or revoked key is not a
+    // passing glitch: card payment stays broken until someone replaces it,
+    // and "please try again" invites a customer to keep failing while the
+    // real cause sits unnoticed in a log nobody reads.
+    //
+    // Stripe revokes live keys automatically when it detects one published
+    // somewhere public, so this is a state a working shop really does reach.
+    $code  = method_exists($e, 'getStripeCode') ? (string)$e->getStripeCode() : '';
+    $isKey = in_array($code, ['api_key_expired', 'invalid_api_key'], true)
+          || $e instanceof \Stripe\Exception\AuthenticationException;
+
+    echo json_encode([
+        'error' => $isKey
+            ? 'Card payment is temporarily unavailable. Please choose Pay Later — your order will still reach us.'
+            : 'Payment setup failed. Please try again or choose Pay Later.',
+        // Read by the checkout script to fall straight back to Pay Later
+        // rather than leaving the customer prodding a form that cannot work.
+        'fallback_to_later' => $isKey,
+    ]);
 }
