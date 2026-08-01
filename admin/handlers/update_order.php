@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/mailer.php';
 require_once __DIR__ . '/../../includes/stock.php';
+require_once __DIR__ . '/../../includes/invoice.php';   // keep invoices in step with the order
 
 // ── Delete Order ──────────────────────────────────────────
 if (isset($_POST['action']) && $_POST['action'] === 'delete_order') {
@@ -179,6 +180,40 @@ if (isset($_POST['payment_status'])) {
                 }
             } catch (Exception $e) {
                 error_log('Payment receipt email failed: ' . $e->getMessage());
+            }
+
+            // An invoice raised BEFORE the money arrived is now settled, so
+            // bring it in step here rather than waiting for someone to notice
+            // and mark it by hand. Left alone, the invoice list keeps showing
+            // an outstanding balance that has in fact been paid, and the
+            // customer keeps holding a bill that says they still owe it.
+            try {
+                $ivq = $pdo->prepare(
+                    "SELECT id FROM invoices
+                      WHERE order_id = :o AND status NOT IN ('void', 'paid')"
+                );
+                $ivq->execute(['o' => $orderId]);
+
+                foreach ($ivq->fetchAll(PDO::FETCH_COLUMN) as $invId) {
+                    $invId = (int)$invId;
+                    if (!invoiceSettleFromPaidOrder($pdo, $invId)) {
+                        continue;   // already had a payment recorded against it
+                    }
+                    syncInvoicePaymentState($pdo, $invId);
+
+                    // Tell the customer their invoice is settled, and give them
+                    // the document — a receipt they cannot open is not a receipt.
+                    $inv = loadInvoice($pdo, $invId);
+                    if ($inv && trim((string)$inv['to_email']) !== '') {
+                        $pdo->prepare("UPDATE invoices SET sent_at = NOW() WHERE id = :id")
+                            ->execute(['id' => $invId]);
+                        sendInvoiceEmail($inv, invoicePublicUrl($pdo, $inv));
+                    }
+                }
+            } catch (Throwable $e) {
+                // Never let invoice housekeeping fail the payment update the
+                // admin actually asked for.
+                error_log('Invoice sync after payment failed: ' . $e->getMessage());
             }
         }
 

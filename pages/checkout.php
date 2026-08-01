@@ -906,6 +906,34 @@ async function handleCheckout() {
     const form = document.getElementById('checkoutForm');
     if (!form.reportValidity()) return;
 
+    const isCollection = document.querySelector('input[name="order_type"]:checked')?.value === 'collection';
+
+    // Out of range. The status line under the postcode says so too, but that
+    // sits well above the button on a long page and is easy to scroll past —
+    // a customer who has filled the whole form deserves to be stopped in
+    // front of the thing they just pressed, not sent hunting for the reason.
+    if (!isCollection && lastCalculatedMiles > MAX_DELIVERY_MILES) {
+        await cbAlert(
+            'We are unable to deliver more than 6 miles radius.\n\n' +
+            'Your postcode is ' + lastCalculatedMiles.toFixed(1) + ' miles from our Harrow warehouse. ' +
+            'Choose Warehouse Collection instead, or call us on ' + <?= json_encode(SHOP_PHONE) ?> +
+            ' and we will see what we can do.',
+            { title: 'Too far for delivery', tone: 'danger', okText: 'I understand' }
+        );
+        return;
+    }
+
+    // Below the minimum. Same reasoning — say it at the button.
+    if (!isCollection && cartSubtotal < MIN_ORDER) {
+        await cbAlert(
+            'Minimum order for delivery is £' + MIN_ORDER.toFixed(2) + '.\n\n' +
+            'Your basket is £' + cartSubtotal.toFixed(2) + ' — add £' +
+            (MIN_ORDER - cartSubtotal).toFixed(2) + ' more, or choose Warehouse Collection.',
+            { title: 'A little more needed', okText: 'OK' }
+        );
+        return;
+    }
+
     if (currentPaymentMethod === 'later') {
         // Pay Later — just submit the form
         document.querySelector('[name="payment_method"]').value = 'later';
@@ -961,6 +989,7 @@ const FREE_MILES        = 3;    // Within 3 miles = free delivery
 // enforces, so the page can never warn about a different number than the one
 // that actually blocks the order.
 const MIN_ORDER         = <?= json_encode(MIN_DELIVERY_ORDER) ?>;
+const MAX_DELIVERY_MILES = 6.0;  // furthest we will drive
 
 let lastCalculatedMiles = -1; // cache so we can re-evaluate on cart changes
 
@@ -1139,7 +1168,6 @@ function onPostcodeInput() {
                 const miles = haversineDistance(SHOP_LAT, SHOP_LON, lat, lon);
                 lastCalculatedMiles = miles;
 
-                const MAX_DELIVERY_MILES = 6.0;
                 const submitBtn = document.getElementById('placeOrderBtn');
 
                 if (miles > MAX_DELIVERY_MILES) {
