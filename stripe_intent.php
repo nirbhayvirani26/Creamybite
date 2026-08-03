@@ -52,8 +52,15 @@ $amountPence    = $totals['total_pence'];   // Stripe works in pence
 // so any rule enforced only in the handler takes the customer's money and
 // then throws the order away. Mirror those rules here.
 if ($orderType === 'delivery' && $totals['subtotal'] < MIN_DELIVERY_ORDER) {
-    echo json_encode(['error' => 'Minimum order for delivery is £' . number_format(MIN_DELIVERY_ORDER, 2)
-                               . '. Please add more items, or choose collection.']);
+    // Flagged rather than just worded, so the page can tell this apart from a
+    // real payment failure. The checkout already states the minimum beside the
+    // basket and keeps it current as items are added; repeating it inside the
+    // card panel meant the customer read the same complaint twice.
+    echo json_encode([
+        'error'                => 'Minimum order for delivery is £' . number_format(MIN_DELIVERY_ORDER, 2)
+                                . '. Please add more items, or choose collection.',
+        'basket_below_minimum' => true,
+    ]);
     exit;
 }
 

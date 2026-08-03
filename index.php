@@ -21,6 +21,8 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Creamy Bite – Handcrafted Ice Cream &amp; Cocoa Drinks</title>
     <meta name="description" content="Creamy Bite serves handcrafted ice cream and rich cocoa drinks made fresh daily with the finest ingredients. Discover our story and explore our flavours.">
+<?php $cbSeoLocalBusiness = true; ?>
+<?php require __DIR__ . '/includes/seo_head.php'; ?>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="assets/css/responsive.css">
     <link rel="stylesheet" href="assets/css/animations.css">
@@ -255,50 +257,9 @@ try {
 </section>
 
 <!-- ══ Footer ══════════════════════════════════════════════ -->
-<footer class="footer-enhanced">
-    <div class="container">
-        <div class="footer-top">
-            <div class="footer-brand">
-                <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img"></a>
-                <p>Handcrafted ice cream and cocoa drinks made fresh daily with the finest ingredients.</p>
-                <div class="footer-social">
-                    <a href="https://www.instagram.com/creamybiteicecream" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
-                    <a href="https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" aria-label="Facebook"><i class="fa-brands fa-facebook"></i></a>
-                    <a href="#" aria-label="TikTok"><i class="fa-brands fa-tiktok"></i></a>
-                    <a href="https://wa.me/447497779997" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
-                </div>
-            </div>
-            <div class="footer-col">
-                <h4>Pages</h4>
-                <ul>
-                    <li><a href="index.php">Home</a></li>
-                    <li><a href="pages/order.php">Order</a></li>
-                    <li><a href="pages/gallery.php">Gallery</a></li>
-                    <li><a href="pages/about.php">About Us</a></li>
-                </ul>
-            </div>
-            <div class="footer-col">
-                <h4>Order</h4>
-                <ul>
-                    <li><a href="pages/order.php">Browse Menu</a></li>
-                    <li><a href="pages/checkout.php">Checkout</a></li>
-                </ul>
-            </div>
-            <div class="footer-col">
-                <h4>B2B Trade</h4>
-                <ul>
-                    <li><a href="pages/trade_register.php">Apply for Trade</a></li>
-                    <li><a href="pages/trade_login.php">Trade Login</a></li>
-                    <li><a href="admin/login.php">Admin Login</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom-bar">
-            <a href="index.php"><img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbhm-footer-logo-sm"></a>
-            <span class="footer-copy-text">&copy; <?= date('Y') ?> CreamyBite.com &mdash; Made with ❤️</span>
-        </div>
-    </div>
-</footer>
+<?php // One shared footer — it used to be copied into five pages, so adding a
+      // link meant editing all five and hoping none were missed. ?>
+<?php require __DIR__ . '/includes/site_footer.php'; ?>
 
 <script>
 // ── Mobile nav ──────────────────────────────────────────────

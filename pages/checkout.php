@@ -562,14 +562,9 @@ $grandTotal     = $totals['total'];
     </div>
 </main>
 
-<footer class="footer-enhanced">
-    <div class="container">
-        <div class="footer-bottom-bar cbco-footer-bar">
-            <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbco-footer-logo"></a>
-            <span class="footer-copy-text">© <?= date('Y') ?> <?= SHOP_NAME ?>. All rights reserved.</span>
-        </div>
-    </div>
-</footer>
+<?php // One shared footer — it used to be copied into five pages, so adding a
+      // link meant editing all five and hoping none were missed. ?>
+<?php require __DIR__ . '/../includes/site_footer.php'; ?>
 
 <script>
 // ── Promo Code & Totals Recalculation ───────────────────────────
@@ -825,8 +820,14 @@ let currentPaymentMethod = 'online';
         const data = await res.json();
 
         if (data.error) {
-            document.getElementById('stripeElement').innerHTML =
-                `<div class="cbco-inline-error"><i class="fa-solid fa-triangle-exclamation"></i> ${data.error}</div>`;
+            // A basket under the minimum is not a payment failure, and the
+            // notice beside the basket already says so — and keeps saying it
+            // accurately as items are added, which a message frozen inside the
+            // card panel cannot. Show a neutral placeholder here instead of
+            // repeating the complaint.
+            document.getElementById('stripeElement').innerHTML = data.basket_below_minimum
+                ? `<div class="cbco-card-waiting"><i class="fa-solid fa-basket-shopping"></i> The card form appears once your basket reaches the minimum.</div>`
+                : `<div class="cbco-inline-error"><i class="fa-solid fa-triangle-exclamation"></i> ${data.error}</div>`;
             // Fall back to Pay Later when card payment cannot work at all —
             // an expired key, or keys never configured. Leaving the customer
             // on a card form that will never load loses the order outright.
@@ -1004,6 +1005,18 @@ let manualMode = false;
  * meet the minimum, and still be looking at the same message. Collection is
  * exempt: the minimum covers the driver, and there is no driver.
  */
+/**
+ * Is this basket below the delivery minimum?
+ *
+ * One place asks it, so the notice, the Stripe call and the Place Order guard
+ * can never disagree about whether the order is allowed — which is how the
+ * same complaint ended up on screen from three different sources.
+ */
+function cbBelowMinimum() {
+    const isCollection = document.querySelector('input[name="order_type"]:checked')?.value === 'collection';
+    return !isCollection && (MIN_ORDER - cartSubtotal) > 0.001;
+}
+
 function checkMinimumOrder() {
     const notice = document.getElementById('minOrderNotice');
     const text   = document.getElementById('minOrderText');
@@ -1373,6 +1386,9 @@ function toggleOrderType(type) {
 
 function triggerStripeAmountUpdate() {
     if (!stripeReady) return;
+    // Nothing to charge for a basket that cannot be ordered. Asking anyway
+    // produced a console error on every quantity change.
+    if (cbBelowMinimum()) return;
     const isCollection = document.querySelector('input[name="order_type"]:checked')?.value === 'collection';
     const pc = document.getElementById('delivery_postcode')?.value || '';
     

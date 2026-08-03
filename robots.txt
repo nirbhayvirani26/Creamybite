@@ -1,0 +1,23 @@
+# Creamy Bite — https://orders.creamybite.com
+User-agent: *
+
+# Nothing here is useful to a search engine, and some of it should never be
+# indexed: the admin panel, the handlers, and anything carrying a one-time
+# token in the address.
+Disallow: /admin/
+Disallow: /includes/
+Disallow: /vendor/
+Disallow: /PHPMailer/
+Disallow: /database/
+Disallow: /cart_handler.php
+Disallow: /checkout_handler.php
+Disallow: /promo_handler.php
+Disallow: /stripe_intent.php
+Disallow: /invoice.php
+Disallow: /pages/checkout.php
+Disallow: /pages/trade_profile.php
+Disallow: /pages/trade_invoice.php
+
+Allow: /
+
+Sitemap: https://orders.creamybite.com/sitemap.xml
