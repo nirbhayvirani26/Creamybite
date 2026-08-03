@@ -1018,6 +1018,14 @@ function checkMinimumOrder() {
             '. Add £' + short.toFixed(2) + ' more, or choose Warehouse Collection.';
         notice.classList.remove('cbco-hidden');
         if (btn) btn.disabled = true;
+
+        // The server prints the same complaint when it rejects the order, so
+        // arriving back here showed it twice — once in the red banner and once
+        // here. This one stays because it updates as the basket changes; the
+        // server's is a snapshot of the moment it was refused.
+        document.querySelectorAll('[data-clears-at="min-order"]').forEach(el => el.remove());
+        const dupBox = document.getElementById('serverErrors');
+        if (dupBox && dupBox.textContent.trim() === '') dupBox.remove();
     } else {
         notice.classList.add('cbco-hidden');
         text.textContent = '';
