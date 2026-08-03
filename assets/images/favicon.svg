@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Creamy Bite">
+    <!--
+        Favicon: an ice cream cup, drawn for 16px first.
+
+        A browser tab renders this at 16px, where thin lines, text and
+        gradients all collapse into grey. So: a filled tile to stand out on a
+        white tab strip, and two shapes big enough to survive — a pale scoop
+        mass filling the top half, a pale cup filling the bottom, separated by
+        one bold gold band. At 16px that band is what stops the whole thing
+        reading as a single blob, which is what the first attempt did.
+
+        Shop colours: #5C1D24 chocolate, #C78829 gold, #FFF7EF cream.
+    -->
+
+    <rect width="64" height="64" rx="13" fill="#5C1D24"/>
+
+    <!-- Scoop mass. Three overlapping circles that merge into one wide mound
+         when downscaled, rather than reading as separate balls. -->
+    <circle cx="22" cy="24" r="12.5" fill="#FFF7EF"/>
+    <circle cx="42" cy="24" r="12.5" fill="#FFF7EF"/>
+    <circle cx="32" cy="16" r="12.5" fill="#FFF7EF"/>
+    <!-- One gold scoop, kept to the right so the icon is not symmetrical and
+         is easier to pick out of a row of tabs. -->
+    <path d="M42 11.5 a12.5 12.5 0 0 1 0 25 a12.5 12.5 0 0 1 -8 -2.8 a12.5 12.5 0 0 0 8 -22.2 z" fill="#C78829"/>
+
+    <!-- Gold band: the separator that keeps scoops and cup distinct at 16px. -->
+    <rect x="12" y="33" width="40" height="7" rx="3.5" fill="#C78829"/>
+
+    <!-- Cup: a wide, shallow trapezium. Shallow on purpose — a tall cup pushes
+         the scoops up and both shapes end up too small to read. -->
+    <path d="M15 41 h34 l-4.5 13 a4 4 0 0 1 -3.9 3 h-17.2 a4 4 0 0 1 -3.9 -3 z" fill="#FFF7EF"/>
+</svg>
