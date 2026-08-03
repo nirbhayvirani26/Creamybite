@@ -57,6 +57,8 @@ $email   = trim($_POST['customer_email'] ?? '');
 $phone   = trim($_POST['phone']          ?? '');
 $address = trim($_POST['address']        ?? '');
 $notes   = trim($_POST['notes']          ?? '');
+// Set when the postcode lookup was unreachable, so the order can say so.
+$distanceUnverified = false;
 
 // Trade customers fill in a separate mandatory "store opening hours &
 // delivery instructions" box. Keep both — this used to share the name
@@ -134,18 +136,40 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Please enter a vali
 if (strlen($phone)   < 6) $errors[] = 'Please enter a valid phone number.';
 
 // ── Helper: calculate postcode distance in miles ─────────
-function getPostcodeDistanceMiles(string $postcode): ?float {
+/**
+ * Distance to a postcode, or null when it could not be determined.
+ *
+ * $reason tells the caller WHY it is null, because the two cases need
+ * opposite handling: a postcode the lookup says does not exist is a bad
+ * address and the order should stop, while the lookup being unreachable is
+ * our problem, not the customer's, and refusing every order because a third
+ * party is down would be worse than taking one we have to check by hand.
+ */
+function getPostcodeDistanceMiles(string $postcode, ?string &$reason = null): ?float {
     $shopLat = 51.5729;
     $shopLon = -0.3356; // HA1 2SP
     $clean   = str_replace(' ', '', strtoupper(trim($postcode)));
     $url     = 'https://api.postcodes.io/postcodes/' . urlencode($clean);
+    $reason  = null;
 
     try {
-        $ctx  = stream_context_create(['http' => ['timeout' => 4]]);
+        // ignore_errors keeps the body on a 404. Without it file_get_contents
+        // returns false, and "this postcode does not exist" becomes
+        // indistinguishable from "the lookup is down" — which matters, because
+        // one should stop the order and the other should not.
+        $ctx  = stream_context_create(['http' => ['timeout' => 4, 'ignore_errors' => true]]);
         $json = @file_get_contents($url, false, $ctx);
-        if (!$json) return null;
+
+        if ($json === false) { $reason = 'unreachable'; return null; }
+
         $data = json_decode($json, true);
-        if (empty($data['result']['latitude'])) return null;
+        if (!is_array($data)) { $reason = 'unreachable'; return null; }
+
+        // postcodes.io answers a bad postcode with {"status":404,...}
+        if ((int)($data['status'] ?? 200) === 404 || empty($data['result']['latitude'])) {
+            $reason = 'not_found';
+            return null;
+        }
 
         $lat2  = (float)$data['result']['latitude'];
         $lon2  = (float)$data['result']['longitude'];
@@ -155,6 +179,7 @@ function getPostcodeDistanceMiles(string $postcode): ?float {
         $a     = sin($dLat/2)**2 + cos(deg2rad($shopLat)) * cos(deg2rad($lat2)) * sin($dLon/2)**2;
         return $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
     } catch (Throwable $e) {
+        $reason = 'unreachable';
         return null;
     }
 }
@@ -166,10 +191,27 @@ if ($orderType === 'delivery') {
     if (!preg_match('/^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i', $postcode)) {
         $errors[] = 'Please enter a valid UK delivery postcode.';
     } else if (empty($_SESSION['trade_user'])) {
-        // Enforce 6-mile radius limit for retail delivery customers
-        $dist = getPostcodeDistanceMiles($postcode);
+        // Enforce the 6-mile radius for retail delivery.
+        //
+        // A null distance used to mean "allowed", so while the lookup was
+        // unreachable every postcode in the country passed — and
+        // calculateDeliveryCharge returns 0 in the same situation, so those
+        // orders were also delivered free. The two failure modes are now
+        // separated: a postcode that does not exist is refused, and a lookup
+        // we could not reach lets the order through but flags it, because
+        // losing every sale while a third party is down is the worse outcome.
+        $distReason = null;
+        $dist = getPostcodeDistanceMiles($postcode, $distReason);
+
         if ($dist !== null && $dist > 6.0) {
             $errors[] = 'We currently only deliver within a 6-mile radius of our Harrow warehouse (HA1 2SP / HA1 4EX). Your postcode is ' . number_format($dist, 1) . ' miles away. Please select Warehouse Collection or contact support at +44 7497 779997 for special orders.';
+        } elseif ($distReason === 'not_found') {
+            $errors[] = 'We could not find the postcode ' . htmlspecialchars($postcode)
+                      . '. Please check it and try again, or choose Warehouse Collection.';
+        } elseif ($distReason === 'unreachable') {
+            // Taken, but not silently: staff must confirm it is in range.
+            $distanceUnverified = true;
+            error_log('Postcode distance unverified for ' . $postcode . ' — lookup unreachable');
         }
     }
 }
@@ -278,6 +320,13 @@ if ($paymentMethod === 'online') {
     // which meant that if the INSERT below then failed we had taken the
     // customer's money and lost every trace of which payment it belonged to.
     // It is cleared after the order is safely committed instead.
+}
+
+// ── An unverified distance is worth saying on the order ─────
+// The order is accepted, but nobody should discover at the van that it was
+// forty miles away. This is a note, not a rejection.
+if ($distanceUnverified) {
+    $notes = "[📍 DISTANCE NOT VERIFIED — check this is within 6 miles before dispatch]\n" . $notes;
 }
 
 // ── Anything unresolved becomes a review flag on the order ──
