@@ -30,8 +30,17 @@ echo "Packaging the site…"
 #   .git         – the entire source history, readable over HTTP if exposed
 #   *.log        – may contain customer data
 #   .DS_Store    – macOS clutter
+# .env is the reason this list matters most.
+#
+# Secrets used to ship inside includes/secrets.php, so every upload replaced
+# the server's keys with the developer's. A Stripe key rolled on live was
+# silently reverted by the next deploy, and card payments broke every time
+# with nothing in the code to blame. Shipping no secrets at all is the fix:
+# each machine keeps its own .env and nothing that travels can touch it.
 rsync -a \
     --exclude '.git' \
+    --exclude '.env' \
+    --exclude '.env.local' \
     --exclude '.DS_Store' \
     --exclude '*.log' \
     --exclude 'node_modules' \
@@ -57,6 +66,19 @@ done
 
 if [ -d "$STAGE/$NAME/.git" ]; then
     echo "STOPPED: .git ended up in the package."
+    exit 1
+fi
+
+# A package carrying a .env would overwrite the server's keys — the exact
+# failure this whole arrangement exists to prevent. Fail loudly.
+if [ -f "$STAGE/$NAME/.env" ]; then
+    echo "STOPPED: .env ended up in the package. It must never ship."
+    exit 1
+fi
+
+if grep -rqlE 'sk_live_[A-Za-z0-9]{20,}' "$STAGE/$NAME" 2>/dev/null; then
+    echo "STOPPED: a live Stripe secret key is inside the package."
+    grep -rlE 'sk_live_[A-Za-z0-9]{20,}' "$STAGE/$NAME" 2>/dev/null | sed "s|$STAGE/$NAME/|  |"
     exit 1
 fi
 

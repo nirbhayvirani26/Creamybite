@@ -39,13 +39,20 @@ $DB_LOCAL = [
     'pass' => 'root',
 ];
 
-//  On the live server (Hostinger). Copy these from hPanel > Databases.
+//  On the live server (Hostinger). These come from .env so that uploading
+//  code can never overwrite the server's own database login — the same
+//  mistake that kept replacing the Stripe key. The values below are only the
+//  fallback for a server that has not been given a .env yet.
+//  No fallback password. A default here would ship in every upload, which is
+//  the whole problem this is solving — and a package containing the live
+//  database password is worse than one that simply will not start until the
+//  server has been given its own .env.
 $DB_LIVE = [
-    'host' => 'localhost',
-    'port' => '3306',
-    'name' => 'u167013900_creamybite',
-    'user' => 'u167013900_creamyuser',
-    'pass' => 'Creamyorder@2026*',
+    'host' => cbEnv('DB_LIVE_HOST', 'localhost'),
+    'port' => cbEnv('DB_LIVE_PORT', '3306'),
+    'name' => cbEnv('DB_LIVE_NAME', ''),
+    'user' => cbEnv('DB_LIVE_USER', ''),
+    'pass' => cbEnv('DB_LIVE_PASS', ''),
 ];
 
 // ════════════════════════════════════════════════════════════

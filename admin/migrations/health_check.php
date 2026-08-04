@@ -112,6 +112,25 @@ foreach ($needCols as [$t, $c]) {
         $ok ? '' : 'Run update_db.php on this server.');
 }
 
+// ── Secrets ──────────────────────────────────────────────────
+// The commonest cause of "payments broke again after I uploaded" was
+// includes/secrets.php shipping with the developer's keys and overwriting the
+// server's. Secrets now live in .env, which never ships — so the first thing
+// to check on a server is whether it has one.
+require_once __DIR__ . '/../../includes/env.php';
+if (cbEnvLoaded()) {
+    cbCheck('Secrets', '.env file', true, 'present — keys are safe from being overwritten by an upload');
+} else {
+    cbCheck('Secrets', '.env file', false, 'MISSING from the site root',
+        'Copy .env.example to .env on this server and fill in the values. Without it there are no Stripe keys and no mail password.');
+}
+foreach (['STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'SMTP_PASS', 'ADMIN_PASSWORD'] as $k) {
+    $v = cbEnv($k, '');
+    cbCheck('Secrets', $k, $v !== '',
+        $v !== '' ? 'set (' . strlen($v) . ' chars)' : 'EMPTY',
+        $v !== '' ? '' : 'Add ' . $k . ' to .env on this server.');
+}
+
 // ── Card payments ────────────────────────────────────────────
 // The commonest cause of "Pay Online is not loading" is a secret key that
 // works on the machine it was pasted into and nowhere else, because
@@ -218,7 +237,7 @@ $failures = array_values(array_filter($checks, fn($c) => !$c['ok']));
         </p>
         <?php endif; ?>
 
-        <?php foreach (['Files', 'Settings', 'Card payments', 'Functions', 'Tables', 'Columns', 'Order path'] as $group): ?>
+        <?php foreach (['Files', 'Secrets', 'Settings', 'Card payments', 'Functions', 'Tables', 'Columns', 'Order path'] as $group): ?>
         <h2 class="cbtr-card-title"><?= $group ?></h2>
         <table class="su-table">
             <?php foreach ($checks as $c): if ($c['group'] !== $group) continue; ?>

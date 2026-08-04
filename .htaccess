@@ -43,3 +43,11 @@ Options -Indexes
     RewriteCond %{REQUEST_URI} ^(.*/)[^/]+\.php$
     RewriteRule ^([A-Za-z0-9_-]+\.php)$ %1pages/$1 [R=301,L]
 </IfModule>
+
+# ── Secrets must never be served ─────────────────────────────
+# A .env served as plain text hands over the Stripe keys, the mail password
+# and the database login to anyone who guesses the URL. Apache would happily
+# serve it: it has no handler and no extension it recognises as code.
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>

@@ -5,6 +5,16 @@
 // ============================================================
 require_once __DIR__ . '/config.php';
 
+// A live server with no .env has no database login, and "connection failed"
+// would send someone hunting for a MySQL problem that does not exist. Say
+// what is actually wrong.
+if (!IS_LOCAL && (DB_NAME === '' || DB_USER === '')) {
+    error_log('No database credentials — is there a .env on this server?');
+    http_response_code(503);
+    exit('The site is not configured yet. If you are the owner: copy .env.example to .env '
+       . 'in the site root, fill in the database and Stripe values, then restart PHP.');
+}
+
 try {
     $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
     $pdo = new PDO($dsn, DB_USER, DB_PASS);
