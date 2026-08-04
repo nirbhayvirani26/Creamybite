@@ -423,6 +423,71 @@ try {
     $results[] = ['table' => 'product_variants', 'col' => 'case_qty', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
 }
 
+// ── 2d. Give every flavour a 500ml and a 1L ────────────────
+//
+// Every flavour is sold in both sizes, so every product needs both — and the
+// case rule (500ml eights, 1L sixes) only reaches a product that actually has
+// the sizes on it.
+//
+// Created UNPRICED and UNAVAILABLE on purpose. Nobody can tell from the data
+// what a 1L of each flavour should cost: the products' own prices are neither
+// the 500ml nor the 1L figure (Rajbhog is £6.99 as a product, £5.99 as a
+// 500ml and £7.99 as a 1L), so any price invented here would be wrong money
+// on real orders. available = 0 means a size cannot be ordered until someone
+// has set its price and ticked it on, which is the safe direction to fail.
+//
+// Only ever adds what is missing, so a size that already exists — with its
+// real prices — is never touched, and the step is safe to run again.
+try {
+    if (cb_table_exists($pdo, 'product_variants') && cb_column_exists($pdo, 'product_variants', 'case_qty')) {
+        $sizes = [
+            ['name' => '500ml', 'case' => 8, 'sort' => 1],
+            ['name' => '1L',    'case' => 6, 'sort' => 2],
+        ];
+
+        $allProducts = $pdo->query("SELECT id FROM products")->fetchAll(PDO::FETCH_COLUMN);
+        $ins = $pdo->prepare(
+            "INSERT INTO product_variants (product_id, name, price, wholesale_price, case_qty, case_size, available, sort_order)
+             VALUES (:pid, :name, 0.00, 0.00, :cq, :cs, 0, :so)"
+        );
+        // Matched loosely — "500 ml", "500ML" and "500ml" are the same size,
+        // and a duplicate here would put two 500ml lines on one product.
+        $has = $pdo->prepare(
+            "SELECT COUNT(*) FROM product_variants
+              WHERE product_id = :pid AND REPLACE(LOWER(name), ' ', '') = :n"
+        );
+
+        $added = 0;
+        foreach ($allProducts as $pid) {
+            foreach ($sizes as $s) {
+                $has->execute(['pid' => $pid, 'n' => strtolower($s['name'])]);
+                if ((int)$has->fetchColumn() > 0) {
+                    continue;
+                }
+                $ins->execute([
+                    'pid'  => $pid,
+                    'name' => $s['name'],
+                    'cq'   => $s['case'],
+                    'cs'   => $s['case'] . ' × ' . $s['name'],
+                    'so'   => $s['sort'],
+                ]);
+                $added++;
+            }
+        }
+
+        $results[] = [
+            'table'  => 'product_variants',
+            'col'    => '500ml + 1L for every flavour',
+            'status' => $added > 0
+                ? "✅ {$added} size(s) created — unpriced and switched OFF until you set prices in Products → edit → Sizes"
+                : 'every product already has both sizes ✓',
+            'ok'     => true,
+        ];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'product_variants', 'col' => '500ml + 1L', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+}
+
 // ── 3. gallery: image/title -> filename/caption rename ──
 try {
     if (cb_column_exists($pdo, 'gallery', 'filename')) {
