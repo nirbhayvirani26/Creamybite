@@ -38,8 +38,8 @@ function calculateDeliveryCharge(string $postcode, float $subtotal = 0.0): float
 {
     $shopLat   = 51.5729;
     $shopLon   = -0.3356;   // HA1 2SP
-    $freeMiles = 3.0;       // within 3 miles is always free
-    $charge    = 1.99;
+    $freeMiles = FREE_DELIVERY_MILES;
+    $charge    = DELIVERY_CHARGE;
 
     $clean = str_replace(' ', '', strtoupper(trim($postcode)));
     if ($clean === '') {

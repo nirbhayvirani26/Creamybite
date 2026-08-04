@@ -9,6 +9,9 @@ require_once __DIR__ . '/../includes/config.php';
 
 $min   = number_format(MIN_DELIVERY_ORDER, 2);
 $vat   = (int)(TRADE_VAT_RATE * 100);
+$freeM = rtrim(rtrim(number_format(FREE_DELIVERY_MILES, 1), '0'), '.');
+$maxM  = rtrim(rtrim(number_format(DELIVERY_RADIUS_MILES, 1), '0'), '.');
+$chg   = number_format(DELIVERY_CHARGE, 2);
 $shop  = htmlspecialchars(SHOP_NAME);
 $email = htmlspecialchars(ADMIN_EMAIL);
 $phone = htmlspecialchars(SHOP_PHONE);
@@ -41,9 +44,9 @@ $policyBody  = <<<HTML
 
 <h2>Delivery</h2>
 <ul>
-    <li>We deliver within 6 miles of HA1 2SP. Outside that, choose collection.</li>
+    <li>We deliver within {$maxM} miles of HA1 2SP. Outside that, choose collection.</li>
     <li>Delivery orders have a minimum of <strong>&pound;{$min}</strong>. Collection has no minimum.</li>
-    <li>Delivery is free within 3 miles and &pound;1.99 between 3 and 6 miles.</li>
+    <li>Delivery is free within {$freeM} miles and &pound;{$chg} between {$freeM} and {$maxM} miles.</li>
     <li>We will agree a time with you. Frozen goods are not left unattended.</li>
 </ul>
 <p>

@@ -203,8 +203,10 @@ if ($orderType === 'delivery') {
         $distReason = null;
         $dist = getPostcodeDistanceMiles($postcode, $distReason);
 
-        if ($dist !== null && $dist > 6.0) {
-            $errors[] = 'We currently only deliver within a 6-mile radius of our Harrow warehouse (HA1 2SP / HA1 4EX). Your postcode is ' . number_format($dist, 1) . ' miles away. Please select Warehouse Collection or contact support at +44 7497 779997 for special orders.';
+        if ($dist !== null && $dist > DELIVERY_RADIUS_MILES) {
+            $errors[] = 'We currently only deliver within a ' . rtrim(rtrim(number_format(DELIVERY_RADIUS_MILES, 1), '0'), '.')
+                      . '-mile radius of our Harrow warehouse (HA1 2SP / HA1 4EX). Your postcode is ' . number_format($dist, 1)
+                      . ' miles away. Please select Warehouse Collection or contact support at ' . SHOP_PHONE . ' for special orders.';
         } elseif ($distReason === 'not_found') {
             $errors[] = 'We could not find the postcode ' . htmlspecialchars($postcode)
                       . '. Please check it and try again, or choose Warehouse Collection.';
@@ -326,7 +328,7 @@ if ($paymentMethod === 'online') {
 // The order is accepted, but nobody should discover at the van that it was
 // forty miles away. This is a note, not a rejection.
 if ($distanceUnverified) {
-    $notes = "[📍 DISTANCE NOT VERIFIED — check this is within 6 miles before dispatch]\n" . $notes;
+    $notes = "[📍 DISTANCE NOT VERIFIED — check this is within " . rtrim(rtrim(number_format(DELIVERY_RADIUS_MILES, 1), '0'), '.') . " miles before dispatch]\n" . $notes;
 }
 
 // ── Anything unresolved becomes a review flag on the order ──
@@ -341,7 +343,7 @@ if ($needsReview) {
 }
 
 // ── Generate unique order code ────────────────────────────
-$orderCode = 'CB-' . random_int(100000, 999999);
+$orderCode = ORDER_PREFIX . '-' . random_int(100000, 999999);
 
 // ── Trade B2B User Info ───────────────────────────────────
 $tradeUserId       = 0;
@@ -379,11 +381,13 @@ try {
     // clamps at zero.
 
     $stmt = $pdo->prepare("INSERT INTO orders
-        (order_code, trade_user_id, trade_business_name, customer_name, customer_email, phone, address, notes, items_json, total_price, promo_code, discount_amount, payment_method, payment_status, postcode, delivery_charge, vat_amount, vat_number, stock_deducted, status)
-        VALUES (:order_code, :trade_user_id, :trade_business_name, :customer_name, :customer_email, :phone, :address, :notes, :items_json, :total_price, :promo_code, :discount_amount, :payment_method, :payment_status, :postcode, :delivery_charge, :vat_amount, :vat_number, 1, 'Pending')");
+        (order_code, trade_user_id, trade_business_name, customer_name, customer_email, phone, address, notes, items_json, total_price, promo_code, discount_amount, payment_method, stripe_payment_intent, payment_status, postcode, delivery_charge, vat_amount, vat_number, stock_deducted, status)
+        VALUES (:order_code, :trade_user_id, :trade_business_name, :customer_name, :customer_email, :phone, :address, :notes, :items_json, :total_price, :promo_code, :discount_amount, :payment_method, :stripe_payment_intent, :payment_status, :postcode, :delivery_charge, :vat_amount, :vat_number, 1, 'Pending')");
 
     $stmt->execute([
         'order_code'          => $orderCode,
+        // Only meaningful for a card order; blank for Pay Later and cash.
+        'stripe_payment_intent' => ($paymentMethod === 'online' && $stripeIntentId) ? $stripeIntentId : '',
         'trade_user_id'       => $tradeUserId,
         'trade_business_name' => $tradeBusinessName,
         'customer_name'       => $name,
@@ -443,6 +447,30 @@ try {
     // Stock is deducted when the admin marks an order as "Delivered".
 } catch (PDOException $e) {
     error_log("Post-save error: " . $e->getMessage()); // non-fatal
+}
+
+// ── Label the Stripe payment with the order code ──────────
+//
+// The intent is created before the order exists, so its metadata could not
+// carry the order code at the time. Writing it back now means the Stripe
+// dashboard shows "CB-123456" against the payment, and a refund can be made
+// from Stripe against a named order instead of by matching amounts by eye.
+//
+// Wrapped and non-fatal on purpose: the customer has paid and the order is
+// saved. A failure to annotate a payment must never surface as a checkout
+// error or take the confirmation page down.
+if ($paymentMethod === 'online' && $stripeIntentId && class_exists('\Stripe\Stripe')) {
+    try {
+        \Stripe\PaymentIntent::update($stripeIntentId, [
+            'metadata' => [
+                'order_code'    => $orderCode,
+                'customer_name' => $name,
+                'customer_email'=> $email,
+            ],
+        ]);
+    } catch (\Throwable $e) {
+        error_log('Could not tag Stripe intent ' . $stripeIntentId . ' with ' . $orderCode . ': ' . $e->getMessage());
+    }
 }
 
 

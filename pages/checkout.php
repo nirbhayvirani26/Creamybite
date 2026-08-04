@@ -516,7 +516,7 @@ $grandTotal     = $totals['total'];
                     <?php if (!$isTradeUser): ?>
                     <div id="deliveryChargeRow" class="cbco-summary-row cbco-summary-row-delivery">
                         <span><i class="fa-solid fa-truck-fast"></i> Delivery</span>
-                        <span id="deliveryChargeAmt">+ £1.99</span>
+                        <span id="deliveryChargeAmt">+ £<?= number_format(DELIVERY_CHARGE, 2) ?></span>
                     </div>
                     <?php endif; ?>
 
@@ -731,7 +731,7 @@ function reEvaluateCharges() {
             updateDeliveryDisplay(0);
         } else {
             if (chargeInput) chargeInput.value = DELIVERY_CHARGE.toFixed(2);
-            if (statusEl) statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-truck-fast"></i> £1.99 delivery charge – ' + lastCalculatedMiles.toFixed(1) + ' miles from us.</span>';
+            if (statusEl) statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-truck-fast"></i> ' + DELIVERY_CHARGE_TXT + ' delivery charge – ' + lastCalculatedMiles.toFixed(1) + ' miles from us.</span>';
             updateDeliveryDisplay(DELIVERY_CHARGE);
         }
     } else {
@@ -915,7 +915,7 @@ async function handleCheckout() {
     // front of the thing they just pressed, not sent hunting for the reason.
     if (!isCollection && lastCalculatedMiles > MAX_DELIVERY_MILES) {
         await cbAlert(
-            'We are unable to deliver more than 6 miles radius.\n\n' +
+            'We are unable to deliver more than ' + MAX_MILES_TXT + ' miles radius.\n\n' +
             'Your postcode is ' + lastCalculatedMiles.toFixed(1) + ' miles from our Harrow warehouse. ' +
             'Choose Warehouse Collection instead, or call us on ' + <?= json_encode(SHOP_PHONE) ?> +
             ' and we will see what we can do.',
@@ -984,13 +984,18 @@ async function handleCheckout() {
 // ── Postcode delivery charge and address lookup ──────────────────
 const SHOP_LAT = 51.5729;
 const SHOP_LON = -0.3356; // HA1 2SP coordinates
-const DELIVERY_CHARGE   = 1.99;
-const FREE_MILES        = 3;    // Within 3 miles = free delivery
+// All four come from config.php so the page can never quote a delivery price
+// or radius that differs from the one pricing.php actually charges.
+const DELIVERY_CHARGE   = <?= json_encode(DELIVERY_CHARGE) ?>;
+const FREE_MILES        = <?= json_encode(FREE_DELIVERY_MILES) ?>;
 // Comes from MIN_DELIVERY_ORDER in config.php — the same figure the server
 // enforces, so the page can never warn about a different number than the one
 // that actually blocks the order.
 const MIN_ORDER         = <?= json_encode(MIN_DELIVERY_ORDER) ?>;
-const MAX_DELIVERY_MILES = 6.0;  // furthest we will drive
+const MAX_DELIVERY_MILES = <?= json_encode(DELIVERY_RADIUS_MILES) ?>;
+// Pre-formatted for the messages below: "6" not "6.0", "1.99" with two places.
+const MAX_MILES_TXT = MAX_DELIVERY_MILES.toString().replace(/\.0$/, '');
+const DELIVERY_CHARGE_TXT = '£' + DELIVERY_CHARGE.toFixed(2);
 
 let lastCalculatedMiles = -1; // cache so we can re-evaluate on cart changes
 
@@ -1223,7 +1228,7 @@ function onPostcodeInput() {
                     chargeInput.value = '0';
                     statusEl.innerHTML = '<div class="cbco-status-box">' +
                         '<i class="fa-solid fa-triangle-exclamation"></i> ' +
-                        '<strong>We are unable to deliver more than 6 miles radius.</strong><br>' +
+                        '<strong>We are unable to deliver more than ' + MAX_MILES_TXT + ' miles radius.</strong><br>' +
                         'Your postcode is ' + miles.toFixed(1) + ' miles from our Harrow warehouse (HA1 2SP).<br>' +
                         'Please choose <strong>Warehouse Collection</strong>, or call <strong>+44 7497 779997</strong> if you need a special arrangement.</div>';
                     if (submitBtn) {
@@ -1246,7 +1251,7 @@ function onPostcodeInput() {
                     updateDeliveryDisplay(0);
                 } else {
                     chargeInput.value = DELIVERY_CHARGE.toFixed(2);
-                    statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-truck-fast"></i> £1.99 delivery charge – ' + miles.toFixed(1) + ' miles from us.</span>';
+                    statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-truck-fast"></i> ' + DELIVERY_CHARGE_TXT + ' delivery charge – ' + miles.toFixed(1) + ' miles from us.</span>';
                     updateDeliveryDisplay(DELIVERY_CHARGE);
                 }
 
@@ -1283,7 +1288,7 @@ function updateDeliveryDisplay(charge) {
         } else {
             infoBanner.style.background = 'rgba(245,158,11,0.06)';
             infoBanner.style.borderColor = 'rgba(245,158,11,0.25)';
-            infoBanner.innerHTML = '<p class="cbco-delivery-banner-text cbco-status-warn"><i class="fa-solid fa-truck-fast"></i><strong>£1.99</strong> delivery charge applies</p>';
+            infoBanner.innerHTML = '<p class="cbco-delivery-banner-text cbco-status-warn"><i class="fa-solid fa-truck-fast"></i><strong>' + DELIVERY_CHARGE_TXT + '</strong> delivery charge applies</p>';
         }
     }
     recalculateTotals();

@@ -11,6 +11,7 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/product_spec.php';
 
 $isEdit  = isset($_GET['id']) || (isset($_POST['product_id']) && (int)$_POST['product_id'] > 0);
 $product = null;
@@ -71,6 +72,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $trade_only      = isset($_POST['trade_only'])       ? 1 : 0;
     $track_stock     = isset($_POST['track_stock'])      ? 1 : 0;
     $stock_qty       = max(0, (int)($_POST['stock_qty']  ?? 0));
+
+    // ── Catalogue / allergen / nutrition specification ──────────
+    $case_size            = trim($_POST['case_size']            ?? '');
+    $ingredients          = trim($_POST['ingredients']          ?? '');
+    $allergen_notes       = trim($_POST['allergen_notes']       ?? '');
+    $storage_instructions = trim($_POST['storage_instructions'] ?? '');
+    $shelf_life           = trim($_POST['shelf_life']           ?? '');
+    $nutrition_basis      = trim($_POST['nutrition_basis']      ?? '') ?: '100 ml';
+
+    // Only slugs we recognise are stored, so a tampered form cannot inject
+    // an allergen name that then prints unescaped onto a public sheet.
+    $allergenPosted = (array)($_POST['allergens'] ?? []);
+    $allergens = implode(',', array_values(array_intersect(
+        array_keys(cbAllergens()),
+        array_map('strval', $allergenPosted)
+    )));
+
+    // The sign-off. Ticking the box stamps the time; clearing it puts the
+    // product back to "not reviewed" rather than silently keeping an old
+    // date that no longer reflects the current recipe.
+    //
+    // The date is kept when the box stays ticked across an edit, so routine
+    // changes (a price, a photo) do not look like a fresh allergen review.
+    if (isset($_POST['allergen_reviewed'])) {
+        $existingReview = '';
+        if ($productId > 0) {
+            $rstmt = $pdo->prepare("SELECT allergen_reviewed_at FROM products WHERE id = ?");
+            $rstmt->execute([$productId]);
+            $existingReview = (string)($rstmt->fetchColumn() ?: '');
+        }
+        $allergen_reviewed_at = $existingReview !== '' ? $existingReview : date('Y-m-d H:i:s');
+    } else {
+        $allergen_reviewed_at = null;
+    }
+
+    // Nutrition figures. An empty box stays NULL — never 0 — because 0 g of
+    // sugar is a claim and a blank field is not.
+    $nutrition = [];
+    foreach (array_keys(cbNutritionRows()) as $nkey) {
+        $raw = trim((string)($_POST[$nkey] ?? ''));
+        $nutrition[$nkey] = ($raw === '') ? null : (float)$raw;
+    }
+
+    // Keep nuts_allergy in step with the allergen list so the "Contains Nuts"
+    // badge on the order page cannot contradict the allergen sheet.
+    $allergenSlugs = $allergens === '' ? [] : explode(',', $allergens);
+    if (in_array('nuts', $allergenSlugs, true) || in_array('peanuts', $allergenSlugs, true)) {
+        $nuts_allergy = 1;
+    }
 
     // Keep existing image unless a new one is uploaded.
     // Read from the hidden field so we don't lose it when $product is null on POST.
@@ -137,16 +187,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // statement keeps the stored value untouched.
                 $stmt = $pdo->prepare("UPDATE products SET name=:name, description=:description, price=:price,
                     category=:category, emoji=:emoji, image=:image, badge=:badge, available=:available, nuts_allergy=:nuts_allergy,
-                    trade_only=:trade_only, track_stock=:track_stock, stock_qty=:stock_qty
+                    trade_only=:trade_only, track_stock=:track_stock, stock_qty=:stock_qty,
+                    case_size=:case_size, ingredients=:ingredients, allergens=:allergens,
+                    allergen_notes=:allergen_notes, allergen_reviewed_at=:allergen_reviewed_at,
+                    storage_instructions=:storage_instructions, shelf_life=:shelf_life,
+                    nutrition_basis=:nutrition_basis, energy_kj=:energy_kj, energy_kcal=:energy_kcal,
+                    fat_g=:fat_g, saturates_g=:saturates_g, carbs_g=:carbs_g, sugars_g=:sugars_g,
+                    fibre_g=:fibre_g, protein_g=:protein_g, salt_g=:salt_g
                     WHERE id=:id");
-                $stmt->execute(compact('name','description','price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty, 'id' => $productId]);
+                $stmt->execute(compact('name','description','price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty, 'id' => $productId] + [
+                    'case_size' => $case_size, 'ingredients' => $ingredients, 'allergens' => $allergens,
+                    'allergen_notes' => $allergen_notes, 'allergen_reviewed_at' => $allergen_reviewed_at,
+                    'storage_instructions' => $storage_instructions, 'shelf_life' => $shelf_life,
+                    'nutrition_basis' => $nutrition_basis,
+                ] + $nutrition);
                 header('Location: index.php?tab=products&product_updated=1'); exit;
             } else {
                 // INSERT — a new product starts with no trade price of its own;
                 // trade pricing is set per size on the Sizes panel.
-                $stmt = $pdo->prepare("INSERT INTO products (name, description, price, category, emoji, image, badge, available, nuts_allergy, trade_only, track_stock, stock_qty)
-                    VALUES (:name, :description, :price, :category, :emoji, :image, :badge, :available, :nuts_allergy, :trade_only, :track_stock, :stock_qty)");
-                $stmt->execute(compact('name','description','price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty]);
+                $stmt = $pdo->prepare("INSERT INTO products (name, description, price, category, emoji, image, badge, available, nuts_allergy, trade_only, track_stock, stock_qty,
+                    case_size, ingredients, allergens, allergen_notes, allergen_reviewed_at,
+                    storage_instructions, shelf_life, nutrition_basis,
+                    energy_kj, energy_kcal, fat_g, saturates_g, carbs_g, sugars_g, fibre_g, protein_g, salt_g)
+                    VALUES (:name, :description, :price, :category, :emoji, :image, :badge, :available, :nuts_allergy, :trade_only, :track_stock, :stock_qty,
+                    :case_size, :ingredients, :allergens, :allergen_notes, :allergen_reviewed_at,
+                    :storage_instructions, :shelf_life, :nutrition_basis,
+                    :energy_kj, :energy_kcal, :fat_g, :saturates_g, :carbs_g, :sugars_g, :fibre_g, :protein_g, :salt_g)");
+                $stmt->execute(compact('name','description','price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty] + [
+                    'case_size' => $case_size, 'ingredients' => $ingredients, 'allergens' => $allergens,
+                    'allergen_notes' => $allergen_notes, 'allergen_reviewed_at' => $allergen_reviewed_at,
+                    'storage_instructions' => $storage_instructions, 'shelf_life' => $shelf_life,
+                    'nutrition_basis' => $nutrition_basis,
+                ] + $nutrition);
                 header('Location: index.php?tab=products&product_added=1'); exit;
             }
         } catch (PDOException $e) {
@@ -162,7 +234,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'nuts_allergy' => $nuts_allergy,
         'track_stock' => $track_stock,
         'stock_qty'   => 0, // managed via Stock tab
-    ];
+        'case_size' => $case_size, 'ingredients' => $ingredients, 'allergens' => $allergens,
+        'allergen_notes' => $allergen_notes, 'allergen_reviewed_at' => $allergen_reviewed_at,
+        'storage_instructions' => $storage_instructions, 'shelf_life' => $shelf_life,
+        'nutrition_basis' => $nutrition_basis,
+    ] + $nutrition;
     $isEdit = $productId > 0;
 }
 ?>
@@ -287,12 +363,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     Available on menu
                                 </label>
                             </div>
+                            <?php // The "Contains Nuts" badge on the shop is now driven by the
+                                  // allergen list below, not by its own tickbox. Two independent
+                                  // switches for one fact is how a product ends up flagged on the
+                                  // menu but absent from the allergen sheet — or the reverse. ?>
                             <div class="form-group cbpf-check-group">
-                                <label class="cbpf-check-label cbpf-check-label-nuts">
-                                    <input type="checkbox" name="nuts_allergy" value="1" class="cbpf-checkbox cbpf-checkbox-nuts"
-                                        <?= !empty($product['nuts_allergy']) ? 'checked' : '' ?>>
-                                    🥜 Contains Nuts
-                                </label>
+                                <span class="cbpf-derived-note">
+                                    🥜 <strong>Contains Nuts</strong> badge is set automatically from
+                                    the Allergens panel below.
+                                </span>
                             </div>
                             <div class="form-group cbpf-group-full">
                                 <label class="cbpf-trade-label">
@@ -361,6 +440,133 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
+                    <!-- ── Catalogue, allergens, nutrition, storage ────────── -->
+                    <?php
+                        $selectedAllergens = cbAllergenList($product['allergens'] ?? '');
+                        $reviewedAt        = $product['allergen_reviewed_at'] ?? null;
+                    ?>
+                    <div class="glass-panel form-section">
+                        <h3><i class="fa-solid fa-clipboard-list"></i> Catalogue &amp; Product Information</h3>
+                        <p class="cbpf-spec-intro">
+                            This is what appears on the downloadable catalogue and the allergen,
+                            nutrition and storage sheets. Anything left blank is shown as
+                            <em>not provided</em> on those documents — never as zero, and never as
+                            &ldquo;free from&rdquo;.
+                        </p>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Case size</label>
+                                <input type="text" name="case_size" class="form-control"
+                                       placeholder="e.g. 6 &times; 1L per case"
+                                       value="<?= htmlspecialchars($product['case_size'] ?? '') ?>">
+                                <small class="cbpf-field-hint">
+                                    How trade customers buy it. Each size can override this on the
+                                    Sizes panel below.
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Shelf life</label>
+                                <input type="text" name="shelf_life" class="form-control"
+                                       placeholder="e.g. 12 months from production"
+                                       value="<?= htmlspecialchars($product['shelf_life'] ?? '') ?>">
+                            </div>
+                        </div>
+
+                        <div class="form-group cbpf-group-full">
+                            <label class="form-label">Ingredients</label>
+                            <textarea name="ingredients" class="form-control" rows="3"
+                                      placeholder="In descending order by weight, as they appear on the tub."><?= htmlspecialchars($product['ingredients'] ?? '') ?></textarea>
+                        </div>
+
+                        <div class="form-group cbpf-group-full">
+                            <label class="form-label">Storage instructions</label>
+                            <input type="text" name="storage_instructions" class="form-control"
+                                   placeholder="<?= htmlspecialchars(CB_DEFAULT_STORAGE) ?>"
+                                   value="<?= htmlspecialchars($product['storage_instructions'] ?? '') ?>">
+                            <small class="cbpf-field-hint">
+                                Leave blank to use the standard wording shown above.
+                            </small>
+                        </div>
+
+                        <!-- ── Allergens ───────────────────────────────── -->
+                        <h4 class="cbpf-spec-heading">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Allergens
+                        </h4>
+                        <p class="cbpf-spec-intro">
+                            Tick every allergen this product contains. These are the 14 that UK law
+                            requires a food business to declare.
+                        </p>
+
+                        <div class="cbpf-allergen-grid">
+                            <?php foreach (cbAllergens() as $slug => $label): ?>
+                            <label class="cbpf-allergen-option">
+                                <input type="checkbox" name="allergens[]" value="<?= htmlspecialchars($slug) ?>"
+                                       class="cbpf-checkbox"
+                                       <?= in_array($slug, $selectedAllergens, true) ? 'checked' : '' ?>>
+                                <span><?= htmlspecialchars($label) ?></span>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div class="form-group cbpf-group-full">
+                            <label class="form-label">Allergen notes</label>
+                            <input type="text" name="allergen_notes" class="form-control"
+                                   placeholder="e.g. May contain traces of other tree nuts"
+                                   value="<?= htmlspecialchars($product['allergen_notes'] ?? '') ?>">
+                        </div>
+
+                        <?php // The sign-off. Until this is ticked the allergen sheet refuses
+                              // to say the product is free from anything — it says the
+                              // information has not been confirmed and to ask. That is the
+                              // difference between "we checked, there are none" and "nobody
+                              // has filled this in yet", which are identical in the database
+                              // and must never look identical to a customer with an allergy. ?>
+                        <div class="form-group cbpf-group-full">
+                            <label class="cbpf-review-label">
+                                <input type="checkbox" name="allergen_reviewed" value="1" class="cbpf-checkbox"
+                                       <?= !empty($reviewedAt) ? 'checked' : '' ?>>
+                                <span>
+                                    <strong>I have checked this product&rsquo;s allergens against the recipe</strong>
+                                    <small class="cbpf-trade-note">
+                                        <?php if (!empty($reviewedAt)): ?>
+                                            Confirmed <?= htmlspecialchars(date('j M Y', strtotime($reviewedAt))) ?>.
+                                            Untick if the recipe has changed and needs checking again.
+                                        <?php else: ?>
+                                            Until this is ticked, the allergen sheet will show this product as
+                                            <strong>not yet confirmed</strong> and tell customers to ask. A product
+                                            with no allergens ticked and no confirmation is never printed as
+                                            allergen-free.
+                                        <?php endif; ?>
+                                    </small>
+                                </span>
+                            </label>
+                        </div>
+
+                        <!-- ── Nutrition ───────────────────────────────── -->
+                        <h4 class="cbpf-spec-heading">
+                            <i class="fa-solid fa-chart-simple"></i> Nutrition
+                        </h4>
+
+                        <div class="form-group">
+                            <label class="form-label">Figures are per</label>
+                            <input type="text" name="nutrition_basis" class="form-control cbpf-basis-input"
+                                   value="<?= htmlspecialchars($product['nutrition_basis'] ?? '100 ml') ?>">
+                        </div>
+
+                        <div class="cbpf-nutrition-grid">
+                            <?php foreach (cbNutritionRows() as $key => [$label, $unit, $indent]): ?>
+                            <div class="form-group cbpf-nutrition-field<?= $indent ? ' cbpf-nutrition-indent' : '' ?>">
+                                <label class="form-label"><?= htmlspecialchars($label) ?> (<?= htmlspecialchars($unit) ?>)</label>
+                                <?php // step="any" so 0.05 g of salt is enterable; blank stays blank. ?>
+                                <input type="number" step="any" min="0" name="<?= htmlspecialchars($key) ?>"
+                                       class="form-control" placeholder="—"
+                                       value="<?= htmlspecialchars((string)($product[$key] ?? '')) ?>">
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn-primary cbpf-submit-btn">
                         <i class="fa-solid fa-<?= $isEdit ? 'floppy-disk' : 'plus' ?>"></i>
                         <?= $isEdit ? 'Save Changes' : 'Add Product' ?>
@@ -425,6 +631,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?= $tradeAboveRetail ? 'title="Trade price is not below the retail price — check this."' : '' ?>
                             class="form-control cbpf-price-input cbpf-price-input-trade<?= $tradeAboveRetail ? ' is-suspect' : '' ?>"
                             onchange="updateVariant(<?= $v['id'] ?>, document.querySelector('#vrow-<?= $v['id'] ?> input[type=text]').value, document.getElementById('vp-<?= $v['id'] ?>').value, this.value, document.getElementById('va-<?= $v['id'] ?>').checked)">
+                    </div>
+                    <div class="cbpf-price-field">
+                        <span class="cbpf-price-label">Case:</span>
+                        <input type="text" id="vcs-<?= $v['id'] ?>" value="<?= htmlspecialchars($v['case_size'] ?? '') ?>"
+                            placeholder="6 &times; 1L" title="How many of this size come in a case"
+                            class="form-control cbpf-case-input"
+                            onchange="updateVariantCase(<?= $v['id'] ?>, <?= (int)$product['id'] ?>, this.value)">
                     </div>
                     <label class="cbpf-variant-avail">
                         <input type="checkbox" id="va-<?= $v['id'] ?>" <?= $v['available'] ? 'checked' : '' ?>
@@ -566,6 +779,13 @@ function addVariant(productId) {
                     class="form-control cbpf-price-input cbpf-price-input-trade"
                     onchange="updateVariant(${id}, document.querySelector('#vrow-${id} input[type=text]').value, document.getElementById('vp-${id}').value, this.value, document.getElementById('va-${id}').checked)">
             </div>
+            <div class="cbpf-price-field">
+                <span class="cbpf-price-label">Case:</span>
+                <input type="text" id="vcs-${id}" value="" placeholder="6 × 1L"
+                    title="How many of this size come in a case"
+                    class="form-control cbpf-case-input"
+                    onchange="updateVariantCase(${id}, ${productId}, this.value)">
+            </div>
             <label class="cbpf-variant-avail">
                 <input type="checkbox" id="va-${id}" checked
                     onchange="updateVariant(${id}, document.querySelector('#vrow-${id} input[type=text]').value, document.getElementById('vp-${id}').value, document.getElementById('vwp-${id}').value, this.checked)">
@@ -600,6 +820,33 @@ function updateVariant(id, name, price, wholesalePrice, available) {
                 setTimeout(() => { row.style.borderColor = ''; }, 1200);
             }
         });
+    }, 600);
+}
+
+// Case size saves on its own, so a typo here can never land in a price field.
+//
+// Note the row now holds two text inputs — the size name and this one. The
+// price handlers above find the name with
+// `querySelector('#vrow-N input[type=text]')`, which takes the FIRST match, so
+// this field must stay after the name input. Anything inserted before the name
+// would silently start saving the wrong value as the size name.
+function updateVariantCase(id, productId, caseSize) {
+    clearTimeout(updateTimer['c' + id]);
+    updateTimer['c' + id] = setTimeout(() => {
+        fetch('handlers/variant_handler.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `action=update_case&id=${id}&product_id=${productId}&case_size=${encodeURIComponent(caseSize)}`,
+        })
+        .then(r => r.json())
+        .then(data => {
+            const row = document.getElementById('vrow-' + id);
+            if (row) {
+                row.style.borderColor = data.success ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)';
+                setTimeout(() => { row.style.borderColor = ''; }, 1200);
+            }
+        })
+        .catch(() => {});
     }, 600);
 }
 

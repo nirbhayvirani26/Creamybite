@@ -13,6 +13,24 @@ try {
     $stmt = $pdo->query("SELECT * FROM products WHERE available = 1 AND trade_only = 0 ORDER BY id ASC LIMIT 6");
     $featured = $stmt->fetchAll();
 } catch (PDOException $e) { }
+
+// Customer reviews for the testimonials strip.
+//
+// Approved only, and the section hides itself entirely when there are none —
+// an empty "What our customers say" heading looks worse than no section at
+// all. Nothing is seeded: inventing testimonials to fill the space is banned
+// under the Digital Markets, Competition and Consumers Act 2024, so this
+// stays empty until real ones are approved in the admin panel.
+$testimonials = [];
+try {
+    $testimonials = $pdo->query(
+        "SELECT * FROM testimonials WHERE approved = 1
+         ORDER BY featured DESC, sort_order ASC, created_at DESC LIMIT 6"
+    )->fetchAll();
+} catch (PDOException $e) {
+    // Table does not exist until the migration has run. Show nothing rather
+    // than taking the home page down over a missing testimonials table.
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -222,6 +240,58 @@ try {
         </div>
     </div>
 </section>
+
+<!-- ══ Reviews ══════════════════════════════════════════════ -->
+<?php if (!empty($testimonials)):
+    $cbAvg = array_sum(array_map(static fn($r) => (int)$r['rating'], $testimonials)) / count($testimonials);
+?>
+<section class="cbrev-section" id="reviews">
+    <div class="container">
+        <div class="cbrev-head">
+            <span class="section-label">Kind Words</span>
+            <h2 class="section-title">What Our Customers Say 💬</h2>
+            <div class="cbrev-summary">
+                <div class="cbrev-stars" aria-label="<?= number_format($cbAvg, 1) ?> out of 5">
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <i class="fa-<?= $i <= round($cbAvg) ? 'solid' : 'regular' ?> fa-star"></i>
+                    <?php endfor; ?>
+                </div>
+                <span class="cbrev-summary-text">
+                    <strong><?= number_format($cbAvg, 1) ?></strong>
+                    from <?= count($testimonials) ?> review<?= count($testimonials) === 1 ? '' : 's' ?>
+                </span>
+            </div>
+        </div>
+
+        <div class="cbrev-grid">
+            <?php foreach ($testimonials as $r): ?>
+            <article class="cbrev-card">
+                <div class="cbrev-stars cbrev-stars-sm" aria-label="<?= (int)$r['rating'] ?> out of 5">
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <i class="fa-<?= $i <= (int)$r['rating'] ? 'solid' : 'regular' ?> fa-star"></i>
+                    <?php endfor; ?>
+                </div>
+                <blockquote class="cbrev-body"><?= nl2br(htmlspecialchars($r['body'])) ?></blockquote>
+                <footer class="cbrev-meta">
+                    <strong><?= htmlspecialchars($r['customer_name']) ?></strong>
+                    <?php
+                        // Town and flavour are both optional, so build the byline
+                        // from whatever is actually there rather than printing
+                        // stray separators around empty values.
+                        $bits = [];
+                        if (trim((string)$r['location']) !== '')     { $bits[] = $r['location']; }
+                        if (trim((string)$r['product_name']) !== '') { $bits[] = 'on ' . $r['product_name']; }
+                    ?>
+                    <?php if ($bits): ?>
+                    <span class="cbrev-sub"><?= htmlspecialchars(implode(' · ', $bits)) ?></span>
+                    <?php endif; ?>
+                </footer>
+            </article>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <!-- ══ CTA Banner ═══════════════════════════════════════════ -->
 <section class="landing-cta-section">

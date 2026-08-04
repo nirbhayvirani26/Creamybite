@@ -48,6 +48,70 @@ if (isset($_GET['action']) && in_array($_GET['action'], ['approve_trade', 'rejec
     }
 }
 
+// ── Reviews: approve / hide / feature / delete ────────────
+if (isset($_GET['review_action'], $_GET['id'])) {
+    csrfCheck();
+    $revId = (int)$_GET['id'];
+    try {
+        switch ($_GET['review_action']) {
+            case 'approve':
+                $pdo->prepare("UPDATE testimonials SET approved = 1 WHERE id = ?")->execute([$revId]);
+                $successMsg = '✅ Review published — it is now on the home page.';
+                break;
+            case 'hide':
+                $pdo->prepare("UPDATE testimonials SET approved = 0 WHERE id = ?")->execute([$revId]);
+                $successMsg = 'Review hidden from the home page.';
+                break;
+            case 'feature':
+                // Featured reviews sort first. Toggling rather than setting so
+                // the same button un-features it.
+                $pdo->prepare("UPDATE testimonials SET featured = 1 - featured WHERE id = ?")->execute([$revId]);
+                $successMsg = 'Review order updated.';
+                break;
+            case 'delete':
+                $pdo->prepare("DELETE FROM testimonials WHERE id = ?")->execute([$revId]);
+                $successMsg = 'Review deleted.';
+                break;
+        }
+    } catch (PDOException $e) {
+        $errorMsg = 'Could not update that review: ' . $e->getMessage();
+    }
+}
+
+// ── Reviews: add one the shop was given directly ──────────
+//
+// Reviews arrive by phone, by email and in person as often as they arrive
+// online, so there has to be a way to record those. `source` keeps that
+// distinction in the data — it is the difference between transcribing a real
+// customer and inventing one, and only the first is lawful.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_review'])) {
+    csrfCheck();
+    $revName = trim($_POST['customer_name'] ?? '');
+    $revBody = trim($_POST['body'] ?? '');
+    if ($revName === '' || $revBody === '') {
+        $errorMsg = 'A review needs at least a name and the review itself.';
+    } else {
+        try {
+            $stmt = $pdo->prepare(
+                "INSERT INTO testimonials (customer_name, location, rating, body, product_name, source, approved)
+                 VALUES (:n, :l, :r, :b, :p, :s, 1)"
+            );
+            $stmt->execute([
+                'n' => mb_substr($revName, 0, 120),
+                'l' => mb_substr(trim($_POST['location'] ?? ''), 0, 120),
+                'r' => max(1, min(5, (int)($_POST['rating'] ?? 5))),
+                'b' => $revBody,
+                'p' => mb_substr(trim($_POST['product_name'] ?? ''), 0, 150),
+                's' => in_array($_POST['source'] ?? '', ['website','google','facebook','instagram','in_person'], true)
+                        ? $_POST['source'] : 'in_person',
+            ]);
+            $successMsg = '✅ Review added and published.';
+        } catch (PDOException $e) {
+            $errorMsg = 'Could not save that review: ' . $e->getMessage();
+        }
+    }
+}
+
 // ── URL success messages ────────────────────────────────
 if (isset($_GET['order_deleted'])) $successMsg = '✅ Order deleted successfully.';
 
@@ -246,6 +310,20 @@ try {
     $inquiries       = $pdo->query("SELECT * FROM inquiries ORDER BY created_at DESC")->fetchAll();
     $unreadInquiries = (int)$pdo->query("SELECT COUNT(*) FROM inquiries WHERE is_read = 0")->fetchColumn();
 } catch (PDOException $e) {}
+
+// ── Reviews tab data ──────────────────────────────────
+//
+// Unapproved first: those are the ones waiting on a decision, and a badge
+// pointing at a list where they were buried at the bottom would be useless.
+$reviewsList    = [];
+$pendingReviews = 0;
+try {
+    $reviewsList    = $pdo->query("SELECT * FROM testimonials ORDER BY approved ASC, created_at DESC")->fetchAll();
+    $pendingReviews = (int)$pdo->query("SELECT COUNT(*) FROM testimonials WHERE approved = 0")->fetchColumn();
+} catch (PDOException $e) {
+    // Table arrives with the migration; an un-migrated server shows an empty
+    // tab and a prompt to run it, rather than a fatal error on every page.
+}
 
 // ── Revenue tab data ──────────────────────────────────
 $revData = [];
@@ -450,6 +528,8 @@ $adminNav = [
 
     ['group' => 'Content'],
     ['tab' => 'gallery',    'icon' => 'fa-images',             'label' => 'Gallery'],
+    ['tab' => 'reviews',    'icon' => 'fa-star',               'label' => 'Reviews',
+     'badge' => $pendingReviews > 0 ? (string)$pendingReviews : null, 'alert' => true],
 ];
 
 // Page heading for the topbar, taken from the same array.
@@ -464,6 +544,7 @@ $pageTitles = [
     'categories' => ['🏷️ Categories',      'Organise the menu'],
     'promos'     => ['🎟️ Promos',          'Discount codes'],
     'inquiries'  => ['✉️ Inquiries',        'Messages from the contact form'],
+    'reviews'    => ['⭐ Reviews',          'Customer reviews shown on the home page'],
 ];
 [$pageTitle, $pageSub] = $pageTitles[$activeTab] ?? ['Admin', ''];
 ?>
@@ -1043,6 +1124,21 @@ $pageTitles = [
                                 <span id="pay-badge-<?= $order['id'] ?>" class="cbi-ord-pay-badge <?= $payStateClass ?>">
                                     <?= $payIcon ?> <?= $payLabel ?>
                                 </span>
+                                <?php
+                                // A card order links straight to its payment in Stripe.
+                                // Refunds happen there, not here, so the useful thing this
+                                // page can do is take you to the right payment rather than
+                                // leave you matching amounts by eye in a list of them.
+                                $pi = trim((string)($order['stripe_payment_intent'] ?? ''));
+                                if ($pi !== ''):
+                                ?>
+                                <a href="https://dashboard.stripe.com/payments/<?= urlencode($pi) ?>"
+                                   target="_blank" rel="noopener noreferrer"
+                                   class="cbi-ord-stripe-link"
+                                   title="Open this payment in Stripe — refunds are made there">
+                                    <i class="fa-brands fa-stripe-s"></i> Refund in Stripe
+                                </a>
+                                <?php endif; ?>
                             </td>
                             <td class="cbi-ord-date-cell">
                                 <?= date('d M y', strtotime($order['created_at'])) ?>
@@ -2109,6 +2205,128 @@ $pageTitles = [
         </div>
 
         <!-- ═══════════════════ CATEGORIES TAB ══════════════ -->
+        <?php elseif ($activeTab === 'reviews'): ?>
+        <div class="glass-panel cbi-panel-lg">
+
+            <h3 class="cbi-section-heading">
+                <i class="fa-solid fa-plus"></i> Add a Review
+            </h3>
+            <p class="cbi-rev-intro">
+                For reviews customers give you by phone, by email or in person. Type
+                what they actually said — made-up reviews are illegal under the
+                Digital Markets, Competition and Consumers Act 2024, and they are the
+                first thing a competitor reports.
+            </p>
+
+            <form method="post" class="cbi-rev-form">
+                <?= csrfField() ?>
+                <div class="cbi-rev-form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Customer name *</label>
+                        <input type="text" name="customer_name" class="form-control" required maxlength="120">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Town</label>
+                        <input type="text" name="location" class="form-control" maxlength="120" placeholder="e.g. Harrow">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Flavour</label>
+                        <input type="text" name="product_name" class="form-control" maxlength="150">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rating</label>
+                        <select name="rating" class="form-control">
+                            <?php foreach ([5 => 'Excellent', 4 => 'Good', 3 => 'Okay', 2 => 'Poor', 1 => 'Bad'] as $v => $lbl): ?>
+                            <option value="<?= $v ?>"><?= str_repeat('★', $v) ?> <?= $lbl ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Where from</label>
+                        <select name="source" class="form-control">
+                            <option value="in_person">In person</option>
+                            <option value="google">Google</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="website">Website</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Review *</label>
+                    <textarea name="body" class="form-control" rows="3" required maxlength="2000"></textarea>
+                </div>
+                <button type="submit" name="add_review" value="1" class="btn-primary">
+                    <i class="fa-solid fa-check"></i> Add &amp; publish
+                </button>
+            </form>
+
+            <h3 class="cbi-section-heading">
+                <i class="fa-solid fa-star"></i> All Reviews (<?= count($reviewsList) ?>)
+                <?php if ($pendingReviews > 0): ?>
+                <span class="cbi-rev-pending-pill"><?= $pendingReviews ?> waiting</span>
+                <?php endif; ?>
+            </h3>
+
+            <?php if (empty($reviewsList)): ?>
+            <p class="cbi-rev-empty">
+                No reviews yet. The home page hides the reviews section entirely until
+                at least one is published, so nothing looks broken in the meantime.
+            </p>
+            <?php else: ?>
+            <div class="cbi-rev-list">
+                <?php foreach ($reviewsList as $rv): ?>
+                <div class="cbi-rev-item<?= $rv['approved'] ? '' : ' cbi-rev-item-pending' ?>">
+                    <div class="cbi-rev-item-head">
+                        <div>
+                            <strong><?= htmlspecialchars($rv['customer_name']) ?></strong>
+                            <?php if (trim((string)$rv['location']) !== ''): ?>
+                            <span class="cbi-rev-loc"><?= htmlspecialchars($rv['location']) ?></span>
+                            <?php endif; ?>
+                            <span class="cbi-rev-stars"><?= str_repeat('★', (int)$rv['rating']) ?><?= str_repeat('☆', 5 - (int)$rv['rating']) ?></span>
+                        </div>
+                        <div class="cbi-rev-tags">
+                            <span class="cbi-rev-source"><?= htmlspecialchars(str_replace('_', ' ', $rv['source'])) ?></span>
+                            <?php if (!empty($rv['featured'])): ?>
+                            <span class="cbi-rev-featured">featured</span>
+                            <?php endif; ?>
+                            <span class="cbi-rev-status <?= $rv['approved'] ? 'is-live' : 'is-pending' ?>">
+                                <?= $rv['approved'] ? 'on the home page' : 'not shown' ?>
+                            </span>
+                        </div>
+                    </div>
+
+                    <p class="cbi-rev-body"><?= nl2br(htmlspecialchars($rv['body'])) ?></p>
+
+                    <div class="cbi-rev-foot">
+                        <span class="cbi-rev-date">
+                            <?php if (trim((string)$rv['product_name']) !== ''): ?>
+                                on <?= htmlspecialchars($rv['product_name']) ?> ·
+                            <?php endif; ?>
+                            <?= htmlspecialchars(date('j M Y', strtotime($rv['created_at']))) ?>
+                        </span>
+                        <span class="cbi-rev-actions">
+                            <?php if ($rv['approved']): ?>
+                            <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=reviews&review_action=hide&id=' . (int)$rv['id'])) ?>"
+                               class="btn-sm">Hide</a>
+                            <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=reviews&review_action=feature&id=' . (int)$rv['id'])) ?>"
+                               class="btn-sm"><?= !empty($rv['featured']) ? 'Unfeature' : 'Feature' ?></a>
+                            <?php else: ?>
+                            <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=reviews&review_action=approve&id=' . (int)$rv['id'])) ?>"
+                               class="btn-sm btn-sm-success">Publish</a>
+                            <?php endif; ?>
+                            <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=reviews&review_action=delete&id=' . (int)$rv['id'])) ?>"
+                               class="btn-sm btn-sm-danger"
+                               data-confirm="Delete this review from <?= htmlspecialchars($rv['customer_name'], ENT_QUOTES) ?>? This cannot be undone."
+                               data-confirm-title="Delete review?" data-confirm-tone="danger" data-confirm-ok="Delete">Delete</a>
+                        </span>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
         <?php elseif ($activeTab === 'categories'): ?>
         <div class="glass-panel cbi-panel-lg">
 

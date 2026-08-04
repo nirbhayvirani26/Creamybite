@@ -70,6 +70,27 @@ if ($action === 'update') {
     exit;
 }
 
+// ── UPDATE just the case size ────────────────────────────────
+//
+// Its own action rather than a sixth argument on 'update'. That call is made
+// from five different onchange handlers in two places (the server-rendered row
+// and the one JavaScript builds), and every one of them passes its arguments
+// positionally — widening the signature means changing all five in step or
+// silently writing the wrong column. This touches one field and cannot
+// disturb a price.
+if ($action === 'update_case') {
+    $id   = (int)($_POST['id'] ?? 0);
+    $case = trim($_POST['case_size'] ?? '');
+    if ($id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Invalid variant.']);
+        exit;
+    }
+    $stmt = $pdo->prepare("UPDATE product_variants SET case_size=:cs WHERE id=:id AND product_id=:pid");
+    $stmt->execute(['cs' => $case, 'id' => $id, 'pid' => $productId]);
+    echo json_encode(['success' => true, 'case_size' => $case]);
+    exit;
+}
+
 // ── DELETE variant ───────────────────────────────────────────
 if ($action === 'delete') {
     $id = (int)($_POST['id'] ?? 0);

@@ -75,8 +75,12 @@ define('ADMIN_PASSWORD', $secrets['admin']['password']);
 // in those emails simply fail.
 define('SITE_URL', 'https://orders.creamybite.com');
 
-// Order code prefix
-define('ORDER_PREFIX', 'SCO');
+// Order code prefix. Every order code customers ever see begins with this, so
+// it has to match what checkout_handler.php actually mints. It read 'SCO'
+// while the handler hardcoded 'CB-', which meant the constant described a
+// format the shop has never used — and the policy pages quote this format back
+// to customers when asking them to find their order number.
+define('ORDER_PREFIX', 'CB');
 
 // VAT charged to trade customers who have a VAT number on their account.
 // Retail customers are never charged this — shelf prices are inclusive.
@@ -91,6 +95,16 @@ define('TRADE_VAT_RATE', 0.20);   // 20%
 // only one that actually decides). When these were three separate literals,
 // changing the figure in one left the other two quietly enforcing the old one.
 define('MIN_DELIVERY_ORDER', 20.00);
+
+// How far we drive, and what it costs. Same reasoning as the figure above:
+// these were written out by hand in pricing.php, checkout_handler.php, the
+// checkout page's JavaScript, shipping.php and terms.php. Five copies of a
+// number that a shop changes when fuel prices move — and the customer-facing
+// pages are the copies nobody thinks to update, so the site would promise one
+// price and charge another.
+define('FREE_DELIVERY_MILES',   3.0);    // free inside this radius
+define('DELIVERY_RADIUS_MILES', 6.0);    // furthest we will drive at all
+define('DELIVERY_CHARGE',       1.99);   // charged between the two
 
 // ── Auto-Detect Environment (Local MAMP vs Live Server) ────────
 //  CLI has no HTTP_HOST. Treat that as LOCAL, not live — otherwise any

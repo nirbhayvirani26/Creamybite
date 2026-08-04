@@ -190,6 +190,34 @@ $tables = [
         `default_vat_rate`     DECIMAL(5,4) NOT NULL DEFAULT 0.0000,
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // Customer reviews shown on the public reviews page.
+    //
+    // `approved` defaults to 0 and nothing appears on the site until someone
+    // ticks it in admin. A review box that publishes instantly is a review box
+    // that publishes spam within a week.
+    //
+    // `source` records where a review came from, because a testimonial the shop
+    // types in itself and one a customer submitted are not the same thing, and
+    // the page says which is which. Inventing reviews is illegal under the
+    // Digital Markets, Competition and Consumers Act 2024 — this column is what
+    // keeps that line visible rather than a matter of memory.
+    'testimonials' => "CREATE TABLE IF NOT EXISTS `testimonials` (
+        `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `customer_name` VARCHAR(120) NOT NULL,
+        `location`      VARCHAR(120) NOT NULL DEFAULT '',
+        `rating`        TINYINT UNSIGNED NOT NULL DEFAULT 5,
+        `body`          TEXT         NOT NULL,
+        `product_name`  VARCHAR(150) NOT NULL DEFAULT '',
+        `source`        ENUM('website','google','facebook','instagram','in_person') NOT NULL DEFAULT 'website',
+        `approved`      TINYINT(1)   NOT NULL DEFAULT 0,
+        `featured`      TINYINT(1)   NOT NULL DEFAULT 0,
+        `sort_order`    INT          NOT NULL DEFAULT 0,
+        `submitter_ip`  VARCHAR(45)  NOT NULL DEFAULT '',
+        `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_live` (`approved`, `featured`, `sort_order`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 ];
 
 foreach ($tables as $name => $sql) {
@@ -244,6 +272,16 @@ $columns = [
     ['orders',      'vat_amount',      "ALTER TABLE `orders` ADD COLUMN `vat_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER `delivery_charge`"],
     ['orders',      'vat_number',      "ALTER TABLE `orders` ADD COLUMN `vat_number` VARCHAR(50) NOT NULL DEFAULT '' AFTER `vat_amount`"],
     ['orders',      'stock_deducted',  "ALTER TABLE `orders` ADD COLUMN `stock_deducted` TINYINT(1) NOT NULL DEFAULT 0 AFTER `status`"],
+
+    // The Stripe payment this order was paid with.
+    //
+    // Without it there is no link at all between an order and the money: the
+    // intent id lived only in the session and was thrown away the moment the
+    // customer closed the tab. To refund someone you had to find their payment
+    // in the Stripe dashboard by matching the amount and the timestamp by eye,
+    // on a list where several £24.99 orders in one afternoon look identical.
+    // Refunding the wrong customer that way is a single misread row.
+    ['orders', 'stripe_payment_intent', "ALTER TABLE `orders` ADD COLUMN `stripe_payment_intent` VARCHAR(64) NOT NULL DEFAULT '' AFTER `payment_method`"],
     ['promo_codes', 'description',     "ALTER TABLE `promo_codes` ADD COLUMN `description` VARCHAR(255) NOT NULL DEFAULT '' AFTER `code`"],
 
     // Who sold it, and what they earn on it. commission_percent is stored on
@@ -258,6 +296,48 @@ $columns = [
     // invoice id — sequential ids would let anyone walk the whole ledger.
     ['invoices', 'public_token', "ALTER TABLE `invoices` ADD COLUMN `public_token` VARCHAR(64) NOT NULL DEFAULT '' AFTER `invoice_number`"],
     ['invoices', 'sent_at',      "ALTER TABLE `invoices` ADD COLUMN `sent_at` DATETIME NULL DEFAULT NULL AFTER `status`"],
+
+    // ── Product specification: what goes on the catalogue and the
+    //    allergen / nutrition sheets ──────────────────────────────
+    //
+    // Trade buyers order by the case, not the tub, so a catalogue without a
+    // case size is not something a wholesaler can order from.
+    ['products',         'case_size', "ALTER TABLE `products` ADD COLUMN `case_size` VARCHAR(60) NOT NULL DEFAULT '' AFTER `wholesale_price`"],
+    ['product_variants', 'case_size', "ALTER TABLE `product_variants` ADD COLUMN `case_size` VARCHAR(60) NOT NULL DEFAULT '' AFTER `wholesale_price`"],
+
+    // Allergens are stored as a comma-separated list of slugs from the 14
+    // named in assimilated Regulation (EU) 1169/2011 — the set UK food
+    // businesses are legally required to declare.
+    //
+    // `allergen_reviewed_at` is the important one, and it is NULL until a
+    // human has actually checked the product. Without it, "no allergens
+    // recorded" and "confirmed free from allergens" look identical in the
+    // database, and an allergen sheet generated from a blank row would tell a
+    // customer with a nut allergy that Roasted Almond ice cream is safe. The
+    // sheet refuses to make a free-from claim while this is NULL.
+    ['products', 'ingredients',          "ALTER TABLE `products` ADD COLUMN `ingredients` TEXT NULL AFTER `description`"],
+    ['products', 'allergens',            "ALTER TABLE `products` ADD COLUMN `allergens` VARCHAR(255) NOT NULL DEFAULT '' AFTER `nuts_allergy`"],
+    ['products', 'allergen_notes',       "ALTER TABLE `products` ADD COLUMN `allergen_notes` VARCHAR(255) NOT NULL DEFAULT '' AFTER `allergens`"],
+    ['products', 'allergen_reviewed_at', "ALTER TABLE `products` ADD COLUMN `allergen_reviewed_at` DATETIME NULL DEFAULT NULL AFTER `allergen_notes`"],
+
+    // Storage: per product, because a tub and a wholesale pack differ. Blank
+    // falls back to the shop-wide default rather than printing nothing.
+    ['products', 'storage_instructions', "ALTER TABLE `products` ADD COLUMN `storage_instructions` VARCHAR(255) NOT NULL DEFAULT '' AFTER `allergen_reviewed_at`"],
+    ['products', 'shelf_life',           "ALTER TABLE `products` ADD COLUMN `shelf_life` VARCHAR(60) NOT NULL DEFAULT '' AFTER `storage_instructions`"],
+
+    // Nutrition, per the declared basis (100 ml for a frozen dessert).
+    // Every figure is NULL rather than 0 by default: 0 g of sugar is a claim,
+    // and an unfilled field must never be printed as one.
+    ['products', 'nutrition_basis', "ALTER TABLE `products` ADD COLUMN `nutrition_basis` VARCHAR(20) NOT NULL DEFAULT '100 ml' AFTER `shelf_life`"],
+    ['products', 'energy_kj',       "ALTER TABLE `products` ADD COLUMN `energy_kj`     DECIMAL(8,1) NULL DEFAULT NULL AFTER `nutrition_basis`"],
+    ['products', 'energy_kcal',     "ALTER TABLE `products` ADD COLUMN `energy_kcal`   DECIMAL(8,1) NULL DEFAULT NULL AFTER `energy_kj`"],
+    ['products', 'fat_g',           "ALTER TABLE `products` ADD COLUMN `fat_g`         DECIMAL(6,2) NULL DEFAULT NULL AFTER `energy_kcal`"],
+    ['products', 'saturates_g',     "ALTER TABLE `products` ADD COLUMN `saturates_g`   DECIMAL(6,2) NULL DEFAULT NULL AFTER `fat_g`"],
+    ['products', 'carbs_g',         "ALTER TABLE `products` ADD COLUMN `carbs_g`       DECIMAL(6,2) NULL DEFAULT NULL AFTER `saturates_g`"],
+    ['products', 'sugars_g',        "ALTER TABLE `products` ADD COLUMN `sugars_g`      DECIMAL(6,2) NULL DEFAULT NULL AFTER `carbs_g`"],
+    ['products', 'fibre_g',         "ALTER TABLE `products` ADD COLUMN `fibre_g`       DECIMAL(6,2) NULL DEFAULT NULL AFTER `sugars_g`"],
+    ['products', 'protein_g',       "ALTER TABLE `products` ADD COLUMN `protein_g`     DECIMAL(6,2) NULL DEFAULT NULL AFTER `fibre_g`"],
+    ['products', 'salt_g',          "ALTER TABLE `products` ADD COLUMN `salt_g`        DECIMAL(6,3) NULL DEFAULT NULL AFTER `protein_g`"],
 ];
 
 foreach ($columns as [$table, $col, $sql]) {
@@ -271,6 +351,31 @@ foreach ($columns as [$table, $col, $sql]) {
     } catch (PDOException $e) {
         $results[] = ['table' => $table, 'col' => $col, 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
     }
+}
+
+// ── 2b. Carry the old nuts_allergy flag into the allergen list ──
+//
+// nuts_allergy was a single yes/no. The allergen sheet needs the named
+// allergen, so anything already flagged becomes 'nuts' in the new column.
+// Runs only where allergens is still empty, so it cannot overwrite a list
+// someone has since filled in properly, and it is safe to run repeatedly.
+//
+// Note this migrates the flag, NOT the truth: a product that was never
+// flagged stays empty and unreviewed, which is the honest outcome. Nothing
+// here decides that a product is allergen-free — only a person can do that,
+// in the product editor.
+try {
+    if (cb_column_exists($pdo, 'products', 'allergens') && cb_column_exists($pdo, 'products', 'nuts_allergy')) {
+        $moved = $pdo->exec("UPDATE `products` SET `allergens` = 'nuts' WHERE `nuts_allergy` = 1 AND `allergens` = ''");
+        $results[] = [
+            'table'  => 'products',
+            'col'    => 'nuts_allergy → allergens',
+            'status' => $moved > 0 ? "✅ {$moved} product(s) carried over" : 'nothing to carry over ✓',
+            'ok'     => true,
+        ];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'products', 'col' => 'nuts_allergy → allergens', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 3. gallery: image/title -> filename/caption rename ──

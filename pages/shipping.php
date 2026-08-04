@@ -9,12 +9,17 @@ require_once __DIR__ . '/../includes/config.php';
 $min  = number_format(MIN_DELIVERY_ORDER, 2);
 $vat  = (int)(TRADE_VAT_RATE * 100);
 
+// "6" rather than "6.0" — these read as prose, not as figures in a table.
+$freeM = rtrim(rtrim(number_format(FREE_DELIVERY_MILES, 1), '0'), '.');
+$maxM  = rtrim(rtrim(number_format(DELIVERY_RADIUS_MILES, 1), '0'), '.');
+$chg   = number_format(DELIVERY_CHARGE, 2);
+
 $policyTitle = 'Shipping & Delivery';
 $policyIntro = 'Where we deliver, what it costs, and when to expect your order.';
 $policyBody  = <<<HTML
 <h2>Where we deliver</h2>
 <p>
-    We deliver within a <strong>6 mile radius</strong> of our Harrow warehouse
+    We deliver within a <strong>{$maxM} mile radius</strong> of our Harrow warehouse
     (HA1 2SP). Enter your postcode at checkout and we will tell you the distance
     and the cost before you pay. If you are outside that radius the order cannot
     be placed for delivery — choose <strong>Warehouse Collection</strong>
@@ -23,9 +28,9 @@ $policyBody  = <<<HTML
 
 <h2>Delivery charges</h2>
 <ul>
-    <li><strong>Within 3 miles</strong> — free</li>
-    <li><strong>3 to 6 miles</strong> — &pound;1.99</li>
-    <li><strong>Over 6 miles</strong> — we cannot deliver</li>
+    <li><strong>Within {$freeM} miles</strong> — free</li>
+    <li><strong>{$freeM} to {$maxM} miles</strong> — &pound;{$chg}</li>
+    <li><strong>Over {$maxM} miles</strong> — we cannot deliver</li>
     <li><strong>Collection</strong> — free, with no minimum order</li>
 </ul>
 

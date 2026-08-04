@@ -32,16 +32,31 @@ $cbBase = defined('SITE_BASE') ? SITE_BASE : '';
                     <li><a href="<?= $cbBase ?>/pages/order.php">Order</a></li>
                     <li><a href="<?= $cbBase ?>/pages/gallery.php">Gallery</a></li>
                     <li><a href="<?= $cbBase ?>/pages/about.php">About Us</a></li>
+                    <li><a href="<?= $cbBase ?>/index.php#reviews">Reviews</a></li>
                 </ul>
             </div>
 
             <div class="footer-col">
                 <h4>Customer Help</h4>
                 <ul>
+                    <li><a href="<?= $cbBase ?>/pages/faq.php">FAQs</a></li>
                     <li><a href="<?= $cbBase ?>/pages/shipping.php">Shipping &amp; Delivery</a></li>
                     <li><a href="<?= $cbBase ?>/pages/returns.php">Returns &amp; Refunds</a></li>
                     <li><a href="<?= $cbBase ?>/pages/privacy.php">Privacy Policy</a></li>
+                    <li><a href="<?= $cbBase ?>/pages/cookies.php">Cookie Policy</a></li>
                     <li><a href="<?= $cbBase ?>/pages/terms.php">Terms &amp; Conditions</a></li>
+                </ul>
+            </div>
+
+            <?php // The printable documents. Grouped separately from the policy
+                  // pages because these are things a customer downloads and keeps,
+                  // not things they read once. ?>
+            <div class="footer-col">
+                <h4>Downloads</h4>
+                <ul>
+                    <li><a href="<?= $cbBase ?>/pages/catalogue.php">Product Catalogue</a></li>
+                    <li><a href="<?= $cbBase ?>/pages/allergens.php">Allergens &amp; Nutrition</a></li>
+                    <li><a href="<?= $cbBase ?>/pages/storage.php">Storage Instructions</a></li>
                 </ul>
             </div>
 

@@ -40,8 +40,7 @@
 .cbco-icon-primary   { color: var(--color-primary); }
 .cbco-icon-secondary { color: var(--color-secondary); }
 
-/* shared spacing / visibility */
-.cbco-hidden { display: none; }
+/* shared spacing (visibility utilities live at the end of this file) */
 .cbco-mb-20  { margin-bottom: 20px; }
 .cbco-mb-24  { margin-bottom: 24px; }
 
@@ -501,9 +500,6 @@
 .cbor-trade-cta-links { display: flex; gap: 12px; font-size: 12px; }
 .cbor-trade-cta-link  { color: var(--color-primary); font-weight: 700; text-decoration: none; }
 .cbor-trade-cta-sep   { opacity: 0.4; }
-
-/* Initially-hidden elements (JS re-shows them with an inline display) */
-.cbor-hidden { display: none; }
 
 /* Product card pricing */
 .product-price-from.cbor-price-trade-label { color: var(--color-secondary); font-weight: 700; }
@@ -1129,3 +1125,159 @@ a.btn-primary.cboc-directions-btn {
                     border: 1px solid var(--border-light); border-radius: var(--radius-md); }
 .cbpol-help h2    { font-size: 17px; margin: 0 0 8px; }
 .cbpol-help p     { font-size: 15px; line-height: 1.7; margin: 0; color: var(--text-secondary); }
+
+/* ── FAQ accordions (pages/faq.php) ──────────────────────────
+   <details>/<summary> is a working accordion with no JavaScript, so the
+   answers still open on a page where a script failed to load. */
+.cbfaq-item          { border: 1px solid var(--border-light); border-radius: var(--radius-md);
+                       margin-bottom: 10px; background: var(--bg-card); overflow: hidden; }
+.cbfaq-item summary  { cursor: pointer; padding: 15px 18px; font-weight: 600; font-size: 15.5px;
+                       list-style: none; position: relative; padding-right: 44px;
+                       transition: background 0.15s ease; }
+.cbfaq-item summary::-webkit-details-marker { display: none; }
+.cbfaq-item summary:hover   { background: var(--bg-main); }
+.cbfaq-item summary::after  { content: '+'; position: absolute; right: 18px; top: 50%;
+                              transform: translateY(-50%); font-size: 22px; font-weight: 400;
+                              color: var(--color-primary); line-height: 1; }
+.cbfaq-item[open] summary::after { content: '−'; }
+.cbfaq-item[open] summary   { background: var(--bg-main); border-bottom: 1px solid var(--border-light); }
+.cbfaq-item > p,
+.cbfaq-item > ul     { padding: 0 18px; margin: 14px 0; font-size: 15px; line-height: 1.7;
+                       color: var(--text-secondary); }
+.cbfaq-item > ul     { padding-left: 38px; }
+.cbfaq-item > *:last-child { margin-bottom: 16px; }
+
+/* Tables inside policy pages (cookie list, allergen grid) */
+.cbpol-table         { width: 100%; border-collapse: collapse; margin: 18px 0 26px;
+                       font-size: 14.5px; display: block; overflow-x: auto; }
+.cbpol-table th      { text-align: left; padding: 11px 13px; background: var(--bg-main);
+                       border-bottom: 2px solid var(--border-light); font-size: 13px;
+                       text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+.cbpol-table td      { padding: 11px 13px; border-bottom: 1px solid var(--border-light);
+                       vertical-align: top; line-height: 1.6; color: var(--text-secondary); }
+.cbpol-table code    { background: var(--bg-main); padding: 2px 6px; border-radius: 4px;
+                       font-size: 13px; }
+
+/* ── Admin: product specification panel ──────────────────── */
+.cbpf-derived-note   { display: block; font-size: 13.5px; color: var(--text-secondary);
+                       line-height: 1.5; padding: 9px 0; }
+.cbpf-spec-intro     { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;
+                       margin: 0 0 18px; }
+.cbpf-spec-heading   { font-size: 15px; margin: 26px 0 4px; padding-top: 20px;
+                       border-top: 1px solid var(--border-light); }
+.cbpf-field-hint     { display: block; font-size: 12.5px; color: var(--text-secondary);
+                       margin-top: 5px; line-height: 1.5; }
+
+.cbpf-allergen-grid  { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+                       gap: 9px; margin-bottom: 20px; }
+.cbpf-allergen-option { display: flex; align-items: center; gap: 9px; padding: 10px 12px;
+                       border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+                       font-size: 14px; cursor: pointer; transition: all 0.15s ease; }
+.cbpf-allergen-option:hover { border-color: var(--color-primary); background: var(--bg-main); }
+.cbpf-allergen-option:has(input:checked) { border-color: var(--color-primary);
+                       background: rgba(92, 29, 36, 0.06); font-weight: 600; }
+
+.cbpf-review-label   { display: flex; align-items: flex-start; gap: 11px; padding: 14px 16px;
+                       border: 1px solid var(--border-light); border-radius: var(--radius-md);
+                       background: var(--bg-main); cursor: pointer; font-size: 14.5px; }
+.cbpf-review-label:has(input:checked) { border-color: #10b981; background: rgba(16,185,129,0.07); }
+
+.cbpf-nutrition-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+                       gap: 13px; }
+.cbpf-nutrition-indent .form-label { padding-left: 14px; font-style: italic; }
+.cbpf-basis-input    { max-width: 190px; }
+.cbpf-case-input     { max-width: 118px; }
+
+/* Link from a paid card order to its payment in Stripe. */
+.cbi-ord-stripe-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px;
+                       font-size: 11.5px; color: #635bff; text-decoration: none;
+                       white-space: nowrap; }
+.cbi-ord-stripe-link:hover { text-decoration: underline; }
+
+/* ── Admin: reviews tab ──────────────────────────────────── */
+.cbi-rev-intro       { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;
+                       margin: 0 0 16px; }
+.cbi-rev-form        { margin-bottom: 34px; }
+.cbi-rev-form-grid   { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+                       gap: 14px; margin-bottom: 14px; }
+.cbi-rev-empty       { font-size: 14px; color: var(--text-secondary); line-height: 1.6;
+                       padding: 18px 0; }
+.cbi-rev-pending-pill { background: #f59e0b; color: #fff; font-size: 11.5px; font-weight: 700;
+                       padding: 3px 9px; border-radius: 20px; margin-left: 9px;
+                       vertical-align: middle; }
+.cbi-rev-list        { display: flex; flex-direction: column; gap: 14px; }
+.cbi-rev-item        { border: 1px solid var(--border-light); border-radius: var(--radius-md);
+                       padding: 16px 18px; background: var(--bg-card); }
+.cbi-rev-item-pending { border-left: 3px solid #f59e0b; background: rgba(245,158,11,0.04); }
+.cbi-rev-item-head   { display: flex; justify-content: space-between; align-items: flex-start;
+                       gap: 14px; flex-wrap: wrap; margin-bottom: 9px; }
+.cbi-rev-loc         { font-size: 13px; color: var(--text-secondary); margin-left: 7px; }
+.cbi-rev-stars       { color: #f5a623; margin-left: 9px; letter-spacing: 1px; }
+.cbi-rev-tags        { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.cbi-rev-source      { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+                       color: var(--text-secondary); border: 1px solid var(--border-light);
+                       padding: 2px 8px; border-radius: 20px; }
+.cbi-rev-featured    { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+                       background: var(--color-secondary); color: #fff; padding: 2px 8px;
+                       border-radius: 20px; font-weight: 700; }
+.cbi-rev-status      { font-size: 11.5px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
+.cbi-rev-status.is-live    { background: rgba(16,185,129,0.15); color: #0f7a52; }
+.cbi-rev-status.is-pending { background: rgba(245,158,11,0.18); color: #92600a; }
+.cbi-rev-body        { font-size: 14.5px; line-height: 1.65; margin: 0 0 12px;
+                       color: var(--text-primary); }
+.cbi-rev-foot        { display: flex; justify-content: space-between; align-items: center;
+                       gap: 12px; flex-wrap: wrap; padding-top: 11px;
+                       border-top: 1px solid var(--border-light); }
+.cbi-rev-date        { font-size: 12.5px; color: var(--text-secondary); }
+.cbi-rev-actions     { display: flex; gap: 7px; flex-wrap: wrap; }
+
+/* ── Reviews strip on the home page ──────────────────────── */
+.cbrev-section       { padding: 70px 0; background: var(--bg-main); }
+.cbrev-head          { text-align: center; margin-bottom: 38px; }
+.cbrev-head .section-title { margin-bottom: 14px; }
+.cbrev-summary       { display: inline-flex; align-items: center; gap: 11px; flex-wrap: wrap;
+                       justify-content: center; }
+.cbrev-summary-text  { font-size: 14.5px; color: var(--text-secondary); }
+.cbrev-stars         { color: #f5a623; font-size: 18px; letter-spacing: 1px; white-space: nowrap; }
+.cbrev-stars-sm      { font-size: 14px; margin-bottom: 12px; }
+
+.cbrev-grid          { display: grid; grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+                       gap: 22px; }
+.cbrev-card          { background: var(--bg-card); border: 1px solid var(--border-light);
+                       border-radius: var(--radius-md); padding: 24px 26px;
+                       display: flex; flex-direction: column;
+                       transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.cbrev-card:hover    { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.07); }
+.cbrev-body          { margin: 0 0 18px; padding: 0; border: 0; font-size: 15px; line-height: 1.7;
+                       color: var(--text-primary); font-style: italic; flex: 1; }
+.cbrev-body::before  { content: '\201C'; color: var(--color-secondary); font-size: 30px;
+                       line-height: 0; vertical-align: -8px; margin-right: 3px; }
+.cbrev-meta          { display: flex; flex-direction: column; gap: 2px; font-size: 14px;
+                       border-top: 1px solid var(--border-light); padding-top: 13px; }
+.cbrev-sub           { font-size: 12.5px; color: var(--text-secondary); }
+
+/* ============================================================
+   VISIBILITY UTILITIES — THESE MUST STAY LAST IN THIS FILE
+   ============================================================
+   Add nothing below this block.
+
+   These have the same weight as any other single class name, so when two
+   rules both set `display`, the one written LAST in the file wins. While
+   .cbco-hidden sat near the top, every later rule that set a display beat
+   it, and the element it was meant to hide stayed on screen:
+
+     - #minOrderNotice  (.cbco-min-notice, display:flex) showed an empty
+       amber bar with a basket icon and no text on every checkout where the
+       basket was already over the minimum — the notice "coming blank".
+     - #discountRow     (.cbco-summary-row, display:flex) painted
+       "Discount −£0.00" on load whenever no promo code was applied.
+
+   Deliberately NOT `!important`. An !important rule outranks an inline
+   style, and several places re-show these elements with
+   `el.style.display = 'flex'` while leaving the class in place
+   (#promoApplied, #discountRow, #cartFooter). Marking these important
+   would hide those permanently — trading a visible bug for an invisible
+   one. Last position gives the same protection and keeps inline shows
+   working. */
+.cbco-hidden { display: none; }
+.cbor-hidden { display: none; }
