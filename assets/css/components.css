@@ -1194,9 +1194,11 @@ a.btn-primary.cboc-directions-btn {
                        white-space: nowrap; }
 .cbi-ord-stripe-link:hover { text-decoration: underline; }
 
-/* "2 cases · 8 per case" under a trade cart line, so the quantity shown is
-   never mistaken for a number of tubs. */
-.cbo-case-note       { font-size: 11.5px; color: var(--color-secondary); font-weight: 700;
+/* "2 cases · 8 per case" under a trade basket line, so the quantity shown is
+   never mistaken for a number of tubs. Same wording in the cart drawer and in
+   the checkout summary, because they show the same basket. */
+.cbo-case-note,
+.cbco-osi-case       { font-size: 11.5px; color: var(--color-secondary); font-weight: 700;
                        margin: 2px 0 3px; letter-spacing: 0.01em; }
 
 /* Prompt on the Products tab pointing at the bulk allergen screen. */

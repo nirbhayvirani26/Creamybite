@@ -65,6 +65,35 @@ foreach ($fileMarkers as $rel => [$marker, $whatItDoes]) {
     );
 }
 
+// ── Link paths ───────────────────────────────────────────────
+// Shared partials are included from pages at different depths, so links in
+// them are built from SITE_BASE rather than written relative. SITE_BASE is
+// worked out by subtracting DOCUMENT_ROOT from the project directory, and it
+// is the one value that differs between a Mac (where the site lives in
+// /orders) and the server (where it is the domain root).
+//
+// When a "Back to the shop" link 404s on live and works locally, this is
+// almost always why — so the figure is printed rather than left to be
+// guessed at from the outside.
+$cbBaseVal = defined('SITE_BASE') ? SITE_BASE : null;
+cbCheck('Paths', 'SITE_BASE', $cbBaseVal !== null,
+    $cbBaseVal === null ? 'not defined' : ($cbBaseVal === '' ? '(empty — site is the domain root)' : $cbBaseVal),
+    $cbBaseVal === null ? 'includes/config.php is the old version — upload it again.' : '');
+
+cbCheck('Paths', 'DOCUMENT_ROOT', !empty($_SERVER['DOCUMENT_ROOT']),
+    $_SERVER['DOCUMENT_ROOT'] ?? '(not set)', '');
+
+cbCheck('Paths', 'project directory', true, dirname(__DIR__, 2), '');
+
+// The link every "Back to the shop" button uses. Resolved to a real file so
+// a wrong SITE_BASE shows up here as a missing file rather than as a 404 the
+// customer finds first.
+$cbHomeHref = ($cbBaseVal ?? '') . '/index.php';
+$cbHomeFile = dirname(__DIR__, 2) . '/index.php';
+cbCheck('Paths', 'home link', is_file($cbHomeFile),
+    'links point at ' . $cbHomeHref . ($cbHomeFile && is_file($cbHomeFile) ? ' — target file present' : ' — TARGET MISSING'),
+    is_file($cbHomeFile) ? '' : 'index.php is not in the site root. Check the zip was extracted so index.php sits directly in public_html.');
+
 // ── Constants and functions the checkout depends on ──────────
 foreach (['MIN_DELIVERY_ORDER', 'TRADE_VAT_RATE', 'SITE_URL', 'SHOP_PHONE'] as $c) {
     cbCheck('Settings', $c, defined($c),
@@ -237,7 +266,17 @@ $failures = array_values(array_filter($checks, fn($c) => !$c['ok']));
         </p>
         <?php endif; ?>
 
-        <?php foreach (['Files', 'Secrets', 'Settings', 'Card payments', 'Functions', 'Tables', 'Columns', 'Order path'] as $group): ?>
+        <?php
+        // Groups come from the checks themselves, in the order they were
+        // registered. This used to be a hardcoded list, which meant adding a
+        // new group ran its checks and then silently threw the results away —
+        // the page looked fine and simply told you less than it knew.
+        $groups = [];
+        foreach ($checks as $c) {
+            if (!in_array($c['group'], $groups, true)) { $groups[] = $c['group']; }
+        }
+        ?>
+        <?php foreach ($groups as $group): ?>
         <h2 class="cbtr-card-title"><?= $group ?></h2>
         <table class="su-table">
             <?php foreach ($checks as $c): if ($c['group'] !== $group) continue; ?>

@@ -433,6 +433,12 @@ $grandTotal     = $totals['total'];
                             $imgSrc = !empty($item['image']) ? '../assets/images/products/' . htmlspecialchars($item['image']) : '';
                             $safeKey = htmlspecialchars($cartKey, ENT_QUOTES);
                             $domKey  = preg_replace('/[^a-z0-9]/i', '-', $cartKey);
+                            // Trade lines move a whole case per press, exactly as they do
+                            // in the cart drawer. Stepping by 1 here made the buttons look
+                            // broken: the handler rounds back to the nearest whole case, so
+                            // the number sprang straight back to where it started.
+                            $step  = max(1, (int)($item['case_qty'] ?? 1));
+                            $cases = $step > 1 ? (int)round($item['quantity'] / $step) : 0;
                         ?>
                         <div class="order-summary-item" id="osi-<?= $domKey ?>">
                             <?php if ($imgSrc): ?>
@@ -447,10 +453,17 @@ $grandTotal     = $totals['total'];
                                     <span class="cbco-osi-variant"><?= htmlspecialchars($item['variant_name']) ?></span>
                                     <?php endif; ?>
                                 </div>
+                                <?php if ($step > 1): ?>
+                                <div class="cbco-osi-case" id="sc-<?= $domKey ?>">
+                                    <?= $cases ?> case<?= $cases === 1 ? '' : 's' ?> · <?= $step ?> per case
+                                </div>
+                                <?php endif; ?>
                                 <div class="qty-controls cbco-osi-qty">
-                                    <button class="qty-btn" onclick="summaryUpdateQty('<?= $safeKey ?>', '<?= $domKey ?>', <?= (float)$item['price'] ?>, -1)">−</button>
+                                    <button class="qty-btn" onclick="summaryUpdateQty('<?= $safeKey ?>', '<?= $domKey ?>', -1, <?= $step ?>)"
+                                            title="<?= $step > 1 ? 'Remove one case (' . $step . ')' : 'Remove one' ?>">−</button>
                                     <span class="qty-value" id="sq-<?= $domKey ?>"><?= $item['quantity'] ?></span>
-                                    <button class="qty-btn" onclick="summaryUpdateQty('<?= $safeKey ?>', '<?= $domKey ?>', <?= (float)$item['price'] ?>, 1)">+</button>
+                                    <button class="qty-btn" onclick="summaryUpdateQty('<?= $safeKey ?>', '<?= $domKey ?>', 1, <?= $step ?>)"
+                                            title="<?= $step > 1 ? 'Add one case (' . $step . ')' : 'Add one' ?>">+</button>
                                 </div>
                             </div>
                             <div>
@@ -741,12 +754,18 @@ function reEvaluateCharges() {
 }
 
 // ── Order Summary qty/remove ───────────────────────────
-function summaryUpdateQty(cartKey, domKey, price, delta) {
+function summaryUpdateQty(cartKey, domKey, direction, step) {
     const qtyEl   = document.getElementById('sq-' + domKey);
     const priceEl = document.getElementById('sp-' + domKey);
-    let qty = parseInt(qtyEl.textContent) + delta;
+    const caseEl  = document.getElementById('sc-' + domKey);
 
-    if (qty <= 0) { summaryRemoveItem(cartKey, domKey); return; }
+    step = Math.max(1, parseInt(step, 10) || 1);
+    const qty = parseInt(qtyEl.textContent, 10) + (direction * step);
+
+    // Below one whole case there is nothing to keep, so a minus press on the
+    // last case removes the line rather than asking the server to round it
+    // back up to where it already was.
+    if (qty < step) { summaryRemoveItem(cartKey, domKey); return; }
 
     fetch('../cart_handler.php', {
         method: 'POST',
@@ -755,8 +774,31 @@ function summaryUpdateQty(cartKey, domKey, price, delta) {
     })
     .then(r => r.json())
     .then(data => {
-        qtyEl.textContent   = qty;
-        priceEl.textContent = '£' + (price * qty).toFixed(2);
+        // Show what the server actually stored, never what we asked for. It
+        // rounds to whole cases and caps against stock, so the number we sent
+        // is a request and the number it returns is the truth — printing our
+        // own arithmetic here is how the screen ends up disagreeing with the
+        // basket that gets charged.
+        const line = (data.items || []).find(i => String(i.cart_key) === String(cartKey));
+
+        if (!line) {
+            const row = document.getElementById('osi-' + domKey);
+            if (row) row.remove();
+        } else {
+            qtyEl.textContent   = line.quantity;
+            priceEl.textContent = '£' + (line.price * line.quantity).toFixed(2);
+            if (caseEl) {
+                const n = Math.round(line.quantity / step);
+                caseEl.textContent = n + ' case' + (n === 1 ? '' : 's') + ' · ' + step + ' per case';
+            }
+        }
+
+        // Only when the server changed what we asked for — rounded to a whole
+        // case, or capped against stock. cbAlert comes from modal.js, which
+        // this page already loads; showToast does not exist here.
+        if (data.message && typeof cbAlert === 'function') {
+            cbAlert(data.message, { title: 'Basket updated' });
+        }
 
         cartSubtotal = data.cart_total_raw;
         const subtotalEl = document.getElementById('subtotalDisplay');
