@@ -10,9 +10,17 @@ require_once __DIR__ . '/../includes/trade_cart.php';
 
 $errorMsg = '';
 
+// Where to go after signing in. Only a path on this site is accepted — an
+// absolute URL here would turn the login page into an open redirect, handing
+// anyone a creamybite.com link that lands on a site they control.
+$cbNext = $_GET['next'] ?? $_POST['next'] ?? '';
+if ($cbNext === '' || !str_starts_with($cbNext, '/') || str_starts_with($cbNext, '//')) {
+    $cbNext = 'order.php';
+}
+
 // If already logged in, redirect to order page
 if (!empty($_SESSION['trade_user'])) {
-    header('Location: order.php');
+    header('Location: ' . $cbNext);
     exit;
 }
 
@@ -53,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Bring back the basket they left behind, merged with
                     // anything added before logging in, re-priced at wholesale.
                     tradeCartRestore($pdo, (int)$user['id']);
-                    header('Location: order.php');
+                    header('Location: ' . $cbNext);
                     exit;
                 }
             } else {
@@ -121,6 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" action="trade_login.php" class="cbtl-login-form">
+                <?php // Carried through the POST, or the destination is lost the
+                      // moment the form submits and everyone lands on order.php. ?>
+                <input type="hidden" name="next" value="<?= htmlspecialchars($cbNext) ?>">
                 <div class="form-group">
                     <label class="form-label cbtl-login-label">Registered Email Address</label>
                     <input type="email" name="email" class="form-control" placeholder="orders@yourstore.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">

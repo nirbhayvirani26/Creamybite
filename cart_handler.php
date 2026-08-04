@@ -40,6 +40,34 @@ function cartSummary(): array {
     ];
 }
 
+/**
+ * How many units one press of +/− moves this line by.
+ *
+ * Trade customers buy by the case: we do not break a case open to send a
+ * single tub, so a 500ml that cases in eights goes into a trade basket eight
+ * at a time and comes out eight at a time. Retail customers buy singles and
+ * always step by one.
+ *
+ * Enforced here rather than in the page's JavaScript because the buttons post
+ * a plain quantity — anyone can post whatever number they like, and a rule
+ * that only exists in the browser is not a rule. The step is also sent back
+ * to the page so the +/− buttons move by a whole case instead of by one and
+ * appearing to do nothing.
+ */
+function cbCaseStep(array $product, ?array $variant, bool $isTradeUser): int
+{
+    if (!$isTradeUser) {
+        return 1;
+    }
+    // The size's own case wins over the product's: a 5L catering tub and a
+    // 500ml tub of the same flavour do not case the same way.
+    $qty = (int)($variant['case_qty'] ?? 0);
+    if ($qty <= 0) {
+        $qty = (int)($product['case_qty'] ?? 0);
+    }
+    return $qty > 0 ? $qty : 1;
+}
+
 switch ($action) {
 
     // ── ADD ──────────────────────────────────────────────────────
@@ -72,6 +100,7 @@ switch ($action) {
         // If variant specified, fetch and validate it
         // Check if trade user is logged in
         $variantName    = null;   // stays null for products sold without sizes
+        $variant        = null;
         $isTradeUser    = !empty($_SESSION['trade_user']);
         $wholesalePrice = (float)($product['wholesale_price'] ?? 0);
         $price          = ($isTradeUser && $wholesalePrice > 0) ? $wholesalePrice : (float)$product['price'];
@@ -89,6 +118,9 @@ switch ($action) {
             $price       = ($isTradeUser && $vWholesale > 0) ? $vWholesale : (float)$variant['price'];
         }
 
+        // One case, not one tub, for a trade basket.
+        $step = cbCaseStep($product, $variant, $isTradeUser);
+
         // Cart key
         $cartKey = $variantId > 0 ? "{$productId}:{$variantId}" : (string)$productId;
 
@@ -101,18 +133,23 @@ switch ($action) {
                 $alreadyInCart += (int)($line['quantity'] ?? 0);
             }
         }
-        if ($alreadyInCart + 1 > $availableUnits) {
+        // A whole case has to fit, not just one tub — half a case is not
+        // something we can send, so refuse rather than part-fill it.
+        if ($alreadyInCart + $step > $availableUnits) {
             echo json_encode([
                 'success' => false,
                 'message' => $availableUnits <= 0
                     ? $product['name'] . ' has sold out.'
-                    : 'Only ' . $availableUnits . ' of ' . $product['name'] . ' left in stock.',
+                    : ($step > 1
+                        ? 'Not enough stock for a full case of ' . $product['name']
+                          . ' — ' . max(0, $availableUnits - $alreadyInCart) . ' left, a case is ' . $step . '.'
+                        : 'Only ' . $availableUnits . ' of ' . $product['name'] . ' left in stock.'),
             ]);
             exit;
         }
 
         if (isset($_SESSION['cart'][$cartKey])) {
-            $_SESSION['cart'][$cartKey]['quantity']++;
+            $_SESSION['cart'][$cartKey]['quantity'] += $step;
         } else {
             $_SESSION['cart'][$cartKey] = [
                 'cart_key'    => $cartKey,
@@ -123,13 +160,23 @@ switch ($action) {
                 'emoji'       => $product['emoji'],
                 'image'       => $product['image'] ?? '',
                 'price'       => $price,
-                'quantity'    => 1,
+                'quantity'    => $step,
+                // Sent back so the +/− buttons move by a whole case. Stored on
+                // the line so the cart can label it "1 case (8 × 500ml)"
+                // without re-querying the product for every render.
+                'case_qty'    => $step,
             ];
         }
+        // Keep the step current on lines saved before this rule existed, and
+        // for a basket carried over from before the customer signed in.
+        $_SESSION['cart'][$cartKey]['case_qty'] = $step;
 
         tradeCartSave($pdo);
         $summary = cartSummary();
-        echo json_encode(['message' => 'Added to cart!'] + $summary);
+        $msg = $step > 1
+            ? 'Added 1 case (' . $step . ' × ' . ($variantName ?: $product['name']) . ')'
+            : 'Added to cart!';
+        echo json_encode(['message' => $msg] + $summary);
         break;
 
     // ── REMOVE ───────────────────────────────────────────────────
@@ -168,9 +215,29 @@ switch ($action) {
                 }
             }
 
+            // Trade lines move a case at a time. The posted number is rounded
+            // to a whole number of cases so a hand-crafted request for 3 of an
+            // 8-per-case item cannot get through — and dropping below one full
+            // case removes the line rather than leaving a part case behind.
+            $step = max(1, (int)($line['case_qty'] ?? 1));
+            if ($step > 1 && $qty > 0) {
+                $rounded = (int)(round($qty / $step) * $step);
+                if ($rounded < $step) {
+                    $rounded = $step;
+                }
+                if ($rounded !== $qty) {
+                    $qty = $rounded;
+                    $caseAdjusted = true;
+                }
+            }
+
             $maxForThisLine = max(0, $available - $otherLines);
             if ($qty > $maxForThisLine) {
-                $qty = $maxForThisLine;
+                // Round DOWN to the last whole case that still fits, so the cap
+                // never leaves a part case in the basket.
+                $qty = $step > 1
+                    ? (int)(floor($maxForThisLine / $step) * $step)
+                    : $maxForThisLine;
                 $capped = true;
             }
 
@@ -184,8 +251,12 @@ switch ($action) {
         tradeCartSave($pdo);
         $summary = cartSummary();
         if (!empty($capped)) {
-            $summary['message'] = 'Only ' . $qty . ' left in stock — quantity adjusted.';
+            $summary['message'] = $qty > 0
+                ? 'Only ' . $qty . ' left in stock — quantity adjusted.'
+                : 'Not enough stock left for a full case.';
             $summary['capped']  = true;
+        } elseif (!empty($caseAdjusted)) {
+            $summary['message'] = 'Trade orders go out in full cases — rounded to ' . $qty . '.';
         }
         echo json_encode($summary);
         break;

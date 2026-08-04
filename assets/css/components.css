@@ -1130,7 +1130,7 @@ a.btn-primary.cboc-directions-btn {
    <details>/<summary> is a working accordion with no JavaScript, so the
    answers still open on a page where a script failed to load. */
 .cbfaq-item          { border: 1px solid var(--border-light); border-radius: var(--radius-md);
-                       margin-bottom: 10px; background: var(--bg-card); overflow: hidden; }
+                       margin-bottom: 10px; background: var(--bg-surface); overflow: hidden; }
 .cbfaq-item summary  { cursor: pointer; padding: 15px 18px; font-weight: 600; font-size: 15.5px;
                        list-style: none; position: relative; padding-right: 44px;
                        transition: background 0.15s ease; }
@@ -1194,6 +1194,11 @@ a.btn-primary.cboc-directions-btn {
                        white-space: nowrap; }
 .cbi-ord-stripe-link:hover { text-decoration: underline; }
 
+/* "2 cases · 8 per case" under a trade cart line, so the quantity shown is
+   never mistaken for a number of tubs. */
+.cbo-case-note       { font-size: 11.5px; color: var(--color-secondary); font-weight: 700;
+                       margin: 2px 0 3px; letter-spacing: 0.01em; }
+
 /* ── Admin: reviews tab ──────────────────────────────────── */
 .cbi-rev-intro       { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;
                        margin: 0 0 16px; }
@@ -1207,7 +1212,7 @@ a.btn-primary.cboc-directions-btn {
                        vertical-align: middle; }
 .cbi-rev-list        { display: flex; flex-direction: column; gap: 14px; }
 .cbi-rev-item        { border: 1px solid var(--border-light); border-radius: var(--radius-md);
-                       padding: 16px 18px; background: var(--bg-card); }
+                       padding: 16px 18px; background: var(--bg-surface); }
 .cbi-rev-item-pending { border-left: 3px solid #f59e0b; background: rgba(245,158,11,0.04); }
 .cbi-rev-item-head   { display: flex; justify-content: space-between; align-items: flex-start;
                        gap: 14px; flex-wrap: wrap; margin-bottom: 9px; }
@@ -1241,9 +1246,48 @@ a.btn-primary.cboc-directions-btn {
 .cbrev-stars         { color: #f5a623; font-size: 18px; letter-spacing: 1px; white-space: nowrap; }
 .cbrev-stars-sm      { font-size: 14px; margin-bottom: 12px; }
 
-.cbrev-grid          { display: grid; grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
-                       gap: 22px; }
-.cbrev-card          { background: var(--bg-card); border: 1px solid var(--border-light);
+/* Slider. The track is a scroll-snapping row, so it works by swipe and
+   keyboard on its own; the arrows and dots are an enhancement layered on top
+   and stay hidden if the script never runs. */
+.cbrev-slider        { position: relative; display: flex; align-items: center; gap: 10px; }
+/* Flex with a fixed flex-basis rather than percentage grid columns. Percentage
+   track sizes make the children's width depend on the container that is
+   supposed to be scrolling them, and min-width:0 is required on the flex item
+   or it refuses to shrink below its content and never becomes scrollable. */
+.cbrev-track         { display: flex; gap: 22px; overflow-x: auto; overflow-y: hidden;
+                       scroll-snap-type: x mandatory; scroll-behavior: smooth;
+                       flex: 1 1 0; min-width: 0; padding: 4px;
+                       /* Firefox / IE hide the bar; WebKit needs the rule below. */
+                       scrollbar-width: none; -ms-overflow-style: none; }
+.cbrev-track::-webkit-scrollbar { display: none; }
+.cbrev-track:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px;
+                       border-radius: var(--radius-md); }
+.cbrev-track > .cbrev-card { scroll-snap-align: start;
+                       flex: 0 0 calc((100% - 44px) / 3); }
+
+.cbrev-nav           { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%;
+                       border: 1px solid var(--border-color); background: var(--bg-surface);
+                       color: var(--color-primary); cursor: pointer; font-size: 15px;
+                       display: flex; align-items: center; justify-content: center;
+                       transition: all 0.18s ease; }
+.cbrev-nav:hover:not(:disabled) { background: var(--color-primary); color: #fff;
+                       border-color: var(--color-primary); }
+.cbrev-nav:disabled  { opacity: 0.3; cursor: default; }
+
+.cbrev-dots          { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+.cbrev-dot           { width: 9px; height: 9px; padding: 0; border-radius: 50%; cursor: pointer;
+                       border: 0; background: var(--border-strong); transition: all 0.2s ease; }
+.cbrev-dot.is-active { background: var(--color-primary); width: 26px; border-radius: 5px; }
+
+@media (max-width: 900px) {
+    .cbrev-track > .cbrev-card { flex: 0 0 calc((100% - 22px) / 2); }
+}
+@media (max-width: 620px) {
+    .cbrev-track > .cbrev-card { flex: 0 0 100%; }
+    .cbrev-nav       { display: none; }   /* swipe is the natural gesture here */
+}
+
+.cbrev-card          { background: var(--bg-surface); border: 1px solid var(--border-light);
                        border-radius: var(--radius-md); padding: 24px 26px;
                        display: flex; flex-direction: column;
                        transition: transform 0.2s ease, box-shadow 0.2s ease; }
@@ -1255,6 +1299,45 @@ a.btn-primary.cboc-directions-btn {
 .cbrev-meta          { display: flex; flex-direction: column; gap: 2px; font-size: 14px;
                        border-top: 1px solid var(--border-light); padding-top: 13px; }
 .cbrev-sub           { font-size: 12.5px; color: var(--text-secondary); }
+
+/* Empty state — shown until the first review is published. */
+.cbrev-none          { text-align: center; font-size: 15px; line-height: 1.7;
+                       color: var(--text-secondary); max-width: 560px; margin: 0 auto 8px; }
+
+/* ── Leave a review ──────────────────────────────────────── */
+.cbrev-write         { max-width: 620px; margin: 30px auto 0; }
+.cbrev-write-toggle  { cursor: pointer; list-style: none; display: inline-flex; align-items: center;
+                       gap: 9px; margin: 0 auto; padding: 12px 26px; border-radius: 30px;
+                       background: var(--bg-surface); border: 1px solid var(--border-color);
+                       font-weight: 700; font-size: 14.5px; color: var(--color-primary);
+                       transition: all 0.2s ease; }
+.cbrev-write-toggle::-webkit-details-marker { display: none; }
+.cbrev-write-toggle:hover { background: var(--color-primary); color: #fff;
+                       border-color: var(--color-primary); }
+.cbrev-write > summary { margin-left: 50%; transform: translateX(-50%); }
+.cbrev-write[open] > summary { margin-bottom: 20px; }
+
+.cbrev-form          { background: var(--bg-surface); border: 1px solid var(--border-light);
+                       border-radius: var(--radius-md); padding: 24px 26px; text-align: left; }
+.cbrev-form-row      { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cbrev-opt           { font-weight: 400; color: var(--text-muted); font-size: 12px; }
+.cbrev-submit        { margin-top: 6px; }
+.cbrev-note          { font-size: 12px; color: var(--text-muted); line-height: 1.6;
+                       margin: 12px 0 0; }
+
+.cbrev-thanks        { max-width: 620px; margin: 28px auto 0; display: flex; align-items: flex-start;
+                       gap: 12px; padding: 16px 20px; border-radius: var(--radius-md);
+                       background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.35);
+                       font-size: 14.5px; line-height: 1.6; text-align: left; }
+.cbrev-thanks i      { color: var(--color-success); font-size: 19px; margin-top: 1px; }
+.cbrev-error         { max-width: 620px; margin: 22px auto 0; padding: 13px 18px;
+                       border-radius: var(--radius-sm); background: rgba(217,56,56,0.09);
+                       border: 1px solid rgba(217,56,56,0.32); color: var(--color-danger);
+                       font-size: 14px; text-align: left; }
+
+@media (max-width: 560px) {
+    .cbrev-form-row  { grid-template-columns: 1fr; }
+}
 
 /* ============================================================
    VISIBILITY UTILITIES — THESE MUST STAY LAST IN THIS FILE

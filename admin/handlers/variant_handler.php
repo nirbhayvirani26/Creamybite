@@ -79,15 +79,23 @@ if ($action === 'update') {
 // silently writing the wrong column. This touches one field and cannot
 // disturb a price.
 if ($action === 'update_case') {
-    $id   = (int)($_POST['id'] ?? 0);
-    $case = trim($_POST['case_size'] ?? '');
+    $id  = (int)($_POST['id'] ?? 0);
+    $qty = max(0, (int)($_POST['case_size'] ?? 0));
     if ($id <= 0) {
         echo json_encode(['success' => false, 'message' => 'Invalid variant.']);
         exit;
     }
-    $stmt = $pdo->prepare("UPDATE product_variants SET case_size=:cs WHERE id=:id AND product_id=:pid");
-    $stmt->execute(['cs' => $case, 'id' => $id, 'pid' => $productId]);
-    echo json_encode(['success' => true, 'case_size' => $case]);
+    // case_size is the printable label and case_qty is the number the trade
+    // cart counts in. Written together so the catalogue can never say "8 ×
+    // 500ml" while the basket is stepping in sixes.
+    $nameStmt = $pdo->prepare("SELECT name FROM product_variants WHERE id = :id AND product_id = :pid");
+    $nameStmt->execute(['id' => $id, 'pid' => $productId]);
+    $vName = (string)($nameStmt->fetchColumn() ?: '');
+    $label = $qty > 0 ? $qty . ' × ' . $vName : '';
+
+    $stmt = $pdo->prepare("UPDATE product_variants SET case_qty=:cq, case_size=:cs WHERE id=:id AND product_id=:pid");
+    $stmt->execute(['cq' => $qty, 'cs' => $label, 'id' => $id, 'pid' => $productId]);
+    echo json_encode(['success' => true, 'case_qty' => $qty, 'case_size' => $label]);
     exit;
 }
 

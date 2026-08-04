@@ -22,12 +22,17 @@ require_once __DIR__ . '/../includes/product_spec.php';
 
 $isTrade = tradeIsLoggedIn();
 
-// trade_only products are exactly that — never listed to a retail visitor.
-$sql = "SELECT * FROM products WHERE available = 1";
+// The catalogue is a wholesale document — case sizes and trade pricing — so
+// it is for signed-in trade customers only. A retail visitor is sent to the
+// trade login rather than shown a stripped-down version: publishing case
+// quantities and wholesale prices openly undercuts the partners who are
+// buying on the understanding that their price is not the public one.
 if (!$isTrade) {
-    $sql .= " AND trade_only = 0";
+    header('Location: ' . SITE_BASE . '/pages/trade_login.php?next=' . urlencode(SITE_BASE . '/pages/catalogue.php'));
+    exit;
 }
-$sql .= " ORDER BY category ASC, name ASC";
+
+$sql = "SELECT * FROM products WHERE available = 1 ORDER BY category ASC, name ASC";
 $products = $pdo->query($sql)->fetchAll();
 
 // One query for every variant rather than one per product.

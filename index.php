@@ -22,15 +22,23 @@ try {
 // under the Digital Markets, Competition and Consumers Act 2024, so this
 // stays empty until real ones are approved in the admin panel.
 $testimonials = [];
+$reviewsTableOk = true;
 try {
     $testimonials = $pdo->query(
         "SELECT * FROM testimonials WHERE approved = 1
          ORDER BY featured DESC, sort_order ASC, created_at DESC LIMIT 6"
     )->fetchAll();
 } catch (PDOException $e) {
-    // Table does not exist until the migration has run. Show nothing rather
-    // than taking the home page down over a missing testimonials table.
+    // Table does not exist until the migration has run. Hide the section
+    // rather than taking the home page down over a missing table.
+    $reviewsTableOk = false;
 }
+
+// Message from review_submit.php, read once then cleared so a refresh does
+// not show "thanks" again.
+$reviewStatus = $_SESSION['review_status'] ?? '';
+$reviewKeep   = $_SESSION['review_form']   ?? [];
+unset($_SESSION['review_status'], $_SESSION['review_form']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -242,14 +250,17 @@ try {
 </section>
 
 <!-- ══ Reviews ══════════════════════════════════════════════ -->
-<?php if (!empty($testimonials)):
-    $cbAvg = array_sum(array_map(static fn($r) => (int)$r['rating'], $testimonials)) / count($testimonials);
+<?php if ($reviewsTableOk):
+    $cbAvg = $testimonials
+        ? array_sum(array_map(static fn($r) => (int)$r['rating'], $testimonials)) / count($testimonials)
+        : 0;
 ?>
 <section class="cbrev-section" id="reviews">
     <div class="container">
         <div class="cbrev-head">
             <span class="section-label">Kind Words</span>
             <h2 class="section-title">What Our Customers Say 💬</h2>
+            <?php if (!empty($testimonials)): ?>
             <div class="cbrev-summary">
                 <div class="cbrev-stars" aria-label="<?= number_format($cbAvg, 1) ?> out of 5">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
@@ -263,7 +274,21 @@ try {
             </div>
         </div>
 
-        <div class="cbrev-grid">
+        <?php // A slider rather than a grid, so a growing pile of reviews does not
+              // push the rest of the home page further and further down.
+              //
+              // It is a scroll-snapping row first and a slider second: with
+              // JavaScript off, or if the script fails, it is still a normal
+              // horizontally scrollable strip that works by swipe and by
+              // keyboard. The arrows and dots are added on top of that, and
+              // hide themselves when everything already fits on screen. ?>
+        <div class="cbrev-slider" id="cbrevSlider">
+            <button type="button" class="cbrev-nav cbrev-nav-prev" id="cbrevPrev"
+                    aria-label="Previous reviews" hidden>
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+
+            <div class="cbrev-track" id="cbrevTrack" tabindex="0" role="group" aria-label="Customer reviews">
             <?php foreach ($testimonials as $r): ?>
             <article class="cbrev-card">
                 <div class="cbrev-stars cbrev-stars-sm" aria-label="<?= (int)$r['rating'] ?> out of 5">
@@ -288,9 +313,197 @@ try {
                 </footer>
             </article>
             <?php endforeach; ?>
+            </div>
+
+            <button type="button" class="cbrev-nav cbrev-nav-next" id="cbrevNext"
+                    aria-label="More reviews" hidden>
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
         </div>
+
+        <div class="cbrev-dots" id="cbrevDots" hidden></div>
+        <?php else: ?>
+        <?php // No reviews yet. The section still appears, because otherwise the
+              // "write a review" button would be hidden too and nobody could
+              // ever leave the first one. Nothing is invented to fill it. ?>
+        <p class="cbrev-none">
+            No reviews yet — we would rather show you an empty space than reviews
+            we wrote ourselves. If you have ordered from us, yours would be the first.
+        </p>
+        <?php endif; ?>
+
+        <!-- ── Leave a review ─────────────────────────────── -->
+        <?php if ($reviewStatus === 'THANKS'): ?>
+        <div class="cbrev-thanks">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>
+                <strong>Thank you — that means a lot.</strong>
+                We read every one. It will appear here once we have checked it over.
+            </span>
+        </div>
+        <?php else: ?>
+
+        <?php if ($reviewStatus !== ''): ?>
+        <div class="cbrev-error">
+            <i class="fa-solid fa-circle-exclamation"></i> <?= htmlspecialchars($reviewStatus) ?>
+        </div>
+        <?php endif; ?>
+
+        <?php // <details> is a working expander with no JavaScript at all, so
+              // the form still opens if a script fails to load. It starts open
+              // when there is a message to show, so an error is never hidden
+              // behind a closed panel. ?>
+        <details class="cbrev-write" <?= $reviewStatus !== '' ? 'open' : '' ?>>
+            <summary class="cbrev-write-toggle">
+                <i class="fa-solid fa-pen"></i> Write a review
+            </summary>
+
+            <form method="post" action="<?= SITE_BASE ?>/review_submit.php" class="cbrev-form">
+                <div class="cbrev-form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="revName">Your name *</label>
+                        <input type="text" id="revName" name="customer_name" class="form-control"
+                               required maxlength="120"
+                               value="<?= htmlspecialchars($reviewKeep['customer_name'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="revLoc">Your town <span class="cbrev-opt">(optional)</span></label>
+                        <input type="text" id="revLoc" name="location" class="form-control"
+                               maxlength="120" placeholder="e.g. Harrow"
+                               value="<?= htmlspecialchars($reviewKeep['location'] ?? '') ?>">
+                    </div>
+                </div>
+
+                <div class="cbrev-form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="revFlav">Which flavour <span class="cbrev-opt">(optional)</span></label>
+                        <input type="text" id="revFlav" name="product_name" class="form-control"
+                               maxlength="150"
+                               value="<?= htmlspecialchars($reviewKeep['product_name'] ?? '') ?>">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="revRating">Rating</label>
+                        <select id="revRating" name="rating" class="form-control">
+                            <?php foreach ([5 => 'Excellent', 4 => 'Good', 3 => 'Okay', 2 => 'Poor', 1 => 'Bad'] as $v => $lbl): ?>
+                            <option value="<?= $v ?>" <?= (int)($reviewKeep['rating'] ?? 5) === $v ? 'selected' : '' ?>>
+                                <?= str_repeat('★', $v) . str_repeat('☆', 5 - $v) ?> — <?= $lbl ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="revBody">Your review *</label>
+                    <textarea id="revBody" name="body" class="form-control" rows="4" required
+                              maxlength="2000"
+                              placeholder="What did you order, and how was it?"><?= htmlspecialchars($reviewKeep['body'] ?? '') ?></textarea>
+                </div>
+
+                <?php // Honeypot — hidden from people, filled in by bots. The hidden
+                      // attribute plus tabindex keeps it away from keyboards and
+                      // screen readers too, not just off-screen. ?>
+                <div hidden aria-hidden="true">
+                    <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+                </div>
+
+                <button type="submit" class="btn-primary cbrev-submit">
+                    <i class="fa-solid fa-paper-plane"></i> Send review
+                </button>
+                <p class="cbrev-note">
+                    Reviews are checked before they appear. We publish your name and
+                    town — never your email address or order details.
+                </p>
+            </form>
+        </details>
+        <?php endif; ?>
     </div>
 </section>
+
+<?php if (!empty($testimonials)): ?>
+<script>
+// Review slider.
+//
+// The track is already a scroll-snapping row in CSS, so everything here is an
+// enhancement on top of something that works without it. If this script never
+// runs, the arrows and dots stay hidden (they ship with the `hidden`
+// attribute) and the strip still scrolls by swipe, trackpad and keyboard —
+// which is the behaviour most people on a phone will use anyway.
+(function () {
+    const track = document.getElementById('cbrevTrack');
+    const prev  = document.getElementById('cbrevPrev');
+    const next  = document.getElementById('cbrevNext');
+    const dots  = document.getElementById('cbrevDots');
+    if (!track || !prev || !next || !dots) return;
+
+    const cards = [...track.querySelectorAll('.cbrev-card')];
+    if (!cards.length) return;
+
+    // How far one press moves: the width of a card plus the gap between two.
+    // Measured rather than hardcoded, because the card width comes from the
+    // CSS grid and changes at every breakpoint.
+    function step() {
+        if (cards.length < 2) return track.clientWidth;
+        return cards[1].offsetLeft - cards[0].offsetLeft;
+    }
+
+    // Which cards fit at once — decides how many dots there are.
+    function perView() {
+        return Math.max(1, Math.round(track.clientWidth / step()));
+    }
+
+    function pageCount() {
+        return Math.max(1, Math.ceil(cards.length / perView()));
+    }
+
+    function currentPage() {
+        const pw = perView() * step();
+        return pw > 0 ? Math.round(track.scrollLeft / pw) : 0;
+    }
+
+    function buildDots() {
+        const n = pageCount();
+        // One page means nothing to page through: no dots, no arrows.
+        const scrollable = track.scrollWidth - track.clientWidth > 4;
+        dots.hidden = !scrollable || n < 2;
+        prev.hidden = next.hidden = !scrollable;
+        if (dots.hidden) { dots.innerHTML = ''; return; }
+
+        dots.innerHTML = '';
+        for (let i = 0; i < n; i++) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'cbrev-dot';
+            b.setAttribute('aria-label', 'Go to review page ' + (i + 1));
+            b.addEventListener('click', () => {
+                track.scrollTo({ left: i * perView() * step(), behavior: 'smooth' });
+            });
+            dots.appendChild(b);
+        }
+        syncState();
+    }
+
+    function syncState() {
+        const page = currentPage();
+        [...dots.children].forEach((d, i) => d.classList.toggle('is-active', i === page));
+        // Disable rather than hide at the ends, so the row does not reflow
+        // sideways every time you reach the first or last card.
+        prev.disabled = track.scrollLeft <= 2;
+        next.disabled = track.scrollLeft >= track.scrollWidth - track.clientWidth - 2;
+    }
+
+    prev.addEventListener('click', () => track.scrollBy({ left: -perView() * step(), behavior: 'smooth' }));
+    next.addEventListener('click', () => track.scrollBy({ left:  perView() * step(), behavior: 'smooth' }));
+
+    // scroll fires continuously while smooth-scrolling; settle before syncing.
+    let t;
+    track.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(syncState, 90); }, { passive: true });
+    window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(buildDots, 150); });
+
+    buildDots();
+})();
+</script>
+<?php endif; ?>
 <?php endif; ?>
 
 <!-- ══ CTA Banner ═══════════════════════════════════════════ -->

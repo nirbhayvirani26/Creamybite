@@ -32,7 +32,6 @@ $cbBase = defined('SITE_BASE') ? SITE_BASE : '';
                     <li><a href="<?= $cbBase ?>/pages/order.php">Order</a></li>
                     <li><a href="<?= $cbBase ?>/pages/gallery.php">Gallery</a></li>
                     <li><a href="<?= $cbBase ?>/pages/about.php">About Us</a></li>
-                    <li><a href="<?= $cbBase ?>/index.php#reviews">Reviews</a></li>
                 </ul>
             </div>
 
@@ -54,7 +53,7 @@ $cbBase = defined('SITE_BASE') ? SITE_BASE : '';
             <div class="footer-col">
                 <h4>Downloads</h4>
                 <ul>
-                    <li><a href="<?= $cbBase ?>/pages/catalogue.php">Product Catalogue</a></li>
+                    <li><a href="<?= $cbBase ?>/pages/catalogue.php">Product Catalogue <small>(trade)</small></a></li>
                     <li><a href="<?= $cbBase ?>/pages/allergens.php">Allergens &amp; Nutrition</a></li>
                     <li><a href="<?= $cbBase ?>/pages/storage.php">Storage Instructions</a></li>
                 </ul>

@@ -570,17 +570,31 @@ function renderCart() {
             ? `<img class="cart-item-img" src="../assets/images/products/${escHtml(item.image)}" alt="${escHtml(item.name)}">`
             : `<div class="cart-item-img-placeholder">${escHtml(item.emoji)}</div>`;
         const variantLabel = item.variant_name ? `<span class="cbo-variant-label">${escHtml(item.variant_name)}</span>` : '';
+
+        // Trade lines move a whole case per press. The step comes from the
+        // server on each line, so the buttons cannot disagree with the rule
+        // the handler actually enforces — stepping by 1 against an 8-per-case
+        // item would just get rounded back and look like a dead button.
+        const step  = Math.max(1, parseInt(item.case_qty, 10) || 1);
+        const cases = step > 1 ? Math.round(item.quantity / step) : 0;
+        const caseLabel = step > 1
+            ? `<div class="cbo-case-note">${cases} case${cases === 1 ? '' : 's'} · ${step} per case</div>`
+            : '';
+
         html += `
         <div class="cart-item">
             ${imgHtml}
             <div class="cart-item-info">
                 <div class="cart-item-name">${escHtml(item.name)}${variantLabel ? '<br>' + variantLabel : ''}</div>
+                ${caseLabel}
                 <div class="cart-item-price">£${subtotal}</div>
             </div>
             <div class="qty-controls">
-                <button class="qty-btn" onclick="updateQty('${cartKey}', ${item.quantity - 1})">−</button>
+                <button class="qty-btn" onclick="updateQty('${cartKey}', ${item.quantity - step})"
+                        title="${step > 1 ? 'Remove one case (' + step + ')' : 'Remove one'}">−</button>
                 <span class="qty-value">${item.quantity}</span>
-                <button class="qty-btn" onclick="updateQty('${cartKey}', ${item.quantity + 1})">+</button>
+                <button class="qty-btn" onclick="updateQty('${cartKey}', ${item.quantity + step})"
+                        title="${step > 1 ? 'Add one case (' + step + ')' : 'Add one'}">+</button>
             </div>
             <button class="btn-remove-item" onclick="removeItem('${cartKey}')" title="Remove">
                 <i class="fa-solid fa-xmark"></i>

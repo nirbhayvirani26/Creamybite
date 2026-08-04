@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ── Catalogue / allergen / nutrition specification ──────────
     $case_size            = trim($_POST['case_size']            ?? '');
+    $case_qty             = max(0, (int)($_POST['case_qty']      ?? 0));
     $ingredients          = trim($_POST['ingredients']          ?? '');
     $allergen_notes       = trim($_POST['allergen_notes']       ?? '');
     $storage_instructions = trim($_POST['storage_instructions'] ?? '');
@@ -188,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("UPDATE products SET name=:name, description=:description, price=:price,
                     category=:category, emoji=:emoji, image=:image, badge=:badge, available=:available, nuts_allergy=:nuts_allergy,
                     trade_only=:trade_only, track_stock=:track_stock, stock_qty=:stock_qty,
-                    case_size=:case_size, ingredients=:ingredients, allergens=:allergens,
+                    case_size=:case_size, case_qty=:case_qty, ingredients=:ingredients, allergens=:allergens,
                     allergen_notes=:allergen_notes, allergen_reviewed_at=:allergen_reviewed_at,
                     storage_instructions=:storage_instructions, shelf_life=:shelf_life,
                     nutrition_basis=:nutrition_basis, energy_kj=:energy_kj, energy_kcal=:energy_kcal,
@@ -196,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     fibre_g=:fibre_g, protein_g=:protein_g, salt_g=:salt_g
                     WHERE id=:id");
                 $stmt->execute(compact('name','description','price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty, 'id' => $productId] + [
-                    'case_size' => $case_size, 'ingredients' => $ingredients, 'allergens' => $allergens,
+                    'case_size' => $case_size, 'case_qty' => $case_qty, 'ingredients' => $ingredients, 'allergens' => $allergens,
                     'allergen_notes' => $allergen_notes, 'allergen_reviewed_at' => $allergen_reviewed_at,
                     'storage_instructions' => $storage_instructions, 'shelf_life' => $shelf_life,
                     'nutrition_basis' => $nutrition_basis,
@@ -206,15 +207,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // INSERT — a new product starts with no trade price of its own;
                 // trade pricing is set per size on the Sizes panel.
                 $stmt = $pdo->prepare("INSERT INTO products (name, description, price, category, emoji, image, badge, available, nuts_allergy, trade_only, track_stock, stock_qty,
-                    case_size, ingredients, allergens, allergen_notes, allergen_reviewed_at,
+                    case_size, case_qty, ingredients, allergens, allergen_notes, allergen_reviewed_at,
                     storage_instructions, shelf_life, nutrition_basis,
                     energy_kj, energy_kcal, fat_g, saturates_g, carbs_g, sugars_g, fibre_g, protein_g, salt_g)
                     VALUES (:name, :description, :price, :category, :emoji, :image, :badge, :available, :nuts_allergy, :trade_only, :track_stock, :stock_qty,
-                    :case_size, :ingredients, :allergens, :allergen_notes, :allergen_reviewed_at,
+                    :case_size, :case_qty, :ingredients, :allergens, :allergen_notes, :allergen_reviewed_at,
                     :storage_instructions, :shelf_life, :nutrition_basis,
                     :energy_kj, :energy_kcal, :fat_g, :saturates_g, :carbs_g, :sugars_g, :fibre_g, :protein_g, :salt_g)");
                 $stmt->execute(compact('name','description','price','category','emoji','badge','available') + ['image' => $imageName, 'nuts_allergy' => $nuts_allergy, 'trade_only' => $trade_only, 'track_stock' => $track_stock, 'stock_qty' => $stock_qty] + [
-                    'case_size' => $case_size, 'ingredients' => $ingredients, 'allergens' => $allergens,
+                    'case_size' => $case_size, 'case_qty' => $case_qty, 'ingredients' => $ingredients, 'allergens' => $allergens,
                     'allergen_notes' => $allergen_notes, 'allergen_reviewed_at' => $allergen_reviewed_at,
                     'storage_instructions' => $storage_instructions, 'shelf_life' => $shelf_life,
                     'nutrition_basis' => $nutrition_basis,
@@ -234,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'nuts_allergy' => $nuts_allergy,
         'track_stock' => $track_stock,
         'stock_qty'   => 0, // managed via Stock tab
-        'case_size' => $case_size, 'ingredients' => $ingredients, 'allergens' => $allergens,
+        'case_size' => $case_size, 'case_qty' => $case_qty, 'ingredients' => $ingredients, 'allergens' => $allergens,
         'allergen_notes' => $allergen_notes, 'allergen_reviewed_at' => $allergen_reviewed_at,
         'storage_instructions' => $storage_instructions, 'shelf_life' => $shelf_life,
         'nutrition_basis' => $nutrition_basis,
@@ -456,13 +457,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label">Case size</label>
+                                <label class="form-label">Units per case</label>
+                                <input type="number" min="0" step="1" name="case_qty" class="form-control"
+                                       placeholder="0"
+                                       value="<?= (int)($product['case_qty'] ?? 0) ?>">
+                                <small class="cbpf-field-hint">
+                                    Trade baskets add and remove this many at a time — a trade
+                                    customer cannot buy a single tub of a product that cases.
+                                    Leave <strong>0</strong> if this one is sold singly.
+                                    If the product has sizes, set it per size on the Sizes panel
+                                    instead: the size's own figure wins.
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Case label</label>
                                 <input type="text" name="case_size" class="form-control"
                                        placeholder="e.g. 6 &times; 1L per case"
                                        value="<?= htmlspecialchars($product['case_size'] ?? '') ?>">
                                 <small class="cbpf-field-hint">
-                                    How trade customers buy it. Each size can override this on the
-                                    Sizes panel below.
+                                    How the case is described on the catalogue. Wording only —
+                                    the number above is what the basket counts in.
                                 </small>
                             </div>
                             <div class="form-group">
@@ -633,9 +647,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             onchange="updateVariant(<?= $v['id'] ?>, document.querySelector('#vrow-<?= $v['id'] ?> input[type=text]').value, document.getElementById('vp-<?= $v['id'] ?>').value, this.value, document.getElementById('va-<?= $v['id'] ?>').checked)">
                     </div>
                     <div class="cbpf-price-field">
-                        <span class="cbpf-price-label">Case:</span>
-                        <input type="text" id="vcs-<?= $v['id'] ?>" value="<?= htmlspecialchars($v['case_size'] ?? '') ?>"
-                            placeholder="6 &times; 1L" title="How many of this size come in a case"
+                        <span class="cbpf-price-label">Case of:</span>
+                        <?php // A number, not "6 × 1L": trade baskets add and remove
+                              // this many at a time, so it has to be arithmetic.
+                              // 0 means this size is sold as singles. ?>
+                        <input type="number" min="0" step="1" id="vcs-<?= $v['id'] ?>"
+                            value="<?= (int)($v['case_qty'] ?? 0) ?>"
+                            placeholder="0" title="Units per case — trade orders move in these steps. 0 = sold singly."
                             class="form-control cbpf-case-input"
                             onchange="updateVariantCase(<?= $v['id'] ?>, <?= (int)$product['id'] ?>, this.value)">
                     </div>
@@ -780,9 +798,9 @@ function addVariant(productId) {
                     onchange="updateVariant(${id}, document.querySelector('#vrow-${id} input[type=text]').value, document.getElementById('vp-${id}').value, this.value, document.getElementById('va-${id}').checked)">
             </div>
             <div class="cbpf-price-field">
-                <span class="cbpf-price-label">Case:</span>
-                <input type="text" id="vcs-${id}" value="" placeholder="6 × 1L"
-                    title="How many of this size come in a case"
+                <span class="cbpf-price-label">Case of:</span>
+                <input type="number" min="0" step="1" id="vcs-${id}" value="0" placeholder="0"
+                    title="Units per case — trade orders move in these steps. 0 = sold singly."
                     class="form-control cbpf-case-input"
                     onchange="updateVariantCase(${id}, ${productId}, this.value)">
             </div>

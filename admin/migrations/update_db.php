@@ -305,6 +305,16 @@ $columns = [
     ['products',         'case_size', "ALTER TABLE `products` ADD COLUMN `case_size` VARCHAR(60) NOT NULL DEFAULT '' AFTER `wholesale_price`"],
     ['product_variants', 'case_size', "ALTER TABLE `product_variants` ADD COLUMN `case_size` VARCHAR(60) NOT NULL DEFAULT '' AFTER `wholesale_price`"],
 
+    // How many units are in a case. This is the NUMBER, not the label — the
+    // trade cart does arithmetic with it, so it cannot live in the free-text
+    // case_size field ("6 × 1L" is for printing, this is for counting).
+    //
+    // 0 means the item is sold as singles and no case rule applies. Trade
+    // customers buy by the case, so a variant with case_qty 8 goes into a
+    // trade basket 8 at a time and comes out 8 at a time.
+    ['products',         'case_qty', "ALTER TABLE `products` ADD COLUMN `case_qty` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `case_size`"],
+    ['product_variants', 'case_qty', "ALTER TABLE `product_variants` ADD COLUMN `case_qty` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `case_size`"],
+
     // Allergens are stored as a comma-separated list of slugs from the 14
     // named in assimilated Regulation (EU) 1169/2011 — the set UK food
     // businesses are legally required to declare.
@@ -376,6 +386,41 @@ try {
     }
 } catch (PDOException $e) {
     $results[] = ['table' => 'products', 'col' => 'nuts_allergy → allergens', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+}
+
+// ── 2c. Seed the standard case quantities ──────────────────
+//
+// The shop sells 500ml eight to a case and 1L six to a case. Matching on the
+// size name rather than asking for it to be typed in thirteen times, and only
+// where case_qty is still 0, so a size someone has already set by hand is
+// never overwritten and the step is safe to re-run.
+//
+// Anything that is not a 500ml or a 1L keeps case_qty 0 and stays sold as
+// singles until someone sets it in the product editor — guessing a case size
+// for an unknown pack would put wrong quantities in real trade orders.
+try {
+    if (cb_column_exists($pdo, 'product_variants', 'case_qty')) {
+        $seeded = 0;
+        foreach ([['500ml', 8], ['1l', 6]] as [$needle, $qty]) {
+            $st = $pdo->prepare(
+                "UPDATE `product_variants`
+                    SET `case_qty` = :q,
+                        `case_size` = CONCAT(:q2, ' × ', `name`)
+                  WHERE `case_qty` = 0
+                    AND REPLACE(LOWER(`name`), ' ', '') LIKE :n"
+            );
+            $st->execute(['q' => $qty, 'q2' => $qty, 'n' => '%' . $needle . '%']);
+            $seeded += $st->rowCount();
+        }
+        $results[] = [
+            'table'  => 'product_variants',
+            'col'    => 'case_qty (500ml→8, 1L→6)',
+            'status' => $seeded > 0 ? "✅ {$seeded} size(s) set" : 'nothing to set ✓',
+            'ok'     => true,
+        ];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'product_variants', 'col' => 'case_qty', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 3. gallery: image/title -> filename/caption rename ──

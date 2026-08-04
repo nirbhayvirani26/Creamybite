@@ -19,7 +19,7 @@
 
 /* ── Toolbar (screen only) ─────────────────────────────── */
 .cbdoc-toolbar {
-    background: var(--bg-card);
+    background: var(--bg-surface);
     border-bottom: 1px solid var(--border-light);
     padding: 14px 0 11px;
     position: sticky;
