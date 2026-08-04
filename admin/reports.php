@@ -95,10 +95,42 @@ $repRows = [];
 try {
     // Orders in range
     $oStmt = $pdo->prepare(
-        "SELECT * FROM orders WHERE DATE(created_at) BETWEEN :f AND :t ORDER BY created_at ASC"
+        "SELECT o.*, r.name AS delivered_by
+           FROM orders o
+      LEFT JOIN sales_reps r ON r.id = o.sales_rep_id
+          WHERE DATE(o.created_at) BETWEEN :f AND :t
+       ORDER BY o.created_at ASC"
     );
     $oStmt->execute($P);
     $orders = $oStmt->fetchAll();
+
+    // ── Deliveries in range, by who made them ────────────────
+    //
+    // Ranged on delivered_at, not created_at: "how many did Raj deliver last
+    // week" is a question about the week he drove, not the week the customer
+    // ordered. An order taken on Friday and delivered on Monday belongs to
+    // Monday here and to Friday in the sales figures, and both are right.
+    $deliveries = [];
+    try {
+        $dStmt = $pdo->prepare(
+            "SELECT COALESCE(r.name, '(not recorded)') AS who,
+                    COUNT(*)                AS drops,
+                    SUM(o.total_price)      AS value
+               FROM orders o
+          LEFT JOIN sales_reps r ON r.id = o.sales_rep_id
+              WHERE o.status = 'Delivered'
+                AND o.delivered_at IS NOT NULL
+                AND DATE(o.delivered_at) BETWEEN :f AND :t
+           GROUP BY who
+           ORDER BY drops DESC, who ASC"
+        );
+        $dStmt->execute($P);
+        $deliveries = $dStmt->fetchAll();
+    } catch (PDOException $e) {
+        // delivered_at arrives with the migration; an older database simply
+        // shows no delivery figures rather than failing the whole report.
+        $deliveries = [];
+    }
 
     // Invoices in range
     $iStmt = $pdo->prepare(
@@ -113,9 +145,11 @@ try {
     $invoices = $iStmt->fetchAll();
 
     // ── Sales rep performance ────────────────────────────────
-    // Built from invoices only. Orders have no rep on them: a rep sale is
-    // recorded by raising an invoice against it, so counting orders too
-    // would double what the rep appears to have sold.
+    // Built from invoices only, and deliberately still so. Orders now carry
+    // a person too, but that is who DROVE it, not who SOLD it — the same
+    // order can be sold by one person and delivered by another. Mixing the
+    // two would double-count and credit the wrong person. Deliveries are
+    // reported separately, above.
     $repRows = [];
     foreach ($invoices as $iv) {
         $repId = (int)($iv['sales_rep_id'] ?? 0);
@@ -324,7 +358,7 @@ if ($format === 'csv') {
             break;
 
         case 'sales':
-            cbCsv($out, ['Order code','Date','Customer','Type','Items','Subtotal','Discount','Delivery','VAT','Total','Payment','Status']);
+            cbCsv($out, ['Order code','Date','Customer','Type','Items','Subtotal','Discount','Delivery','VAT','Total','Payment','Status','Delivered by','Delivered on']);
             foreach ($orders as $o) {
                 $items = json_decode($o['items_json'] ?? '', true) ?? [];
                 $qty = array_sum(array_column($items, 'quantity'));
@@ -340,6 +374,8 @@ if ($format === 'csv') {
                     number_format((float)($o['vat_amount'] ?? 0), 2),
                     number_format((float)$o['total_price'], 2),
                     $o['payment_status'], $o['status'],
+                    $o['delivered_by'] ?? '',
+                    !empty($o['delivered_at']) ? date('Y-m-d H:i', strtotime($o['delivered_at'])) : '',
                 ]);
             }
             break;
@@ -451,9 +487,34 @@ if ($format === 'csv') {
         </tbody>
     </table>
 
+    <h2>Deliveries</h2>
+    <table>
+        <thead><tr><th>Delivered by</th><th class="r">Drops</th><th class="r">Order value</th></tr></thead>
+        <tbody>
+        <?php foreach ($deliveries as $d): ?>
+            <tr>
+                <td><?= htmlspecialchars($d['who']) ?></td>
+                <td class="r"><?= (int)$d['drops'] ?></td>
+                <td class="r"><?= $money($d['value']) ?></td>
+            </tr>
+        <?php endforeach; if (!$deliveries): ?>
+            <tr><td colspan="3" class="empty">No deliveries recorded in this period.</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+    <?php // Counted on the date of delivery, so an order taken one week and
+          // delivered the next appears in the sales figures for the first and
+          // the delivery figures for the second. Both are correct answers to
+          // different questions, and saying so stops the two being read as a
+          // discrepancy. ?>
+    <p class="rep-note">
+        Counted by delivery date, not order date. Anything marked Delivered before
+        this was recorded shows as <em>(not recorded)</em>.
+    </p>
+
 <?php elseif ($type === 'sales'): ?>
     <table>
-        <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Type</th><th class="r">Total</th><th>Payment</th><th>Status</th></tr></thead>
+        <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Type</th><th class="r">Total</th><th>Payment</th><th>Status</th><th>Delivered by</th></tr></thead>
         <tbody>
         <?php foreach ($orders as $o): $tr = (int)$o['trade_user_id'] > 0; ?>
             <tr>
@@ -464,11 +525,20 @@ if ($format === 'csv') {
                 <td class="r"><?= $money($o['total_price']) ?></td>
                 <td><?= htmlspecialchars($o['payment_status']) ?></td>
                 <td><?= htmlspecialchars($o['status']) ?></td>
+                <td>
+                    <?php if (!empty($o['delivered_by'])): ?>
+                        <?= htmlspecialchars($o['delivered_by']) ?>
+                    <?php elseif ($o['status'] === 'Delivered'): ?>
+                        <span class="rep-muted">not recorded</span>
+                    <?php else: ?>
+                        —
+                    <?php endif; ?>
+                </td>
             </tr>
-        <?php endforeach; if (!$orders): ?><tr><td colspan="7" class="empty">No orders in this period.</td></tr><?php endif; ?>
+        <?php endforeach; if (!$orders): ?><tr><td colspan="8" class="empty">No orders in this period.</td></tr><?php endif; ?>
         </tbody>
         <?php if ($orders): ?>
-        <tfoot><tr><td colspan="4">Paid revenue (<?= $sum['order_count'] ?> orders)</td><td class="r"><?= $money($sum['orders_revenue']) ?></td><td colspan="2"></td></tr></tfoot>
+        <tfoot><tr><td colspan="4">Paid revenue (<?= $sum['order_count'] ?> orders)</td><td class="r"><?= $money($sum['orders_revenue']) ?></td><td colspan="3"></td></tr></tfoot>
         <?php endif; ?>
     </table>
 

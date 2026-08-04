@@ -51,6 +51,45 @@ if (isset($_POST['action']) && $_POST['action'] === 'delete_order') {
     exit;
 }
 
+// ── Add a delivery person ─────────────────────────────────
+//
+// Reachable from the "who delivered this?" prompt, because otherwise the
+// very first delivery is a dead end: the list starts empty and the only
+// place to add a name is buried in the invoice editor. Returns the refreshed
+// list so the prompt can select the new person straight away.
+if (isset($_POST['action']) && $_POST['action'] === 'add_delivery_rep') {
+    $name = trim($_POST['rep_name'] ?? '');
+    if ($name === '') {
+        echo json_encode(['success' => false, 'message' => 'Enter a name.']);
+        exit;
+    }
+    try {
+        $pdo->prepare("INSERT INTO sales_reps (name, phone, email) VALUES (:n, '', '')")
+            ->execute(['n' => mb_substr($name, 0, 150)]);
+        $newId = (int)$pdo->lastInsertId();
+    } catch (PDOException $e) {
+        // The name is unique, so re-adding someone reuses the person already
+        // on the list rather than splitting their deliveries across two rows.
+        if (str_contains($e->getMessage(), 'Duplicate')) {
+            $find = $pdo->prepare("SELECT id FROM sales_reps WHERE name = :n");
+            $find->execute(['n' => $name]);
+            $newId = (int)$find->fetchColumn();
+            // They may have been deactivated earlier; bring them back.
+            $pdo->prepare("UPDATE sales_reps SET active = 1 WHERE id = :id")->execute(['id' => $newId]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Could not add that name.']);
+            exit;
+        }
+    }
+    echo json_encode([
+        'success' => true,
+        'rep_id'  => $newId,
+        'reps'    => $pdo->query("SELECT id, name FROM sales_reps WHERE active = 1 ORDER BY name ASC")
+                         ->fetchAll(PDO::FETCH_ASSOC),
+    ]);
+    exit;
+}
+
 $orderId = (int)($_POST['order_id'] ?? 0);
 if ($orderId <= 0) {
     echo json_encode(['success' => false, 'message' => 'Invalid order ID']);
@@ -75,9 +114,55 @@ if (isset($_POST['status'])) {
     $previousStatus = (string)$prev->fetchColumn();
     $statusChanged  = ($previousStatus !== $status);
 
+    // ── Who delivered it? ────────────────────────────────────
+    //
+    // Asked at the moment the order is marked Delivered, because that is the
+    // only moment anyone actually knows. Asking later means guessing from a
+    // date, and a delivery nobody can attribute is no use in a report.
+    //
+    // Refused rather than defaulted: picking "the first rep on the list"
+    // would quietly credit the wrong person's deliveries, which is worse than
+    // an error message. The reply carries the rep list so the page can put up
+    // the picker without a second request.
+    $repId = (int)($_POST['sales_rep_id'] ?? 0);
+
+    if ($status === 'Delivered' && $statusChanged && $repId <= 0) {
+        $reps = $pdo->query("SELECT id, name FROM sales_reps WHERE active = 1 ORDER BY name ASC")
+                    ->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode([
+            'success'   => false,
+            'needs_rep' => true,
+            'reps'      => $reps,
+            'message'   => $reps
+                ? 'Who delivered this order?'
+                : 'No delivery staff on file yet — add the first one to continue.',
+        ]);
+        exit;
+    }
+
+    // A posted id has to be a real, active person. Otherwise a stale page or
+    // a hand-made request could attribute the delivery to an id that is not
+    // on the list, and the report would show a blank name against real work.
+    if ($repId > 0) {
+        $repChk = $pdo->prepare("SELECT COUNT(*) FROM sales_reps WHERE id = :id AND active = 1");
+        $repChk->execute(['id' => $repId]);
+        if ((int)$repChk->fetchColumn() === 0) {
+            echo json_encode(['success' => false, 'message' => 'That delivery person is not on the active list.']);
+            exit;
+        }
+    }
+
     try {
         $pdo->prepare("UPDATE orders SET status = :status WHERE id = :id")
             ->execute(['status' => $status, 'id' => $orderId]);
+
+        // Recorded only when marking Delivered, so moving an order back to
+        // Processing and forward again re-asks rather than keeping a stale
+        // name against it.
+        if ($status === 'Delivered' && $repId > 0) {
+            $pdo->prepare("UPDATE orders SET sales_rep_id = :rep, delivered_at = NOW() WHERE id = :id")
+                ->execute(['rep' => $repId, 'id' => $orderId]);
+        }
 
         // ── Send Delivery Note & Invoice Email on Delivered status ──
         if ($status === 'Delivered' && $statusChanged) {
@@ -127,7 +212,16 @@ if (isset($_POST['status'])) {
             }
         }
 
-        echo json_encode(['success' => true]);
+        // Send the name back so the row can show who it was credited to
+        // without a reload — the point of asking is that it can be checked.
+        $repName = '';
+        if ($repId > 0) {
+            $n = $pdo->prepare("SELECT name FROM sales_reps WHERE id = :id");
+            $n->execute(['id' => $repId]);
+            $repName = (string)($n->fetchColumn() ?: '');
+        }
+
+        echo json_encode(['success' => true, 'rep_name' => $repName]);
     } catch (PDOException $e) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }

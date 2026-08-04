@@ -282,6 +282,20 @@ $columns = [
     // on a list where several £24.99 orders in one afternoon look identical.
     // Refunding the wrong customer that way is a single misread row.
     ['orders', 'stripe_payment_intent', "ALTER TABLE `orders` ADD COLUMN `stripe_payment_intent` VARCHAR(64) NOT NULL DEFAULT '' AFTER `payment_method`"],
+
+    // Who actually delivered the order, captured when it is marked Delivered.
+    //
+    // Stored as an id rather than a typed-in name so the reports can group by
+    // person: free text produces "Raj", "raj" and "Raj " as three different
+    // drivers. 0 means nobody recorded — every order placed before this
+    // existed, which the reports have to show as unattributed rather than
+    // silently drop.
+    //
+    // delivered_at is separate from created_at because "how many did Raj
+    // deliver last week" is a question about the delivery date, not the day
+    // the customer ordered.
+    ['orders', 'sales_rep_id',  "ALTER TABLE `orders` ADD COLUMN `sales_rep_id` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `status`"],
+    ['orders', 'delivered_at',  "ALTER TABLE `orders` ADD COLUMN `delivered_at` DATETIME NULL DEFAULT NULL AFTER `sales_rep_id`"],
     ['promo_codes', 'description',     "ALTER TABLE `promo_codes` ADD COLUMN `description` VARCHAR(255) NOT NULL DEFAULT '' AFTER `code`"],
 
     // Who sold it, and what they earn on it. commission_percent is stored on

@@ -30,6 +30,22 @@ if (!$order) {
     die('Order not found.');
 }
 
+// Who delivered it, if it has been marked Delivered against a named person.
+//
+// Looked up separately rather than joined so the note still prints on a
+// server whose sales_reps table has not been created yet — a delivery note
+// that will not print is worse than one missing a name.
+$deliveredBy = '';
+if (!empty($order['sales_rep_id'])) {
+    try {
+        $repStmt = $pdo->prepare("SELECT name FROM sales_reps WHERE id = :id");
+        $repStmt->execute(['id' => (int)$order['sales_rep_id']]);
+        $deliveredBy = (string)($repStmt->fetchColumn() ?: '');
+    } catch (PDOException $e) {
+        $deliveredBy = '';
+    }
+}
+
 // Security: trade users can only view their OWN orders.
 //
 // This used to also accept a matching customer_email or phone. Those are
@@ -192,8 +208,16 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
     <div class="dn-signatures">
         <div>
             <div class="cbdn-sig-label">DRIVER / DELIVERED BY</div>
-            <div class="sig-box"></div>
-            <div class="cbdn-sig-hint">Signature & Date</div>
+            <?php // Printed into the box when the order has been marked
+                  // Delivered against a named person, so the note leaving the
+                  // warehouse already says who is taking it. Still leaves room
+                  // for the signature underneath. ?>
+            <div class="sig-box<?= !empty($deliveredBy) ? ' cbdn-sig-filled' : '' ?>">
+                <?= !empty($deliveredBy) ? htmlspecialchars($deliveredBy) : '' ?>
+            </div>
+            <div class="cbdn-sig-hint">
+                <?= !empty($deliveredBy) ? 'Signature &amp; Date' : 'Print Name, Signature &amp; Date' ?>
+            </div>
         </div>
         <div>
             <div class="cbdn-sig-label">RECEIVED BY (STORE ACCEPTANCE)</div>

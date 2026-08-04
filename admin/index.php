@@ -151,7 +151,15 @@ $repeatPhoneSet = array_flip($repeatPhones);
 $repeatCustomerCount = count($repeatPhones);
 
 // ── Load orders ───────────────────────────────────────────
-$orders = $pdo->query("SELECT * FROM orders ORDER BY created_at DESC")->fetchAll();
+// LEFT JOIN so an order with no delivery person recorded still appears —
+// every order placed before this feature existed has sales_rep_id 0, and
+// dropping those from the list would hide real orders.
+$orders = $pdo->query(
+    "SELECT o.*, r.name AS delivered_by
+       FROM orders o
+       LEFT JOIN sales_reps r ON r.id = o.sales_rep_id
+      ORDER BY o.created_at DESC"
+)->fetchAll();
 
 // ── Load stock data (for Stock tab) ───────────────────────
 $stockProducts      = [];
@@ -1272,9 +1280,24 @@ $pageTitles = [
                                                 <option value="<?= $s ?>" <?= $order['status']===$s ? 'selected' : '' ?>><?= $s ?></option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <button class="btn-sm btn-sm-primary" onclick="updateStatus(<?= $order['id'] ?>, '<?= $order['order_code'] ?>')">
+                                            <button class="btn-sm btn-sm-primary" onclick="updateStatus(<?= $order['id'] ?>, '<?= htmlspecialchars($order['order_code'], ENT_QUOTES) ?>')">
                                                 <i class="fa-solid fa-check"></i> Save
                                             </button>
+                                        </div>
+
+                                        <?php // Who took it out. Blank for anything delivered before this
+                                              // was recorded, and said plainly rather than left empty. ?>
+                                        <div class="cbi-inline-row" id="rep-cell-<?= $order['id'] ?>">
+                                            <?php if (!empty($order['delivered_by'])): ?>
+                                            <span class="cbi-rep-name">
+                                                <i class="fa-solid fa-truck"></i> <?= htmlspecialchars($order['delivered_by']) ?>
+                                                <?php if (!empty($order['delivered_at'])): ?>
+                                                <small><?= htmlspecialchars(date('j M, H:i', strtotime($order['delivered_at']))) ?></small>
+                                                <?php endif; ?>
+                                            </span>
+                                            <?php elseif (($order['status'] ?? '') === 'Delivered'): ?>
+                                            <span class="cbi-rep-none">Delivered — driver not recorded</span>
+                                            <?php endif; ?>
                                         </div>
 
                                         <div class="cbi-ord-divider"></div>
@@ -2680,29 +2703,150 @@ function toggleDetail(id) {
     icon.style.transition = 'transform 0.3s ease';
 }
 
-function updateStatus(orderId, orderCode) {
+function updateStatus(orderId, orderCode, repId) {
     const status = document.getElementById('status-' + orderId).value;
     const msgEl  = document.getElementById('status-msg-' + orderId);
+
+    let body = 'order_id=' + orderId + '&status=' + encodeURIComponent(status);
+    if (repId) body += '&sales_rep_id=' + encodeURIComponent(repId);
 
     fetch('handlers/update_order.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'order_id=' + orderId + '&status=' + encodeURIComponent(status),
+        body: body,
     })
     .then(r => r.json())
     .then(data => {
+        // Marking an order Delivered has to record who took it out. The server
+        // refuses without one and sends the list back, so the prompt appears
+        // without a second round trip.
+        if (data.needs_rep) {
+            askWhoDelivered(orderId, orderCode, data.reps || []);
+            return;
+        }
         if (data.success) {
             msgEl.textContent = '✅ Saved!';
             const badgeMap = { 'Pending':'status-pending','Processing':'status-processing','Delivered':'status-delivered','Cancelled':'status-cancelled' };
             const mainRow = document.getElementById('row-' + orderId);
             const badge = mainRow.querySelector('.status-badge');
             if (badge) { badge.textContent = status; badge.className = 'status-badge ' + (badgeMap[status] || ''); }
+            // Show the name straight away rather than making them reload to
+            // find out whether it saved against the right person.
+            const repCell = document.getElementById('rep-cell-' + orderId);
+            if (repCell && data.rep_name) {
+                repCell.innerHTML = '<span class="cbi-rep-name"><i class="fa-solid fa-truck"></i> ' +
+                                    data.rep_name.replace(/[<>&]/g, '') + '</span>';
+            }
             setTimeout(() => msgEl.textContent = '', 3000);
         } else {
-            msgEl.textContent = '❌ Failed to save.'; msgEl.style.color = 'var(--color-danger)';
+            msgEl.textContent = '❌ ' + (data.message || 'Failed to save.');
+            msgEl.style.color = 'var(--color-danger)';
         }
     })
     .catch(() => { msgEl.textContent = '❌ Network error.'; msgEl.style.color = 'var(--color-danger)'; });
+}
+
+// "Who delivered this order?" — a picker, plus a box to add someone who is
+// not on the list yet. Built here rather than as markup on every row, because
+// a 60-order page would otherwise carry 60 hidden copies of the same dialog.
+function askWhoDelivered(orderId, orderCode, reps) {
+    const existing = document.getElementById('whoDeliveredBackdrop');
+    if (existing) existing.remove();
+
+    const options = reps.map(r =>
+        `<option value="${r.id}">${String(r.name).replace(/[<>&]/g, '')}</option>`).join('');
+
+    const wrap = document.createElement('div');
+    wrap.id = 'whoDeliveredBackdrop';
+    wrap.className = 'cbi-wd-backdrop';
+    wrap.innerHTML = `
+        <div class="cbi-wd-box" role="dialog" aria-modal="true" aria-labelledby="wdTitle">
+            <h3 id="wdTitle" class="cbi-wd-title"><i class="fa-solid fa-truck"></i> Who delivered ${orderCode}?</h3>
+            <p class="cbi-wd-sub">This goes on the delivery note and into the reports.</p>
+
+            ${reps.length ? `
+            <label class="cbi-wd-label" for="wdSelect">Delivered by</label>
+            <select id="wdSelect" class="form-control">${options}</select>
+            <div class="cbi-wd-or">or</div>` : `
+            <p class="cbi-wd-empty">Nobody is on the delivery list yet. Add the first person:</p>`}
+
+            <label class="cbi-wd-label" for="wdNew">Add someone new</label>
+            <div class="cbi-wd-add">
+                <input type="text" id="wdNew" class="form-control" maxlength="150" placeholder="Their name">
+                <button type="button" class="btn-sm btn-sm-primary" onclick="wdAddRep(${orderId})">Add</button>
+            </div>
+            <div id="wdMsg" class="cbi-wd-msg"></div>
+
+            <div class="cbi-wd-actions">
+                <button type="button" class="btn-secondary" onclick="wdClose()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="wdConfirm(${orderId}, '${orderCode}')"
+                        ${reps.length ? '' : 'disabled'} id="wdConfirmBtn">
+                    <i class="fa-solid fa-check"></i> Mark delivered
+                </button>
+            </div>
+        </div>`;
+    document.body.appendChild(wrap);
+
+    // Cancelling must put the dropdown back, or the row keeps showing
+    // "Delivered" for a change that never saved.
+    wrap.addEventListener('click', e => { if (e.target === wrap) wdClose(); });
+    document.addEventListener('keydown', wdEsc);
+    const sel = document.getElementById('wdSelect');
+    if (sel) sel.focus();
+}
+
+function wdEsc(e) { if (e.key === 'Escape') wdClose(); }
+
+function wdClose() {
+    const el = document.getElementById('whoDeliveredBackdrop');
+    if (el) el.remove();
+    document.removeEventListener('keydown', wdEsc);
+}
+
+function wdAddRep(orderId) {
+    const input = document.getElementById('wdNew');
+    const msg   = document.getElementById('wdMsg');
+    const name  = input.value.trim();
+    if (!name) { msg.textContent = 'Enter a name first.'; return; }
+
+    fetch('handlers/update_order.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=add_delivery_rep&rep_name=' + encodeURIComponent(name),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { msg.textContent = data.message || 'Could not add that name.'; return; }
+        // Rebuild the picker with the new person already selected, so adding
+        // someone and using them is one action rather than two.
+        let sel = document.getElementById('wdSelect');
+        if (!sel) {
+            const empty = document.querySelector('.cbi-wd-empty');
+            sel = document.createElement('select');
+            sel.id = 'wdSelect';
+            sel.className = 'form-control';
+            if (empty) empty.replaceWith(sel); else msg.before(sel);
+        }
+        sel.innerHTML = (data.reps || []).map(r =>
+            `<option value="${r.id}">${String(r.name).replace(/[<>&]/g, '')}</option>`).join('');
+        sel.value = data.rep_id;
+        input.value = '';
+        msg.textContent = name + ' added.';
+        const btn = document.getElementById('wdConfirmBtn');
+        if (btn) btn.disabled = false;
+    })
+    .catch(() => { msg.textContent = 'Could not reach the server.'; });
+}
+
+function wdConfirm(orderId, orderCode) {
+    const sel = document.getElementById('wdSelect');
+    if (!sel || !sel.value) {
+        document.getElementById('wdMsg').textContent = 'Pick who delivered it, or add a name.';
+        return;
+    }
+    const repId = sel.value;
+    wdClose();
+    updateStatus(orderId, orderCode, repId);
 }
 
 function updatePaymentStatus(orderId) {

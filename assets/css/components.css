@@ -1188,6 +1188,43 @@ a.btn-primary.cboc-directions-btn {
 .cbpf-basis-input    { max-width: 190px; }
 .cbpf-case-input     { max-width: 118px; }
 
+/* ── Who delivered it ────────────────────────────────────── */
+.cbi-rep-name        { display: inline-flex; align-items: center; gap: 7px; font-size: 13px;
+                       font-weight: 600; color: var(--color-primary); }
+.cbi-rep-name small  { font-weight: 400; color: var(--text-muted); font-size: 11.5px; }
+.cbi-rep-none        { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+
+/* "Who delivered this order?" prompt. Built by JavaScript when needed rather
+   than rendered hidden on every row — a 60-order page would otherwise carry
+   60 copies of the same dialog. */
+.cbi-wd-backdrop     { position: fixed; inset: 0; background: rgba(20,8,10,0.55);
+                       display: flex; align-items: center; justify-content: center;
+                       z-index: 3000; padding: 20px; }
+.cbi-wd-box          { background: var(--bg-surface); border-radius: var(--radius-md);
+                       padding: 26px 28px; width: 100%; max-width: 430px;
+                       box-shadow: 0 18px 50px rgba(0,0,0,0.3); }
+.cbi-wd-title        { margin: 0 0 5px; font-size: 18px; color: var(--color-primary);
+                       display: flex; align-items: center; gap: 9px; }
+.cbi-wd-sub          { margin: 0 0 18px; font-size: 13px; color: var(--text-secondary); }
+.cbi-wd-label        { display: block; font-size: 12.5px; font-weight: 700;
+                       margin: 0 0 6px; color: var(--text-secondary); }
+.cbi-wd-or           { text-align: center; font-size: 12px; color: var(--text-muted);
+                       margin: 14px 0 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.cbi-wd-empty        { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;
+                       margin: 0 0 14px; }
+.cbi-wd-add          { display: flex; gap: 8px; }
+.cbi-wd-add input    { flex: 1; }
+.cbi-wd-msg          { font-size: 12.5px; color: var(--text-secondary); min-height: 17px;
+                       margin-top: 8px; }
+.cbi-wd-actions      { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+/* Delivery note: the driver's name printed into the signature box. */
+.cbdn-sig-filled     { font-weight: 700; font-size: 15px; padding-top: 10px; }
+
+/* Reports */
+.rep-muted           { color: #999; font-style: italic; }
+.rep-note            { font-size: 12px; color: #666; margin: -14px 0 22px; }
+
 /* Link from a paid card order to its payment in Stripe. */
 .cbi-ord-stripe-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px;
                        font-size: 11.5px; color: #635bff; text-decoration: none;
