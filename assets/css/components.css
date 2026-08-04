@@ -1199,6 +1199,82 @@ a.btn-primary.cboc-directions-btn {
 .cbo-case-note       { font-size: 11.5px; color: var(--color-secondary); font-weight: 700;
                        margin: 2px 0 3px; letter-spacing: 0.01em; }
 
+/* Prompt on the Products tab pointing at the bulk allergen screen. */
+.cbi-allergen-callout { display: flex; align-items: center; justify-content: space-between;
+                       gap: 20px; flex-wrap: wrap; padding: 15px 19px; margin-bottom: 18px;
+                       background: rgba(245,158,11,0.10);
+                       border: 1px solid rgba(245,158,11,0.42);
+                       border-radius: var(--radius-sm); }
+.cbi-allergen-callout strong { font-size: 14.5px; }
+.cbi-allergen-callout p { margin: 5px 0 0; font-size: 13px; color: var(--text-secondary);
+                       line-height: 1.6; max-width: 640px; }
+.cbi-allergen-cta    { flex: 0 0 auto; }
+
+/* ── Admin: bulk allergen grid ───────────────────────────── */
+.cbab-body           { background: var(--bg-main); padding: 0; margin: 0; }
+.cbab-wrap           { max-width: 1240px; margin: 0 auto; padding: 26px 22px 70px; }
+.cbab-head           { display: flex; justify-content: space-between; align-items: flex-start;
+                       gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.cbab-title          { font-size: 25px; margin: 0 0 5px; color: var(--color-primary); }
+.cbab-sub            { margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.6;
+                       max-width: 640px; }
+.cbab-back           { flex: 0 0 auto; }
+
+.cbab-status         { padding: 13px 17px; border-radius: var(--radius-sm); font-size: 14px;
+                       line-height: 1.6; margin-bottom: 18px; }
+.cbab-status.is-todo { background: rgba(245,158,11,0.11); border: 1px solid rgba(245,158,11,0.4); }
+.cbab-status.is-done { background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.38); }
+
+.cbab-tools          { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+                       margin-bottom: 14px; padding: 12px 15px; background: var(--bg-surface);
+                       border: 1px solid var(--border-light); border-radius: var(--radius-sm); }
+.cbab-tools-label    { font-weight: 700; font-size: 13px; }
+.cbab-tools-note     { font-size: 12px; color: var(--text-muted); flex-basis: 100%; }
+
+/* The grid is wide by nature — 14 allergens plus notes. Scroll it inside its
+   own box so the page itself never scrolls sideways. */
+.cbab-scroll         { overflow-x: auto; background: var(--bg-surface);
+                       border: 1px solid var(--border-light); border-radius: var(--radius-sm); }
+.cbab-table          { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cbab-table th       { background: var(--bg-main); padding: 8px 6px; vertical-align: bottom;
+                       border-bottom: 2px solid var(--border-color); }
+.cbab-table td       { padding: 7px 6px; border-bottom: 1px solid var(--border-light); }
+.cbab-table tbody tr:hover td { background: rgba(92,29,36,0.03); }
+
+/* Product name stays put while the allergen columns scroll under it. */
+.cbab-col-product    { position: sticky; left: 0; z-index: 2; background: var(--bg-surface);
+                       min-width: 215px; font-weight: 600; }
+.cbab-table thead .cbab-col-product { background: var(--bg-main); z-index: 3; }
+.cbab-cat-row td     { background: var(--bg-main); font-weight: 700; font-size: 11.5px;
+                       text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-primary); }
+.cbab-emoji          { margin-right: 6px; }
+
+/* Vertical headers keep 14 columns inside one screen. */
+.cbab-col-allergen   { width: 34px; }
+.cbab-col-toggle     { writing-mode: vertical-rl; transform: rotate(180deg); background: none;
+                       border: 0; cursor: pointer; font-size: 11.5px; font-weight: 600;
+                       color: var(--text-secondary); padding: 6px 2px; height: 132px;
+                       text-align: left; white-space: nowrap; }
+.cbab-col-toggle:hover { color: var(--color-primary); text-decoration: underline; }
+.cbab-cell           { text-align: center; }
+.cbab-col-notes      { min-width: 205px; }
+.cbab-col-notes small{ font-weight: 400; color: var(--text-muted); display: block; font-size: 10.5px; }
+.cbab-col-checked    { width: 62px; text-align: center; }
+.cbab-notes-input    { font-size: 12.5px; padding: 6px 9px; }
+
+.cbab-box            { display: inline-flex; cursor: pointer; }
+.cbab-box input      { width: 17px; height: 17px; cursor: pointer; accent-color: var(--color-primary); }
+.cbab-box-check input{ accent-color: var(--color-success); width: 19px; height: 19px; }
+
+tr.is-unconfirmed .cbab-col-product { border-left: 3px solid #f59e0b; }
+tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success); }
+
+.cbab-save-bar       { position: sticky; bottom: 0; margin-top: 18px; padding: 15px 18px;
+                       background: var(--bg-surface); border: 1px solid var(--border-light);
+                       border-radius: var(--radius-sm); display: flex; align-items: center;
+                       gap: 16px; flex-wrap: wrap; box-shadow: 0 -2px 14px rgba(0,0,0,0.06); }
+.cbab-save-note      { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; flex: 1; }
+
 /* ── Admin: reviews tab ──────────────────────────────────── */
 .cbi-rev-intro       { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;
                        margin: 0 0 16px; }

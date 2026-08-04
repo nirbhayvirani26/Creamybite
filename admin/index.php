@@ -1501,6 +1501,34 @@ $pageTitles = [
 
         <!-- ═══════════════════ PRODUCTS TAB ═════════════════ -->
         <?php elseif ($activeTab === 'products'): ?>
+        <?php
+            // How many products still have no allergen sign-off. Surfaced here
+            // rather than buried inside each product, because "nobody has
+            // checked these" is a fact about the whole catalogue and it is the
+            // reason the public allergen sheet is refusing to make any
+            // free-from claim.
+            $cbUnconfirmed = 0;
+            try {
+                $cbUnconfirmed = (int)$pdo->query(
+                    "SELECT COUNT(*) FROM products WHERE allergen_reviewed_at IS NULL"
+                )->fetchColumn();
+            } catch (PDOException $e) { /* column arrives with the migration */ }
+        ?>
+        <?php if ($cbUnconfirmed > 0): ?>
+        <div class="cbi-allergen-callout">
+            <div>
+                <strong><i class="fa-solid fa-triangle-exclamation"></i>
+                <?= $cbUnconfirmed ?> product<?= $cbUnconfirmed === 1 ? '' : 's' ?> have no allergen information confirmed.</strong>
+                <p>
+                    Customers see these as <em>not yet confirmed</em> on the allergen sheet.
+                    You can tick every product in one screen instead of editing them one by one.
+                </p>
+            </div>
+            <a href="allergens_bulk.php" class="btn-primary cbi-allergen-cta">
+                <i class="fa-solid fa-list-check"></i> Set allergens
+            </a>
+        </div>
+        <?php endif; ?>
         <div class="glass-panel cbi-panel">
             <?php if (empty($products)): ?>
             <div class="cbi-empty-state">
