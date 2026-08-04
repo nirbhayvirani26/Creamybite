@@ -218,6 +218,49 @@ $tables = [
         PRIMARY KEY (`id`),
         KEY `idx_live` (`approved`, `featured`, `sort_order`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // Named staff logins, separate from the one shared owner account
+    // (ADMIN_USERNAME/ADMIN_PASSWORD in .env). The owner is never a row in
+    // this table — it exists purely so individual staff can be given their
+    // own login and switched off without touching the owner credential.
+    'staff' => "CREATE TABLE IF NOT EXISTS `staff` (
+        `id`            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `username`      VARCHAR(60)  NOT NULL,
+        `password_hash` VARCHAR(255) NOT NULL,
+        `name`          VARCHAR(150) NOT NULL,
+        `active`        TINYINT(1)   NOT NULL DEFAULT 1,
+        `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uq_staff_username` (`username`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // One row per admin sidebar section a staff member has been granted.
+    // `section_key` reuses the same tab strings as $adminNav/$validTabs in
+    // admin/index.php — no separate taxonomy. 'staff' is never a legal value
+    // here in practice: staff management is owner-only, enforced in code
+    // (admin/_permissions.php), not by whether this table happens to hold
+    // that row.
+    'staff_permissions' => "CREATE TABLE IF NOT EXISTS `staff_permissions` (
+        `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `staff_id`     INT UNSIGNED NOT NULL,
+        `section_key`  VARCHAR(30)  NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uq_staff_section` (`staff_id`, `section_key`),
+        CONSTRAINT `fk_staff_permissions_staff`
+          FOREIGN KEY (`staff_id`) REFERENCES `staff` (`id`) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // Optional override for the one shared owner login (ADMIN_USERNAME/ADMIN_PASSWORD
+    // in .env). A missing row, or a NULL password_hash, means "no override — the
+    // .env ADMIN_PASSWORD is authoritative", checked in admin/login.php and
+    // admin/handlers/staff_handler.php. Not seeded — every column has a safe
+    // default, so the first password change does the insert via upsert.
+    'owner_settings' => "CREATE TABLE IF NOT EXISTS `owner_settings` (
+        `id`            TINYINT UNSIGNED NOT NULL DEFAULT 1,
+        `password_hash` VARCHAR(255) NULL DEFAULT NULL,
+        `updated_at`    DATETIME     NULL DEFAULT NULL,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 ];
 
 foreach ($tables as $name => $sql) {
@@ -550,6 +593,7 @@ $allOk    = ($failures === []);
 <head>
     <meta charset="UTF-8">
     <title>Update DB – Schema Parity (v6&ndash;v12)</title>
+    <?php require __DIR__ . '/../../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/setup.css">
     <link rel="stylesheet" href="../../assets/css/modal.css">

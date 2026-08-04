@@ -97,7 +97,7 @@ $docBase     = defined('SITE_BASE') ? SITE_BASE : '';
             <div class="cbdoc-issued">Issued <?= date('j F Y') ?></div>
             <div class="cbdoc-contact">
                 <?= htmlspecialchars(SHOP_PHONE) ?><br>
-                <?= htmlspecialchars(ADMIN_EMAIL) ?>
+                <?= htmlspecialchars(SHOP_EMAIL) ?>
             </div>
         </div>
     </header>
@@ -112,7 +112,7 @@ $docBase     = defined('SITE_BASE') ? SITE_BASE : '';
         </div>
         <div class="cbdoc-foot-block">
             <?= htmlspecialchars(SHOP_PHONE) ?><br>
-            <?= htmlspecialchars(ADMIN_EMAIL) ?><br>
+            <?= htmlspecialchars(SHOP_EMAIL) ?><br>
             <?= htmlspecialchars(preg_replace('#^https?://#', '', SITE_URL)) ?>
         </div>
         <div class="cbdoc-foot-block cbdoc-foot-note">

@@ -165,7 +165,7 @@ if ($missingCases > 0):
 <p>
     Order online at <?= htmlspecialchars(preg_replace('#^https?://#', '', SITE_URL)) ?>,
     by phone on <?= htmlspecialchars(SHOP_PHONE) ?>, or by email to
-    <?= htmlspecialchars(ADMIN_EMAIL) ?>.
+    <?= htmlspecialchars(SHOP_EMAIL) ?>.
     <?php if ($isTrade): ?>
         Trade orders can be delivered or collected from the warehouse at no charge.
     <?php else: ?>

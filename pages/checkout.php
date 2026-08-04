@@ -55,6 +55,7 @@ $grandTotal     = $totals['total'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout – <?= SHOP_NAME ?></title>
     <meta name="description" content="Complete your ice cream order at <?= SHOP_NAME ?>.">
+    <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="../assets/css/animations.css">

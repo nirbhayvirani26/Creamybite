@@ -129,10 +129,10 @@ ob_start();
 $withIngredients = array_filter($products, static fn($p) => trim((string)($p['ingredients'] ?? '')) !== '');
 ?>
 <?php if (empty($withIngredients)): ?>
-    <p class="cbdoc-missing">
+    <div class="cbdoc-notice">
         Ingredient lists have not yet been published here. Please call
         <?= htmlspecialchars(SHOP_PHONE) ?> or check the tub.
-    </p>
+    </div>
 <?php else: ?>
 <table class="cbdoc-table">
     <thead><tr><th>Product</th><th>Ingredients</th></tr></thead>

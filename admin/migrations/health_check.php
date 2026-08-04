@@ -222,6 +222,7 @@ $failures = array_values(array_filter($checks, fn($c) => !$c['ok']));
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health Check</title>
+    <?php require __DIR__ . '/../../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/setup.css">
     <link rel="stylesheet" href="../assets/css/admin.css">

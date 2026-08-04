@@ -140,7 +140,7 @@ ob_start();
 <h2>Something arrived soft?</h2>
 <p>
     Tell us within 24 hours — call <?= htmlspecialchars(SHOP_PHONE) ?> or email
-    <?= htmlspecialchars(ADMIN_EMAIL) ?> with your order number and a photograph if you
+    <?= htmlspecialchars(SHOP_EMAIL) ?> with your order number and a photograph if you
     can. We will replace it or refund you. Frozen products cannot be assessed days
     later, which is the only reason we ask you to be quick.
 </p>

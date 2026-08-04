@@ -7,6 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/db.php';
 
 /**
  * Where to go once the password checks out.
@@ -84,9 +85,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
         $u = trim($_POST['username'] ?? '');
         $p = trim($_POST['password'] ?? '');
 
+        // Staff accounts are checked first, so a named login always wins
+        // over the shared owner credential if both somehow matched. Wrapped
+        // in a try/catch because this must not fatal on a server where the
+        // migration in admin/migrations/update_db.php has not been run yet
+        // — the owner login has to keep working even before the staff table
+        // exists.
+        $staffRow = null;
+        if ($u !== '') {
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM staff WHERE username = ? AND active = 1 LIMIT 1");
+                $stmt->execute([$u]);
+                $staffRow = $stmt->fetch();
+            } catch (PDOException $e) {
+                $staffRow = null;
+            }
+        }
+        $staffMatched = $staffRow && password_verify($p, $staffRow['password_hash']);
+
+        // Optional DB-stored override for the owner's own password, set from the
+        // Staff tab (admin/handlers/staff_handler.php, action=owner_change_password).
+        // Wrapped in try/catch for the same reason as the staff lookup above: a
+        // pre-migration server has no owner_settings table yet, and the owner
+        // login must keep working against .env ADMIN_PASSWORD regardless.
+        $ownerPasswordHash = null;
+        try {
+            $stmt = $pdo->prepare("SELECT password_hash FROM owner_settings WHERE id = 1");
+            $stmt->execute();
+            $row = $stmt->fetch();
+            $ownerPasswordHash = $row ? $row['password_hash'] : null;
+        } catch (PDOException $e) {
+            $ownerPasswordHash = null;
+        }
+
+        $ownerUsernameOk = hash_equals(ADMIN_USERNAME, $u);
+        $ownerPasswordOk = $ownerPasswordHash !== null
+            ? password_verify($p, $ownerPasswordHash)   // DB override set
+            : hash_equals(ADMIN_PASSWORD, $p);           // no override — .env is authoritative, constant-time compare
+
         // hash_equals is constant-time, so a wrong password cannot be
         // narrowed down by timing how long the comparison takes.
-        $ok = hash_equals(ADMIN_USERNAME, $u) & hash_equals(ADMIN_PASSWORD, $p);
+        $ok = $staffMatched || (bool)($ownerUsernameOk & $ownerPasswordOk);
 
         if ($ok) {
             // New session id on privilege change, so a session id planted
@@ -97,6 +136,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
             $dest = adminLoginDestination();
             session_regenerate_id(true);
             $_SESSION['admin_logged_in'] = true;
+            if ($staffMatched) {
+                $_SESSION['admin_staff_id']   = (int)$staffRow['id'];
+                $_SESSION['admin_staff_name'] = $staffRow['name'];
+                $permStmt = $pdo->prepare("SELECT section_key FROM staff_permissions WHERE staff_id = ?");
+                $permStmt->execute([$staffRow['id']]);
+                $_SESSION['admin_staff_perms'] = $permStmt->fetchAll(PDO::FETCH_COLUMN);
+            } else {
+                unset($_SESSION['admin_staff_id'], $_SESSION['admin_staff_name'], $_SESSION['admin_staff_perms']);
+            }
             unset($_SESSION['admin_login_attempts'], $_SESSION['admin_login_locked_until']);
             header('Location: ' . $dest); exit;
         }
@@ -120,6 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login – <?= SHOP_NAME ?></title>
+    <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="assets/css/setup.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">

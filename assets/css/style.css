@@ -57,6 +57,12 @@
 
     /* ── Brand Colors (Deep Chocolate & Warm Gold) ──────── */
     --color-primary:       #5C1D24;  /* Deep Creamy Bite Chocolate */
+    /* The same colour as bare channels, for rgba() tints.
+       admin.css writes rgba(var(--color-primary-rgb), 0.15) in two places, and
+       without this the whole declaration is invalid — not faint, but dropped
+       entirely, which left the progress-bar tracks with no visible track at
+       all. Keep in step with --color-primary above. */
+    --color-primary-rgb:   92, 29, 36;
     --color-primary-dark:  #431318;  /* Dark Chocolate */
     --color-primary-light: #8C3A43;  /* Warm Cocoa */
     --color-primary-bg:    #F8ECE9;  /* Chocolate Tint */
@@ -1362,7 +1368,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .footer-top {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
     gap: 40px;
     padding-bottom: 36px;
     border-bottom: 1px solid rgba(255,255,255,0.1);

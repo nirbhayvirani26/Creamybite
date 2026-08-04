@@ -116,6 +116,11 @@ if (empty($_SESSION['admin_logged_in'])) {
     echo json_encode(['success' => false, 'message' => 'Not authorised']);
     exit;
 }
+require_once __DIR__ . '/admin/_permissions.php';
+if (!adminCan('promos')) {
+    echo json_encode(['success' => false, 'message' => 'You do not have access to this section.']);
+    exit;
+}
 
 // ── ADMIN: Create promo ───────────────────────────────────────
 if ($action === 'create') {

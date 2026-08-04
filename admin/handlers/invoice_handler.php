@@ -19,6 +19,8 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once __DIR__ . '/../_guard.php';
 csrfCheck();
+require_once __DIR__ . '/../_permissions.php';
+adminRequire('invoices');
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/invoice.php';

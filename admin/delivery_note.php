@@ -13,6 +13,13 @@ if (!$isAdmin && !$isTradeUser) {
     header('Location: ../trade_login.php');
     exit;
 }
+if ($isAdmin) {
+    // Never checked on the trade-user path — a trade user has no
+    // admin_staff_id either, and adminRequire() would otherwise mistake
+    // them for the owner.
+    require_once __DIR__ . '/_permissions.php';
+    adminRequire('orders');
+}
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
@@ -76,6 +83,7 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
 <head>
     <meta charset="UTF-8">
     <title>Delivery Note & Invoice – <?= htmlspecialchars($order['order_code']) ?></title>
+    <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <!-- Shared .cbdn-* classes come from admin.css; this page's own print rules
          follow in delivery-note.css, so they win any equal-specificity tie. -->
     <link rel="stylesheet" href="assets/css/admin.css">

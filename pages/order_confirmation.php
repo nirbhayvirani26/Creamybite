@@ -42,6 +42,7 @@ $items = json_decode($order['items_json'], true) ?? [];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Confirmed! – <?= SHOP_NAME ?></title>
     <meta name="description" content="Your ice cream order has been confirmed at <?= SHOP_NAME ?>.">
+    <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="../assets/css/animations.css">

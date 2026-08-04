@@ -13,7 +13,7 @@ $freeM = rtrim(rtrim(number_format(FREE_DELIVERY_MILES, 1), '0'), '.');
 $maxM  = rtrim(rtrim(number_format(DELIVERY_RADIUS_MILES, 1), '0'), '.');
 $chg   = number_format(DELIVERY_CHARGE, 2);
 $shop  = htmlspecialchars(SHOP_NAME);
-$email = htmlspecialchars(ADMIN_EMAIL);
+$email = htmlspecialchars(SHOP_EMAIL);
 $phone = htmlspecialchars(SHOP_PHONE);
 
 $policyTitle = 'Terms & Conditions';

@@ -10,7 +10,7 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require_once __DIR__ . '/../includes/config.php';
 
 $phone = htmlspecialchars(SHOP_PHONE);
-$email = htmlspecialchars(ADMIN_EMAIL);
+$email = htmlspecialchars(SHOP_EMAIL);
 
 $policyTitle = 'Returns & Refunds';
 $policyIntro = 'What happens if something is wrong with your order.';

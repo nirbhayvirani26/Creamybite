@@ -80,7 +80,7 @@ $policyUpdated = $policyUpdated ?? date('F Y');
             <h2>Still not sure?</h2>
             <p>
                 Call us on <a href="tel:<?= htmlspecialchars(SHOP_PHONE) ?>"><?= htmlspecialchars(SHOP_PHONE) ?></a>
-                or email <a href="mailto:<?= htmlspecialchars(ADMIN_EMAIL) ?>"><?= htmlspecialchars(ADMIN_EMAIL) ?></a>.
+                or email <a href="mailto:<?= htmlspecialchars(SHOP_EMAIL) ?>"><?= htmlspecialchars(SHOP_EMAIL) ?></a>.
                 We would rather sort it out than have you guess.
             </p>
         </div>

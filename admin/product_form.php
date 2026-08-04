@@ -8,6 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }
+require_once __DIR__ . '/_permissions.php';
+adminRequire('products');
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
@@ -249,6 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $isEdit ? 'Edit Product' : 'Add Product' ?> – <?= SHOP_NAME ?></title>
+    <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <!-- This page's own cbpf-* layout classes live in admin.css. -->

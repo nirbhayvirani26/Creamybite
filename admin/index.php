@@ -4,6 +4,7 @@
 //  Tabs: Orders | Products | Gallery | Categories
 // ============================================================
 require_once __DIR__ . '/_guard.php';   // session, admin check, CSRF helpers
+require_once __DIR__ . '/_permissions.php';   // which sections this session may use
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
@@ -17,6 +18,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_product' && isset($_GE
     // database. Without a token, any page the admin visited could fire this
     // with a single <img src="…?action=delete_product&id=7">.
     csrfCheck();
+    adminRequire('products');
     $delId = (int)$_GET['id'];
     try {
         $imgRow = $pdo->prepare("SELECT image FROM products WHERE id = :id");
@@ -37,6 +39,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_product' && isset($_GE
 if (isset($_GET['action']) && in_array($_GET['action'], ['approve_trade', 'reject_trade']) && isset($_GET['id'])) {
     // Approving grants wholesale pricing; rejecting revokes an account.
     csrfCheck();
+    adminRequire('trade');
     $tradeId   = (int)$_GET['id'];
     $newStatus = $_GET['action'] === 'approve_trade' ? 'approved' : 'rejected';
     try {
@@ -51,6 +54,7 @@ if (isset($_GET['action']) && in_array($_GET['action'], ['approve_trade', 'rejec
 // ── Reviews: approve / hide / feature / delete ────────────
 if (isset($_GET['review_action'], $_GET['id'])) {
     csrfCheck();
+    adminRequire('reviews');
     $revId = (int)$_GET['id'];
     try {
         switch ($_GET['review_action']) {
@@ -86,6 +90,7 @@ if (isset($_GET['review_action'], $_GET['id'])) {
 // customer and inventing one, and only the first is lawful.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_review'])) {
     csrfCheck();
+    adminRequire('reviews');
     $revName = trim($_POST['customer_name'] ?? '');
     $revBody = trim($_POST['body'] ?? '');
     if ($revName === '' || $revBody === '') {
@@ -119,6 +124,11 @@ if (isset($_GET['order_deleted'])) $successMsg = '✅ Order deleted successfully
 if (isset($_GET['product_added']))   $successMsg = '✅ New product added successfully!';
 if (isset($_GET['product_updated'])) $successMsg = '✅ Product updated successfully!';
 
+// A staff session bounced back here after trying a section it hasn't been
+// granted (adminRequire() in admin/_permissions.php), or after clicking a
+// link to a page it can no longer reach.
+if (isset($_GET['access_denied'])) $errorMsg = "You don't have access to that section.";
+
 // ── Load stats ────────────────────────────────────────────
 $totalOrders   = $pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn();
 $pendingOrders = $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'Pending'")->fetchColumn();
@@ -128,9 +138,24 @@ $totalRevenue  = $pdo->query("SELECT COALESCE(SUM(total_price), 0) FROM orders W
 $totalProducts = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
 
 // ── Active tab ────────────────────────────────────────────
+// Also decides which section a staff session actually lands on: if the
+// requested tab isn't one they've been granted, fall through to the first
+// one they have. $noAccessAtAll covers a brand-new staff login with nothing
+// granted yet — the tab content block below shows a message for that case
+// instead of silently rendering Orders to someone who wasn't granted it.
 $activeTab = $_GET['tab'] ?? 'orders';
-$validTabs = ['orders','products','gallery','categories','promos','stock','revenue','inquiries','trade','invoices'];
-if (!in_array($activeTab, $validTabs)) $activeTab = 'orders';
+$validTabs = ['orders','products','gallery','categories','promos','stock',
+              'revenue','inquiries','trade','invoices','reviews','staff'];
+if (!in_array($activeTab, $validTabs, true)) $activeTab = 'orders';
+
+if (!adminCan($activeTab)) {
+    $activeTab = null;
+    foreach ($validTabs as $t) {
+        if (adminCan($t)) { $activeTab = $t; break; }
+    }
+}
+$noAccessAtAll = ($activeTab === null);
+if ($noAccessAtAll) $activeTab = 'orders'; // placeholder only; content below is skipped entirely
 
 // ── Load Trade Accounts ───────────────────────────────────
 $tradeUsers        = [];
@@ -291,11 +316,6 @@ $uninvoicedCapped = count($uninvoicedOrders) > 100;
 if ($uninvoicedCapped) {
     array_pop($uninvoicedOrders);
 }
-
-// ── Active tab ────────────────────────────────────────────
-$activeTab = $_GET['tab'] ?? 'orders';
-$validTabs = ['orders','products','gallery','categories','promos','stock','revenue','inquiries','trade','invoices'];
-if (!in_array($activeTab, $validTabs)) $activeTab = 'orders';
 
 // ── Load inquiries ──────────────────────────────────────
 $inquiries        = [];
@@ -484,6 +504,7 @@ if ($activeTab === 'revenue') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard – <?= SHOP_NAME ?></title>
+    <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -538,7 +559,24 @@ $adminNav = [
     ['tab' => 'gallery',    'icon' => 'fa-images',             'label' => 'Gallery'],
     ['tab' => 'reviews',    'icon' => 'fa-star',               'label' => 'Reviews',
      'badge' => $pendingReviews > 0 ? (string)$pendingReviews : null, 'alert' => true],
+
+    ['group' => 'Admin'],
+    ['tab' => 'staff',      'icon' => 'fa-user-shield',        'label' => 'Staff'],
 ];
+
+// Staff logins only see the sections they've been granted; the Staff
+// section itself is owner-only regardless of what's been granted (see
+// admin/_permissions.php). Drop any group header left with nothing under it.
+$adminNav = array_values(array_filter($adminNav, fn($item) =>
+    isset($item['group']) || adminCan($item['tab'])
+));
+for ($i = count($adminNav) - 1; $i >= 0; $i--) {
+    if (isset($adminNav[$i]['group'])) {
+        $next = $adminNav[$i + 1] ?? null;
+        if ($next === null || isset($next['group'])) unset($adminNav[$i]);
+    }
+}
+$adminNav = array_values($adminNav);
 
 // Page heading for the topbar, taken from the same array.
 $pageTitles = [
@@ -553,6 +591,7 @@ $pageTitles = [
     'promos'     => ['🎟️ Promos',          'Discount codes'],
     'inquiries'  => ['✉️ Inquiries',        'Messages from the contact form'],
     'reviews'    => ['⭐ Reviews',          'Customer reviews shown on the home page'],
+    'staff'      => ['🔐 Staff',           'Manage staff logins and section access'],
 ];
 [$pageTitle, $pageSub] = $pageTitles[$activeTab] ?? ['Admin', ''];
 ?>
@@ -583,7 +622,7 @@ $pageTitles = [
     <div class="sb-foot">
         <div class="sb-user">
             <i class="fa-solid fa-user-shield"></i>
-            <span><?= htmlspecialchars(ADMIN_USERNAME) ?></span>
+            <span><?= htmlspecialchars(adminStaffName()) ?></span>
         </div>
         <a href="../index.php" target="_blank" class="sb-foot-btn shop">
             <i class="fa-solid fa-globe"></i> <span>View Shop</span>
@@ -696,7 +735,12 @@ $pageTitles = [
                 <div class="cbi-stat-subnote"><?= $invStats['draft'] ?> still draft</div>
             </div>
         </div>
-        <?php else: ?>
+        <?php elseif (adminIsOwner()): ?>
+        <!-- This is a cross-section overview (orders, trade, revenue, products
+             all in one row), not data belonging to whichever tab happens to
+             be active — a staff member granted only e.g. Gallery must not see
+             Total Revenue just because it's rendered on every non-Invoices
+             tab. Owner-only rather than trying to attribute it to one grant. -->
         <div class="stats-grid cbi-gap-32">
             <div class="stat-card glass-panel">
                 <div class="stat-card-icon">📋</div>
@@ -727,6 +771,12 @@ $pageTitles = [
         <?php endif; ?>
 
         <!-- Navigation now lives in the sidebar (see $adminNav above). -->
+
+        <?php if ($noAccessAtAll): ?>
+        <div class="glass-panel cbi-gap-24">
+            <p class="cbi-flush">You have not been granted access to any section yet. Contact the shop owner.</p>
+        </div>
+        <?php else: ?>
 
         <!-- ═══════════════════ INVOICES TAB ═══════════════════ -->
         <?php if ($activeTab === 'invoices'): ?>
@@ -2681,6 +2731,177 @@ $pageTitles = [
         </div>
         <?php endif; ?>
 
+        <?php endif; // !$noAccessAtAll ?>
+
+        <!-- ═══════════════════ STAFF TAB (owner only) ═══════════════════ -->
+        <?php if ($activeTab === 'staff' && adminIsOwner()): ?>
+
+        <!-- Owner Account — the one shared .env login. Shown here because the
+             staff table only ever lists everyone else; without this the owner
+             is invisible on their own Staff tab. -->
+        <div class="glass-panel cbi-panel-lg">
+            <div class="admin-page-header cbi-gap-24">
+                <div>
+                    <h2 class="admin-page-title cbi-flush">👑 Owner Account</h2>
+                    <p class="admin-page-subtitle cbi-subtitle-gap">The one shared login tied to this server's .env file — full access to every section, always.</p>
+                </div>
+            </div>
+
+            <?php
+            // Same try/catch-for-missing-table pattern as $staffMembers below —
+            // a pre-migration server just shows "using .env default".
+            $ownerHasOverride = false;
+            try {
+                $ownerRow = $pdo->query("SELECT password_hash FROM owner_settings WHERE id = 1")->fetch();
+                $ownerHasOverride = $ownerRow && !empty($ownerRow['password_hash']);
+            } catch (PDOException $e) {
+                $ownerHasOverride = false;
+            }
+            ?>
+
+            <div class="cbi-owner-meta">
+                <div><span class="cbi-owner-meta-label">Username</span><strong><?= htmlspecialchars(ADMIN_USERNAME) ?></strong></div>
+                <div><span class="cbi-owner-meta-label">Access</span><span class="cbi-perm-chip">Full access — all sections</span></div>
+                <div><span class="cbi-owner-meta-label">Password</span>
+                    <?= $ownerHasOverride
+                        ? '<span class="cbi-rep-toggle is-active">Custom password set</span>'
+                        : '<span class="cbi-rep-toggle is-inactive">Using .env default</span>' ?>
+                </div>
+            </div>
+
+            <div class="cbi-staff-add-form" id="cbiOwnerPwForm">
+                <div class="form-group">
+                    <label class="form-label" for="cbiOwnerCurrentPw">Current password</label>
+                    <input type="password" id="cbiOwnerCurrentPw" class="form-control" autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cbiOwnerNewPw">New password</label>
+                    <input type="password" id="cbiOwnerNewPw" class="form-control" minlength="8" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cbiOwnerConfirmPw">Confirm new password</label>
+                    <input type="password" id="cbiOwnerConfirmPw" class="form-control" minlength="8" autocomplete="new-password">
+                </div>
+                <button type="button" class="btn-primary" onclick="cbiOwnerChangePassword()">
+                    <i class="fa-solid fa-key"></i> Change Password
+                </button>
+            </div>
+            <div id="cbiOwnerPwMsg" class="cbi-wd-msg"></div>
+        </div>
+
+        <div class="glass-panel cbi-panel-lg">
+            <div class="admin-page-header cbi-gap-24">
+                <div>
+                    <h2 class="admin-page-title cbi-flush">🔐 Staff Logins</h2>
+                    <p class="admin-page-subtitle cbi-subtitle-gap">Create staff accounts and choose which sections each one can see and edit</p>
+                </div>
+            </div>
+
+            <?php
+            $staffMembers = [];
+            try {
+                $staffMembers = $pdo->query("SELECT * FROM staff ORDER BY created_at DESC")->fetchAll();
+                $staffPermsByStaff = [];
+                if ($staffMembers) {
+                    $spStmt = $pdo->query("SELECT staff_id, section_key FROM staff_permissions");
+                    foreach ($spStmt->fetchAll() as $sp) {
+                        $staffPermsByStaff[$sp['staff_id']][] = $sp['section_key'];
+                    }
+                }
+            } catch (PDOException $e) {
+                echo '<div class="alert alert-danger cbi-gap-20"><i class="fa-solid fa-triangle-exclamation"></i><div>Could not load staff — run the migration at admin/migrations/update_db.php first.</div></div>';
+            }
+            // Section keys a staff member can be granted. 'staff' is
+            // deliberately excluded — staff management stays owner-only,
+            // enforced in admin/_permissions.php regardless of this list.
+            $cbiGrantableSections = [
+                'orders' => 'Orders', 'invoices' => 'Invoices', 'revenue' => 'Revenue',
+                'products' => 'Products', 'stock' => 'Stock', 'categories' => 'Categories',
+                'promos' => 'Promos', 'trade' => 'Trade Accounts', 'inquiries' => 'Inquiries',
+                'gallery' => 'Gallery', 'reviews' => 'Reviews',
+            ];
+            ?>
+
+            <div class="cbi-staff-add-form" id="cbiStaffAddForm">
+                <div class="form-group">
+                    <label class="form-label" for="cbiNewUsername">Username</label>
+                    <input type="text" id="cbiNewUsername" class="form-control" maxlength="60">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cbiNewName">Name</label>
+                    <input type="text" id="cbiNewName" class="form-control" maxlength="150">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cbiNewPassword">Password</label>
+                    <input type="password" id="cbiNewPassword" class="form-control" minlength="8" autocomplete="new-password">
+                </div>
+                <button type="button" class="btn-primary cbi-staff-add-btn" onclick="cbiAddStaff()">
+                    <i class="fa-solid fa-user-plus"></i> Add Staff
+                </button>
+            </div>
+            <div id="cbiStaffMsg" class="cbi-wd-msg"></div>
+
+            <?php if (empty($staffMembers)): ?>
+            <div class="cbi-empty-state">
+                <div class="cbi-empty-icon">🔐</div>
+                <p class="cbi-empty-text">No staff accounts yet. Add one above.</p>
+            </div>
+            <?php else: ?>
+            <div class="table-wrapper">
+            <table class="data-table cbi-staff-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Name</th>
+                        <th>Sections granted</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($staffMembers as $sm): ?>
+                    <?php $granted = $staffPermsByStaff[$sm['id']] ?? []; ?>
+                    <tr>
+                        <td><?= htmlspecialchars($sm['username']) ?></td>
+                        <td><?= htmlspecialchars($sm['name']) ?></td>
+                        <td class="cbi-staff-sections">
+                            <?php if ($granted): ?>
+                            <div class="cbi-perm-chips">
+                                <?php foreach ($granted as $gk): ?>
+                                <span class="cbi-perm-chip"><?= htmlspecialchars($cbiGrantableSections[$gk] ?? $gk) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                            <?php else: ?>
+                            <span class="cbi-rep-none">No sections granted</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span class="cbi-rep-toggle <?= $sm['active'] ? 'is-active' : 'is-inactive' ?>"><?= $sm['active'] ? 'Active' : 'Inactive' ?></span>
+                        </td>
+                        <td>
+                            <?php
+                            // json_encode()'s own string delimiters are always
+                            // literal double quotes, so the attribute has to be
+                            // single-quoted — and JSON_HEX_APOS then escapes any
+                            // apostrophe inside the name itself (e.g. O'Brien),
+                            // so nothing in the encoded value can end the
+                            // attribute early either way.
+                            $cbiJsonFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP;
+                            ?>
+                            <button type="button" class="btn-sm btn-sm-outline"
+                                    onclick='cbiEditStaff(<?= (int)$sm['id'] ?>, <?= json_encode($sm['name'], $cbiJsonFlags) ?>, <?= json_encode($granted, $cbiJsonFlags) ?>, <?= $sm['active'] ? 'true' : 'false' ?>)'>
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
     </div>
 </main>
 
@@ -2791,16 +3012,26 @@ function askWhoDelivered(orderId, orderCode, reps) {
     // "Delivered" for a change that never saved.
     wrap.addEventListener('click', e => { if (e.target === wrap) wdClose(); });
     document.addEventListener('keydown', wdEsc);
-    const sel = document.getElementById('wdSelect');
-    if (sel) sel.focus();
+
+    // Add the open class next frame so the opacity/transform transition
+    // in admin.css actually runs, rather than jumping straight to visible.
+    requestAnimationFrame(() => {
+        wrap.classList.add('is-open');
+        const sel = document.getElementById('wdSelect');
+        if (sel) sel.focus();
+    });
 }
 
 function wdEsc(e) { if (e.key === 'Escape') wdClose(); }
 
 function wdClose() {
     const el = document.getElementById('whoDeliveredBackdrop');
-    if (el) el.remove();
+    if (!el) return;
+    el.classList.remove('is-open');
     document.removeEventListener('keydown', wdEsc);
+    // Match the .18s backdrop transition in admin.css so it fades out
+    // instead of vanishing mid-animation.
+    setTimeout(() => el.remove(), 180);
 }
 
 function wdAddRep(orderId) {
@@ -3632,6 +3863,157 @@ function sortOrders() {
             tbody.appendChild(pair.detail);
         }
     });
+}
+
+// ── Staff permissions ──────────────────────────────────────
+const CBI_STAFF_SECTIONS = <?= json_encode($cbiGrantableSections ?? []) ?>;
+
+function cbiStaffMsg(text, isError) {
+    const el = document.getElementById('cbiStaffMsg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = isError ? 'var(--color-danger)' : '';
+}
+
+function cbiAddStaff() {
+    const username = document.getElementById('cbiNewUsername').value.trim();
+    const name     = document.getElementById('cbiNewName').value.trim();
+    const password = document.getElementById('cbiNewPassword').value;
+    if (!username || !name || !password) { cbiStaffMsg('Fill in username, name and password.', true); return; }
+    if (password.length < 8) { cbiStaffMsg('Password must be at least 8 characters.', true); return; }
+
+    fetch('handlers/staff_handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=create&username=' + encodeURIComponent(username)
+            + '&name=' + encodeURIComponent(name) + '&password=' + encodeURIComponent(password),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            cbiStaffMsg(data.message || 'Could not add that staff member.', true);
+        }
+    })
+    .catch(() => cbiStaffMsg('Network error.', true));
+}
+
+function cbiOwnerChangePassword() {
+    const msgEl   = document.getElementById('cbiOwnerPwMsg');
+    const current = document.getElementById('cbiOwnerCurrentPw').value;
+    const pw      = document.getElementById('cbiOwnerNewPw').value;
+    const confirm = document.getElementById('cbiOwnerConfirmPw').value;
+
+    msgEl.style.color = 'var(--color-danger)';
+    if (!current || !pw) { msgEl.textContent = 'Enter your current and new password.'; return; }
+    if (pw.length < 8) { msgEl.textContent = 'New password must be at least 8 characters.'; return; }
+    if (pw !== confirm) { msgEl.textContent = 'New password and confirmation do not match.'; return; }
+
+    fetch('handlers/staff_handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=owner_change_password'
+            + '&current_password=' + encodeURIComponent(current)
+            + '&new_password=' + encodeURIComponent(pw),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            msgEl.textContent = data.message || 'Could not change password.';
+        }
+    })
+    .catch(() => { msgEl.textContent = 'Network error.'; });
+}
+
+// Backdrop is built by JS when needed, same as askWhoDelivered() above —
+// reuses the .cbi-wd-* dialog styling rather than a second copy of it.
+function cbiEditStaff(staffId, name, granted, active) {
+    const existing = document.getElementById('cbiEditBackdrop');
+    if (existing) existing.remove();
+
+    const checks = Object.entries(CBI_STAFF_SECTIONS).map(([key, label]) => `
+        <label class="cbi-staff-check">
+            <input type="checkbox" name="cbiPerm" value="${key}" ${granted.includes(key) ? 'checked' : ''}>
+            ${String(label).replace(/[<>&]/g, '')}
+        </label>`).join('');
+
+    const wrap = document.createElement('div');
+    wrap.id = 'cbiEditBackdrop';
+    wrap.className = 'cbi-wd-backdrop';
+    wrap.innerHTML = `
+        <div class="cbi-wd-box" role="dialog" aria-modal="true" aria-labelledby="cbiEditTitle">
+            <h3 id="cbiEditTitle" class="cbi-wd-title"><i class="fa-solid fa-user-shield"></i> ${String(name).replace(/[<>&]/g, '')}</h3>
+            <p class="cbi-wd-sub">Choose which sections this account can see and edit.</p>
+
+            <div class="cbi-staff-checks">${checks}</div>
+
+            <label class="cbi-wd-label cbi-staff-pw-label" for="cbiEditPassword">New password (leave blank to keep the current one)</label>
+            <input type="password" id="cbiEditPassword" class="form-control" minlength="8" autocomplete="new-password">
+
+            <label class="cbi-staff-check cbi-staff-active-row">
+                <input type="checkbox" id="cbiEditActive" ${active ? 'checked' : ''}>
+                Active (unticking blocks this login immediately)
+            </label>
+
+            <div id="cbiEditMsg" class="cbi-wd-msg"></div>
+
+            <div class="cbi-wd-actions">
+                <button type="button" class="btn-secondary" onclick="cbiEditClose()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="cbiEditSave(${staffId})">
+                    <i class="fa-solid fa-check"></i> Save
+                </button>
+            </div>
+        </div>`;
+    document.body.appendChild(wrap);
+
+    wrap.addEventListener('click', e => { if (e.target === wrap) cbiEditClose(); });
+    document.addEventListener('keydown', cbiEditEsc);
+    requestAnimationFrame(() => wrap.classList.add('is-open'));
+}
+
+function cbiEditEsc(e) { if (e.key === 'Escape') cbiEditClose(); }
+
+function cbiEditClose() {
+    const el = document.getElementById('cbiEditBackdrop');
+    if (!el) return;
+    el.classList.remove('is-open');
+    document.removeEventListener('keydown', cbiEditEsc);
+    setTimeout(() => el.remove(), 180);
+}
+
+function cbiEditSave(staffId) {
+    const msgEl    = document.getElementById('cbiEditMsg');
+    const sections = Array.from(document.querySelectorAll('input[name="cbiPerm"]:checked')).map(el => el.value);
+    const password = document.getElementById('cbiEditPassword').value;
+    const active   = document.getElementById('cbiEditActive').checked;
+
+    if (password && password.length < 8) {
+        msgEl.textContent = 'Password must be at least 8 characters.';
+        return;
+    }
+
+    let body = 'action=update&staff_id=' + staffId
+        + '&sections=' + encodeURIComponent(JSON.stringify(sections))
+        + '&active=' + (active ? '1' : '0');
+    if (password) body += '&password=' + encodeURIComponent(password);
+
+    fetch('handlers/staff_handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            msgEl.textContent = data.message || 'Could not save.';
+        }
+    })
+    .catch(() => { msgEl.textContent = 'Network error.'; });
 }
 </script>
 

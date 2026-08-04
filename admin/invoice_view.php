@@ -15,6 +15,8 @@ if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php');
     exit;
 }
+require_once __DIR__ . '/_permissions.php';
+adminRequire('invoices');
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
@@ -58,6 +60,7 @@ function invLines(string $text): string
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Invoice <?= htmlspecialchars($inv['invoice_number']) ?> – <?= SHOP_NAME ?></title>
+<?php require __DIR__ . '/../includes/favicon.php'; ?>
 <link rel="stylesheet" href="assets/css/invoice-print.css">
 </head>
 <body>

@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
             </table>
         ";
         try {
-            sendGenericEmail(ADMIN_EMAIL, $subject, $body);
+            sendGenericEmail(SHOP_EMAIL, $subject, $body);
             $formSuccess = true;
         } catch (Exception $e) {
             // Email failed but DB save succeeded – still show success

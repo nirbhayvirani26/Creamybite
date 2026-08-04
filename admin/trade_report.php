@@ -8,6 +8,8 @@
 //  owe anything. Read-only — nothing here changes the account.
 // ============================================================
 require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/_permissions.php';
+adminRequire('trade');
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
@@ -150,6 +152,7 @@ $customerNo = 'TC-' . str_pad((string)$tradeId, 5, '0', STR_PAD_LEFT);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= htmlspecialchars($account['business_name']) ?> – Trade Report</title>
+<?php require __DIR__ . '/../includes/favicon.php'; ?>
 <link rel="stylesheet" href="../assets/css/style.css">
 <link rel="stylesheet" href="../assets/css/responsive.css">
 <link rel="stylesheet" href="assets/css/admin.css">

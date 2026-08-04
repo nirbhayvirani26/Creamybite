@@ -18,6 +18,8 @@ if (session_status() === PHP_SESSION_NONE) { session_start(); }
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }
+require_once __DIR__ . '/_permissions.php';
+adminRequire('products');
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
@@ -88,8 +90,14 @@ foreach ($products as $p) { if (cbAllergenReviewed($p)) { $confirmed++; } }
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Allergens – <?= SHOP_NAME ?> Admin</title>
+    <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/admin.css">
+    <?php // admin.css lives under admin/assets/, not the site-wide assets/ —
+          // so it is NOT "../assets/css/admin.css" like the others. Getting
+          // that wrong loads no admin styling at all, and the page renders as
+          // an unstyled table that still works, which is exactly the kind of
+          // break nobody reports as an error. ?>
+    <link rel="stylesheet" href="assets/css/admin.css">
     <link rel="stylesheet" href="../assets/css/components.css">
     <link rel="stylesheet" href="../assets/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -191,7 +199,7 @@ foreach ($products as $p) { if (cbAllergenReviewed($p)) { $confirmed++; } }
                                        value="<?= htmlspecialchars($slug) ?>"
                                        data-allergen="<?= htmlspecialchars($slug) ?>"
                                        <?= in_array($slug, $sel, true) ? 'checked' : '' ?>>
-                                <span class="cbab-tick"></span>
+                                
                             </label>
                         </td>
                         <?php endforeach; ?>
@@ -206,7 +214,7 @@ foreach ($products as $p) { if (cbAllergenReviewed($p)) { $confirmed++; } }
                                 <input type="checkbox" name="reviewed[<?= $pid ?>]" value="1"
                                        class="cbab-reviewed"
                                        <?= cbAllergenReviewed($p) ? 'checked' : '' ?>>
-                                <span class="cbab-tick"></span>
+                                
                             </label>
                         </td>
                     </tr>

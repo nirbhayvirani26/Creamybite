@@ -1188,36 +1188,6 @@ a.btn-primary.cboc-directions-btn {
 .cbpf-basis-input    { max-width: 190px; }
 .cbpf-case-input     { max-width: 118px; }
 
-/* ── Who delivered it ────────────────────────────────────── */
-.cbi-rep-name        { display: inline-flex; align-items: center; gap: 7px; font-size: 13px;
-                       font-weight: 600; color: var(--color-primary); }
-.cbi-rep-name small  { font-weight: 400; color: var(--text-muted); font-size: 11.5px; }
-.cbi-rep-none        { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
-
-/* "Who delivered this order?" prompt. Built by JavaScript when needed rather
-   than rendered hidden on every row — a 60-order page would otherwise carry
-   60 copies of the same dialog. */
-.cbi-wd-backdrop     { position: fixed; inset: 0; background: rgba(20,8,10,0.55);
-                       display: flex; align-items: center; justify-content: center;
-                       z-index: 3000; padding: 20px; }
-.cbi-wd-box          { background: var(--bg-surface); border-radius: var(--radius-md);
-                       padding: 26px 28px; width: 100%; max-width: 430px;
-                       box-shadow: 0 18px 50px rgba(0,0,0,0.3); }
-.cbi-wd-title        { margin: 0 0 5px; font-size: 18px; color: var(--color-primary);
-                       display: flex; align-items: center; gap: 9px; }
-.cbi-wd-sub          { margin: 0 0 18px; font-size: 13px; color: var(--text-secondary); }
-.cbi-wd-label        { display: block; font-size: 12.5px; font-weight: 700;
-                       margin: 0 0 6px; color: var(--text-secondary); }
-.cbi-wd-or           { text-align: center; font-size: 12px; color: var(--text-muted);
-                       margin: 14px 0 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-.cbi-wd-empty        { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;
-                       margin: 0 0 14px; }
-.cbi-wd-add          { display: flex; gap: 8px; }
-.cbi-wd-add input    { flex: 1; }
-.cbi-wd-msg          { font-size: 12.5px; color: var(--text-secondary); min-height: 17px;
-                       margin-top: 8px; }
-.cbi-wd-actions      { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-
 /* Delivery note: the driver's name printed into the signature box. */
 .cbdn-sig-filled     { font-weight: 700; font-size: 15px; padding-top: 10px; }
 
@@ -1313,43 +1283,6 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
                        border-radius: var(--radius-sm); display: flex; align-items: center;
                        gap: 16px; flex-wrap: wrap; box-shadow: 0 -2px 14px rgba(0,0,0,0.06); }
 .cbab-save-note      { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; flex: 1; }
-
-/* ── Admin: reviews tab ──────────────────────────────────── */
-.cbi-rev-intro       { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;
-                       margin: 0 0 16px; }
-.cbi-rev-form        { margin-bottom: 34px; }
-.cbi-rev-form-grid   { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-                       gap: 14px; margin-bottom: 14px; }
-.cbi-rev-empty       { font-size: 14px; color: var(--text-secondary); line-height: 1.6;
-                       padding: 18px 0; }
-.cbi-rev-pending-pill { background: #f59e0b; color: #fff; font-size: 11.5px; font-weight: 700;
-                       padding: 3px 9px; border-radius: 20px; margin-left: 9px;
-                       vertical-align: middle; }
-.cbi-rev-list        { display: flex; flex-direction: column; gap: 14px; }
-.cbi-rev-item        { border: 1px solid var(--border-light); border-radius: var(--radius-md);
-                       padding: 16px 18px; background: var(--bg-surface); }
-.cbi-rev-item-pending { border-left: 3px solid #f59e0b; background: rgba(245,158,11,0.04); }
-.cbi-rev-item-head   { display: flex; justify-content: space-between; align-items: flex-start;
-                       gap: 14px; flex-wrap: wrap; margin-bottom: 9px; }
-.cbi-rev-loc         { font-size: 13px; color: var(--text-secondary); margin-left: 7px; }
-.cbi-rev-stars       { color: #f5a623; margin-left: 9px; letter-spacing: 1px; }
-.cbi-rev-tags        { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
-.cbi-rev-source      { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
-                       color: var(--text-secondary); border: 1px solid var(--border-light);
-                       padding: 2px 8px; border-radius: 20px; }
-.cbi-rev-featured    { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
-                       background: var(--color-secondary); color: #fff; padding: 2px 8px;
-                       border-radius: 20px; font-weight: 700; }
-.cbi-rev-status      { font-size: 11.5px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
-.cbi-rev-status.is-live    { background: rgba(16,185,129,0.15); color: #0f7a52; }
-.cbi-rev-status.is-pending { background: rgba(245,158,11,0.18); color: #92600a; }
-.cbi-rev-body        { font-size: 14.5px; line-height: 1.65; margin: 0 0 12px;
-                       color: var(--text-primary); }
-.cbi-rev-foot        { display: flex; justify-content: space-between; align-items: center;
-                       gap: 12px; flex-wrap: wrap; padding-top: 11px;
-                       border-top: 1px solid var(--border-light); }
-.cbi-rev-date        { font-size: 12.5px; color: var(--text-secondary); }
-.cbi-rev-actions     { display: flex; gap: 7px; flex-wrap: wrap; }
 
 /* ── Reviews strip on the home page ──────────────────────── */
 .cbrev-section       { padding: 70px 0; background: var(--bg-main); }

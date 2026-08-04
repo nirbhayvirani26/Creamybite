@@ -15,6 +15,8 @@
 //  invoices already use.
 // ============================================================
 require_once __DIR__ . '/_guard.php';
+require_once __DIR__ . '/_permissions.php';
+adminRequire('revenue');
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/invoice.php';   // invoiceCommission()
@@ -425,6 +427,7 @@ if ($format === 'csv') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= ucfirst($type) ?> report – <?= SHOP_NAME ?></title>
+<?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="assets/css/reports-print.css">
 </head>
 <body>

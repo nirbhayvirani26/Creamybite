@@ -7,6 +7,8 @@ $GLOBALS['ADMIN_GUARD_JSON'] = true;   // reply in JSON, not a redirect
 require_once __DIR__ . '/../_guard.php';
 header('Content-Type: application/json');
 csrfCheckJson();
+require_once __DIR__ . '/../_permissions.php';
+adminRequire('categories');
 
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/db.php';

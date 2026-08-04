@@ -37,13 +37,7 @@ if (!str_starts_with($cbSeoImg, 'http')) {
 }
 ?>
 <link rel="canonical" href="<?= htmlspecialchars($cbSeoUrl) ?>">
-<?php $cbIconBase = defined('SITE_BASE') ? SITE_BASE : ''; ?>
-<?php // An SVG so it stays sharp on any screen, and because the shop logo is a
-      // wide banner — at 16px it scaled to an unreadable sliver. This is drawn
-      // for that size: bold shapes, no text, no thin lines. ?>
-<link rel="icon" type="image/svg+xml" href="<?= htmlspecialchars($cbIconBase . '/assets/images/favicon.svg') ?>">
-<link rel="apple-touch-icon" href="<?= htmlspecialchars($cbIconBase . '/assets/images/favicon.svg') ?>">
-<meta name="theme-color" content="#5C1D24">
+<?php require __DIR__ . '/favicon.php'; ?>
 
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="<?= htmlspecialchars(SHOP_NAME) ?>">
@@ -71,7 +65,7 @@ if (!empty($cbSeoLocalBusiness)):
     'description' => $cbSeoDesc,
     'url'         => $cbSeoBase,
     'telephone'   => SHOP_PHONE,
-    'email'       => ADMIN_EMAIL,
+    'email'       => SHOP_EMAIL,
     'image'       => $cbSeoImg,
     'priceRange'  => '££',
     'address'     => [

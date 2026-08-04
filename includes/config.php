@@ -62,7 +62,19 @@ define('SHOP_TAGLINE',   'Every Bite Tells a Story 🍦');
 define('SHOP_PHONE',     '+44 7497 779997');
 define('SHOP_INSTAGRAM', 'https://www.instagram.com/creamybiteicecream');
 define('SHOP_FACEBOOK',  'https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr');
+// Where order alerts and staff notifications are sent. Internal — this is a
+// personal mailbox and is not meant to be printed for customers.
 define('ADMIN_EMAIL',    'princevir2610@gmail.com');
+
+// The address customers are told to write to. Kept separate from ADMIN_EMAIL
+// because the two are different jobs: the FAQ, the policy pages, the
+// catalogue and the allergen sheet were all printing the personal Gmail,
+// while every invoice sent out carried hello@creamybite.com. A customer who
+// saw both had no idea which one reaches the shop.
+//
+// hello@creamybite.com is taken from invoice_settings, which is the address
+// already going out on real paperwork.
+define('SHOP_EMAIL',     'hello@creamybite.com');
 
 // Admin login credentials
 define('ADMIN_USERNAME', $secrets['admin']['username']);

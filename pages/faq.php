@@ -29,7 +29,7 @@ $chg   = number_format(DELIVERY_CHARGE, 2);
 $code  = ORDER_PREFIX;
 $shop  = htmlspecialchars(SHOP_NAME);
 $phone = htmlspecialchars(SHOP_PHONE);
-$email = htmlspecialchars(ADMIN_EMAIL);
+$email = htmlspecialchars(SHOP_EMAIL);
 $base  = SITE_BASE;
 
 $policyTitle = 'Frequently Asked Questions';
