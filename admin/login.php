@@ -46,8 +46,36 @@ const LOGIN_LOCKOUT_SECS = 900;
 $attempts  = (int)($_SESSION['admin_login_attempts'] ?? 0);
 $lockedTil = (int)($_SESSION['admin_login_locked_until'] ?? 0);
 
+// A server with no .env has ADMIN_USERNAME and ADMIN_PASSWORD as empty
+// strings, and hash_equals('', '') is TRUE — so posting a blank username and
+// a blank password would have logged anyone straight into the admin panel.
+// The form's `required` attributes are no defence: a POST does not have to
+// come from the form.
+//
+// This is the one credential that fails OPEN rather than closed when it is
+// missing (no database password simply refuses to connect, no Stripe key
+// simply disables card payments), so it is checked explicitly and the login
+// is refused outright until the server has real credentials.
+$adminCredsConfigured = ADMIN_USERNAME !== '' && ADMIN_PASSWORD !== '';
+
 $error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (!$adminCredsConfigured) {
+    // Says which of the two situations it is, because "it will not let me in"
+    // is the same symptom for a missing file and a half-filled one, and the
+    // health check that would normally answer this is itself behind the login.
+    //
+    // Naming the missing keys is safe: no value is shown, and an unconfigured
+    // panel can no longer be entered by anyone, so this tells an attacker
+    // nothing they could use.
+    require_once __DIR__ . '/../includes/env.php';
+    $error = cbEnvLoaded()
+        ? 'This server has a .env file, but ADMIN_USERNAME and ADMIN_PASSWORD are empty in it. '
+          . 'Fill both in, then restart PHP in hPanel.'
+        : 'This server has no .env file, so it has no admin password to check against. '
+          . 'Copy .env.example to .env in the site root, fill it in, then restart PHP in hPanel.';
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
 
     if ($lockedTil > time()) {
         $error = 'Too many failed attempts. Try again in '
