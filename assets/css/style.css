@@ -917,6 +917,21 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 }
 .glass-panel:hover { border-color: var(--border-color); box-shadow: var(--shadow-card); }
 
+/* Two full-width content panels stacked on the same screen must not touch.
+   .glass-panel carries no margin of its own, which went unnoticed for as long
+   as every admin tab held exactly one panel. The Staff tab was the first to
+   stack two — Owner Account above Staff Logins — and they met with no gap,
+   reading as one box with a stray line through it.
+
+   Scoped to .cbi-panel-lg, NOT to .glass-panel generally. The stat cards are
+   also .glass-panel and sit in a grid that already spaces them with `gap`; a
+   plain `.glass-panel + .glass-panel` rule gave every card after the first a
+   top margin and left the first one sitting 24px above the rest of the row. */
+.cbi-panel-lg + .cbi-panel-lg,
+.cbi-panel-lg + .cbi-panel,
+.cbi-panel + .cbi-panel-lg,
+.cbi-panel + .cbi-panel { margin-top: 24px; }
+
 /* Form section */
 .form-section   { padding: 28px; margin-bottom: 20px; }
 .form-section h3 { font-size: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; color: var(--color-primary); }
