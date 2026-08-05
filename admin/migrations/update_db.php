@@ -545,6 +545,85 @@ try {
     $results[] = ['table' => 'product_variants', 'col' => '500ml + 1L', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
 }
 
+// ── 2d. Rescue gallery photos saved to the wrong folder ────
+//
+// gallery_handler.php sits in admin/handlers/, and its upload path used a
+// single ../ — which reaches admin/, not the site root. Every photo uploaded
+// before that was fixed went into admin/assets/images/gallery/, a folder
+// nothing on the site reads. The database rows are correct; only the files
+// are in the wrong place.
+//
+// Moving them here rather than leaving it as a File Manager chore, because
+// the rows already point at these exact filenames: put the files where the
+// gallery page looks and the photos simply appear, with nothing re-uploaded.
+//
+// Safe to run repeatedly — it does nothing once the stray folder is gone, and
+// it never overwrites a file that already exists at the destination.
+try {
+    $strayDir = dirname(__DIR__) . '/assets/images/gallery';          // admin/assets/...
+    $realDir  = dirname(__DIR__, 2) . '/assets/images/gallery';        // site root
+
+    if (!is_dir($strayDir)) {
+        $results[] = ['table' => 'gallery', 'col' => 'misplaced photos', 'status' => 'nothing misplaced ✓', 'ok' => true];
+    } else {
+        if (!is_dir($realDir)) {
+            mkdir($realDir, 0755, true);
+        }
+
+        $moved = $skipped = $failed = 0;
+        foreach (scandir($strayDir) as $f) {
+            if ($f === '.' || $f === '..' || !is_file($strayDir . '/' . $f)) {
+                continue;
+            }
+            // Images only. A stray .htaccess belongs to whichever folder it is
+            // already in and must not be dragged across.
+            if (!preg_match('/\.(jpe?g|png|webp|gif)$/i', $f)) {
+                continue;
+            }
+            if (file_exists($realDir . '/' . $f)) {
+                $skipped++;                       // already there; leave both alone
+            } elseif (@rename($strayDir . '/' . $f, $realDir . '/' . $f)) {
+                $moved++;
+            } else {
+                $failed++;
+            }
+        }
+
+        // Tidy the folder away, but only once it holds nothing but the
+        // .htaccess that was created alongside it. Anything else in there is
+        // something this step did not put there and must not delete.
+        $leftovers = array_values(array_diff(scandir($strayDir), ['.', '..']));
+        if ($leftovers === ['.htaccess']) {
+            @unlink($strayDir . '/.htaccess');
+            $leftovers = [];
+        }
+        $folderGone = false;
+        if (!$leftovers) {
+            // rmdir() refuses a directory that is not empty, which is what
+            // makes walking up safe: admin/assets also holds css/ on a real
+            // install, so that last call fails harmlessly and the stylesheets
+            // are never touched. Each is silenced for exactly that reason.
+            @rmdir($strayDir);                     // admin/assets/images/gallery
+            @rmdir(dirname($strayDir));            // admin/assets/images
+            @rmdir(dirname($strayDir, 2));         // admin/assets — kept when css/ lives there
+            $folderGone = !is_dir($strayDir);
+        }
+
+        $msg = $moved > 0
+            ? "✅ {$moved} photo(s) moved into assets/images/gallery — they will show on the gallery page now"
+            : 'no photos needed moving ✓';
+        if ($skipped) { $msg .= " ({$skipped} already in place)"; }
+        if ($failed)  { $msg .= " — ⚠️ {$failed} could not be moved, check folder permissions"; }
+        if (!$folderGone && ($moved || $skipped)) {
+            $msg .= ' — admin/assets still holds other files, delete it by hand if you want it gone';
+        }
+
+        $results[] = ['table' => 'gallery', 'col' => 'misplaced photos', 'status' => $msg, 'ok' => ($failed === 0)];
+    }
+} catch (Throwable $e) {
+    $results[] = ['table' => 'gallery', 'col' => 'misplaced photos', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+}
+
 // ── 3. gallery: image/title -> filename/caption rename ──
 try {
     if (cb_column_exists($pdo, 'gallery', 'filename')) {
