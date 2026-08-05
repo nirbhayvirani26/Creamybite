@@ -573,9 +573,14 @@ $adminNav = [
 // Staff logins only see the sections they've been granted; the Staff
 // section itself is owner-only regardless of what's been granted (see
 // admin/_permissions.php). Drop any group header left with nothing under it.
-$adminNav = array_values(array_filter($adminNav, fn($item) =>
-    isset($item['group']) || adminCan($item['tab'])
-));
+$adminNav = array_values(array_filter($adminNav, function ($item) {
+    if (isset($item['group'])) return true;
+    // External module link (e.g. VAT & Accounting) rather than a ?tab= page —
+    // gated by its own 'perm' key, same as the inline check the sidebar loop
+    // below already does for these.
+    if (isset($item['href'])) return empty($item['perm']) || adminCan($item['perm']);
+    return adminCan($item['tab']);
+}));
 for ($i = count($adminNav) - 1; $i >= 0; $i--) {
     if (isset($adminNav[$i]['group'])) {
         $next = $adminNav[$i + 1] ?? null;

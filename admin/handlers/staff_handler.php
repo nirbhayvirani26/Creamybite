@@ -24,6 +24,7 @@ require_once __DIR__ . '/../../includes/db.php';
 const CBI_GRANTABLE_SECTIONS = [
     'orders', 'invoices', 'revenue', 'products', 'stock',
     'categories', 'promos', 'trade', 'inquiries', 'gallery', 'reviews',
+    'accounting',
 ];
 
 $action = $_POST['action'] ?? '';
