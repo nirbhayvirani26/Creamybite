@@ -25,7 +25,9 @@ if ($action === 'delete') {
     $row = $stmt->fetch();
 
     if ($row) {
-        $filePath = __DIR__ . '/../assets/images/gallery/' . $row['filename'];
+        // ../../ — this file is in admin/handlers/, so one ../ only reaches
+        // admin/. See the note on $destDir below.
+        $filePath = __DIR__ . '/../../assets/images/gallery/' . $row['filename'];
         if (file_exists($filePath)) { unlink($filePath); }
         $pdo->prepare("DELETE FROM gallery WHERE id = :id")->execute(['id' => $id]);
         echo json_encode(['success' => true]);
@@ -68,7 +70,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['gallery_image'])) {
     ];
     $ext      = $extByMime[$mime];
     $filename = 'gallery_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-    $destDir  = __DIR__ . '/../assets/images/gallery/';
+    // This file lives in admin/handlers/, so ONE ../ lands in admin/, not at
+    // the site root. It read '/../assets/images/gallery/' and therefore saved
+    // every upload into admin/assets/images/gallery/ — a folder nothing reads.
+    //
+    // The failure was silent and convincing: the row was still written, the
+    // handler still replied success, and the admin grid still drew a tile.
+    // Only the picture was missing, because both the gallery page and the
+    // admin grid load from the site-root assets/ folder. mkdir() even created
+    // the wrong directory on the way, so nothing ever errored.
+    //
+    // Every other path in this file already used ../../ — these two were the
+    // odd ones out.
+    $destDir  = __DIR__ . '/../../assets/images/gallery/';
     $destPath = $destDir . $filename;
 
     if (!is_dir($destDir)) { mkdir($destDir, 0755, true); }
