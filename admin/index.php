@@ -555,6 +555,12 @@ $adminNav = [
     ['tab' => 'inquiries',  'icon' => 'fa-envelope-open-text', 'label' => 'Inquiries',
      'badge' => $unreadInquiries > 0 ? (string)$unreadInquiries : null, 'alert' => true],
 
+    ['group' => 'Finance'],
+    // Links out to the standalone module rather than being a tab in this
+    // file — see admin/accounting/_layout.php for why it lives apart.
+    ['href' => 'accounting/index.php', 'icon' => 'fa-chart-pie', 'label' => 'VAT & Accounting',
+     'perm' => 'accounting'],
+
     ['group' => 'Content'],
     ['tab' => 'gallery',    'icon' => 'fa-images',             'label' => 'Gallery'],
     ['tab' => 'reviews',    'icon' => 'fa-star',               'label' => 'Reviews',
@@ -606,6 +612,16 @@ $pageTitles = [
         <?php foreach ($adminNav as $item): ?>
             <?php if (isset($item['group'])): ?>
                 <div class="sb-section"><?= htmlspecialchars($item['group']) ?></div>
+            <?php elseif (isset($item['href'])): ?>
+                <?php // An external page rather than a tab in this file. Hidden
+                      // entirely from staff who do not hold the permission, so
+                      // the sidebar never offers a door that will not open. ?>
+                <?php if (empty($item['perm']) || adminCan($item['perm'])): ?>
+                <a href="<?= htmlspecialchars($item['href']) ?>" class="sb-link">
+                    <i class="fa-solid <?= $item['icon'] ?>"></i>
+                    <span class="sb-label"><?= htmlspecialchars($item['label']) ?></span>
+                </a>
+                <?php endif; ?>
             <?php else: ?>
                 <a href="index.php?tab=<?= $item['tab'] ?>"
                    class="sb-link <?= $activeTab === $item['tab'] ? 'active' : '' ?>">
@@ -2819,6 +2835,7 @@ $pageTitles = [
                 'products' => 'Products', 'stock' => 'Stock', 'categories' => 'Categories',
                 'promos' => 'Promos', 'trade' => 'Trade Accounts', 'inquiries' => 'Inquiries',
                 'gallery' => 'Gallery', 'reviews' => 'Reviews',
+                  'accounting' => 'VAT & Accounting',
             ];
             ?>
 

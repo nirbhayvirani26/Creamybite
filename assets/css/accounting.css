@@ -1,0 +1,155 @@
+/* ============================================================
+   Creamy Bite – VAT & Accounting module
+
+   Its own stylesheet because the module is its own section. Everything is
+   prefixed .cbac- so nothing here can reach the rest of the admin, and the
+   colours come from the shared variables so it looks like the same product
+   rather than a bolt-on.
+   ============================================================ */
+
+.cbac-body { background: var(--bg-main); margin: 0; }
+.cbac-wrap { max-width: 1240px; margin: 0 auto; padding: 24px 22px 70px; }
+
+/* ── Header and sub-nav ─────────────────────────────────── */
+.cbac-head    { margin-bottom: 18px; }
+.cbac-back    { font-size: 13.5px; color: var(--text-secondary); text-decoration: none;
+                display: inline-flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+.cbac-back:hover { color: var(--color-primary); }
+.cbac-title   { font-size: 26px; margin: 0 0 4px; color: var(--color-primary); }
+.cbac-sub     { margin: 0; font-size: 14px; color: var(--text-secondary); }
+
+.cbac-nav     { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px;
+                border-bottom: 1px solid var(--border-light); padding-bottom: 12px; }
+.cbac-nav-link { display: inline-flex; align-items: center; gap: 8px; padding: 9px 15px;
+                border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
+                color: var(--text-secondary); text-decoration: none; transition: all 0.15s ease; }
+.cbac-nav-link:hover     { background: var(--bg-surface); color: var(--color-primary); }
+.cbac-nav-link.is-active { background: var(--color-primary); color: #fff; }
+
+/* ── Banners ───────────────────────────────────────────── */
+.cbac-banner  { display: flex; align-items: flex-start; gap: 11px; flex-wrap: wrap;
+                padding: 14px 18px; border-radius: var(--radius-sm); margin-bottom: 18px;
+                font-size: 14px; line-height: 1.6; }
+.cbac-banner a { color: inherit; font-weight: 700; }
+.cbac-banner.is-info { background: rgba(92,29,36,0.06);   border: 1px solid rgba(92,29,36,0.22); }
+.cbac-banner.is-warn { background: rgba(245,158,11,0.11); border: 1px solid rgba(245,158,11,0.42); }
+.cbac-banner.is-ok   { background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.38); }
+
+/* ── Cards ─────────────────────────────────────────────── */
+.cbac-section-title { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em;
+                color: var(--text-secondary); margin: 26px 0 12px; }
+.cbac-cards   { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 15px; margin-bottom: 8px; }
+.cbac-card    { background: var(--bg-surface); border: 1px solid var(--border-light);
+                border-radius: var(--radius-md); padding: 18px 20px; display: flex;
+                flex-direction: column; gap: 4px; }
+.cbac-card-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+                color: var(--text-secondary); font-weight: 700; }
+.cbac-card-value { font-size: 26px; font-weight: 800; color: var(--color-primary); line-height: 1.15; }
+.cbac-card-value-sm { font-size: 17px; }
+.cbac-card-note  { font-size: 12px; color: var(--text-muted); }
+.cbac-card.is-owed   .cbac-card-value { color: #a04040; }
+.cbac-card.is-refund .cbac-card-value { color: #1a7a4c; }
+
+/* ── Panels ────────────────────────────────────────────── */
+.cbac-panel   { background: var(--bg-surface); border: 1px solid var(--border-light);
+                border-radius: var(--radius-md); padding: 22px 24px; margin-bottom: 20px; }
+.cbac-panel-title { font-size: 16px; margin: 0 0 12px; color: var(--color-primary); }
+.cbac-panel-note  { background: var(--bg-main); }
+.cbac-note    { font-size: 13.5px; color: var(--text-secondary); line-height: 1.65; margin: 0 0 16px; }
+.cbac-hint    { display: block; font-size: 12px; color: var(--text-muted); margin-top: 5px; line-height: 1.5; }
+.cbac-req     { color: #a04040; font-size: 11.5px; font-weight: 700; text-transform: uppercase; }
+.cbac-empty   { font-size: 14px; color: var(--text-muted); padding: 16px 0; text-align: center; }
+.cbac-mono    { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+.cbac-spacer  { flex: 1; }
+
+/* ── Forms ─────────────────────────────────────────────── */
+.cbac-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+                gap: 15px; margin-bottom: 16px; }
+.cbac-span-2  { grid-column: span 2; }
+.cbac-grow    { flex: 1; min-width: 200px; }
+.cbac-actions { display: flex; gap: 10px; margin-top: 8px; }
+.cbac-filter-bar, .cbac-adjust-form {
+                display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+.cbac-period-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+                margin-bottom: 18px; padding: 12px 16px; background: var(--bg-surface);
+                border: 1px solid var(--border-light); border-radius: var(--radius-sm); }
+
+.cbac-switch  { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+                border: 1px solid var(--border-light); border-radius: var(--radius-md);
+                background: var(--bg-main); cursor: pointer; margin-bottom: 18px; }
+.cbac-switch:has(input:checked) { border-color: #10b981; background: rgba(16,185,129,0.07); }
+.cbac-switch input { width: 19px; height: 19px; margin-top: 2px; accent-color: var(--color-primary); }
+.cbac-switch small { display: block; font-size: 12.5px; color: var(--text-secondary);
+                line-height: 1.6; margin-top: 4px; font-weight: 400; }
+.cbac-switch-inline { margin-bottom: 0; }
+.cbac-radio   { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
+
+/* ── Tables ────────────────────────────────────────────── */
+.cbac-table   { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.cbac-table th { text-align: left; padding: 10px 11px; background: var(--bg-main);
+                border-bottom: 2px solid var(--border-color); font-size: 12px;
+                text-transform: uppercase; letter-spacing: 0.04em; }
+.cbac-table td { padding: 10px 11px; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+.cbac-table .r, .cbac-table th.r { text-align: right; }
+.cbac-table tr.is-total td { font-weight: 800; background: var(--bg-main);
+                border-top: 2px solid var(--border-color); }
+.cbac-blocked { display: block; font-size: 11px; color: #a04040; font-style: italic; }
+.cbac-balanced td   { color: #1a7a4c; font-weight: 700; font-size: 12.5px; }
+.cbac-unbalanced td { color: #a04040; font-weight: 700; font-size: 12.5px; }
+
+/* ── VAT return boxes ──────────────────────────────────── */
+.cbac-boxes .cbac-box-n { width: 52px; font-weight: 800; color: var(--color-primary); font-size: 15px; }
+.cbac-box-amount { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.cbac-working { margin-top: 7px; }
+.cbac-working summary { cursor: pointer; font-size: 12.5px; color: var(--color-primary); font-weight: 600; }
+.cbac-working-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 12.5px; }
+.cbac-working-table td, .cbac-working-table th { padding: 5px 8px; border-bottom: 1px solid var(--border-light); }
+.cbac-working-table .r { text-align: right; }
+.cbac-working-table tr.is-total td { font-weight: 800; background: var(--bg-main); }
+
+.cbac-box-summary { margin-top: 18px; padding: 16px 20px; border-radius: var(--radius-sm);
+                font-size: 15px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cbac-box-summary strong { font-size: 24px; }
+.cbac-box-summary.is-owed   { background: rgba(160,64,64,0.09);  border: 1px solid rgba(160,64,64,0.3); }
+.cbac-box-summary.is-refund { background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.35); }
+
+/* ── Charts ────────────────────────────────────────────── */
+.cbac-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.cbac-chart-title { font-size: 13.5px; margin: 0 0 12px; color: var(--text-secondary);
+                text-transform: uppercase; letter-spacing: 0.04em; }
+.cbac-chart   { width: 100%; height: 120px; display: block; }
+.cbac-chart-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 30px 0; }
+.cbac-bar-col { width: 190px; }
+.cbac-bar     { display: inline-block; width: 120px; height: 7px; background: var(--border-light);
+                border-radius: 4px; overflow: hidden; vertical-align: middle; }
+.cbac-bar-fill { display: block; height: 100%; background: var(--color-primary); }
+.cbac-bar-pct { font-size: 11.5px; color: var(--text-muted); margin-left: 7px; }
+
+/* ── Journal ───────────────────────────────────────────── */
+.cbac-journal { border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+                margin-bottom: 8px; padding: 0 14px; }
+.cbac-journal summary { cursor: pointer; padding: 12px 0; display: flex; gap: 14px;
+                align-items: baseline; flex-wrap: wrap; font-size: 13.5px; }
+.cbac-journal-date { font-weight: 700; min-width: 90px; }
+.cbac-journal-memo { flex: 1; min-width: 160px; }
+.cbac-journal-src  { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+                color: var(--text-muted); border: 1px solid var(--border-light);
+                padding: 2px 8px; border-radius: 20px; }
+.cbac-journal-amt  { font-weight: 700; }
+.cbac-journal[open] { padding-bottom: 12px; }
+
+@media (max-width: 720px) {
+    .cbac-span-2 { grid-column: span 1; }
+    .cbac-wrap   { padding: 16px 14px 50px; }
+}
+
+/* Wide tables scroll inside their panel rather than the page. */
+.cbac-panel { overflow-x: auto; }
+
+@media print {
+    .cbac-nav, .cbac-noprint, .cbac-back { display: none !important; }
+    .cbac-body { background: #fff; }
+    .cbac-panel { border: none; padding: 0; box-shadow: none; break-inside: avoid; }
+    .cbac-working { display: none; }
+}

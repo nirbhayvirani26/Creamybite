@@ -261,6 +261,214 @@ $tables = [
         `updated_at`    DATETIME     NULL DEFAULT NULL,
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // ════════════════════════════════════════════════════════
+    //  VAT & Accounting
+    // ════════════════════════════════════════════════════════
+    //
+    // One settings row. `is_registered` is the switch the whole module turns
+    // on: an unregistered business must not charge VAT, must not file a
+    // return, and must not have one prepared for it. Defaulting it to 0 means
+    // installing this module changes nothing until somebody says otherwise.
+    'vat_settings' => "CREATE TABLE IF NOT EXISTS `vat_settings` (
+        `id`              TINYINT UNSIGNED NOT NULL DEFAULT 1,
+        `is_registered`   TINYINT(1)   NOT NULL DEFAULT 0,
+        `business_name`   VARCHAR(180) NOT NULL DEFAULT '',
+        `vat_number`      VARCHAR(20)  NOT NULL DEFAULT '',
+        `scheme`          ENUM('standard','flat_rate','cash','annual') NOT NULL DEFAULT 'standard',
+        `flat_rate_pct`   DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+        `frequency`       ENUM('monthly','quarterly','annual') NOT NULL DEFAULT 'quarterly',
+        `period_start`    DATE         NULL DEFAULT NULL,
+        `default_rate_id` INT UNSIGNED NOT NULL DEFAULT 0,
+        `updated_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // VAT rates are rows, not an enum, because HMRC changes them (5% VAT on
+    // hospitality moved three times between 2020 and 2022) and a business
+    // needs the OLD rate to stay attached to old transactions. `active`
+    // retires a rate without deleting it.
+    //
+    // `kind` separates a 0% rate that counts in Box 6 (zero-rated) from one
+    // that does not (outside scope) — they are both "0%" and they are not the
+    // same thing on a VAT return.
+    'vat_rates' => "CREATE TABLE IF NOT EXISTS `vat_rates` (
+        `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `label`      VARCHAR(60)  NOT NULL,
+        `rate`       DECIMAL(6,4) NOT NULL DEFAULT 0.0000,
+        `kind`       ENUM('standard','reduced','zero','exempt','outside_scope') NOT NULL DEFAULT 'standard',
+        `active`     TINYINT(1)   NOT NULL DEFAULT 1,
+        `sort_order` INT          NOT NULL DEFAULT 0,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uq_label` (`label`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    'suppliers' => "CREATE TABLE IF NOT EXISTS `suppliers` (
+        `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `name`       VARCHAR(180) NOT NULL,
+        `vat_number` VARCHAR(20)  NOT NULL DEFAULT '',
+        `email`      VARCHAR(180) NOT NULL DEFAULT '',
+        `phone`      VARCHAR(40)  NOT NULL DEFAULT '',
+        `address`    TEXT         NULL,
+        `active`     TINYINT(1)   NOT NULL DEFAULT 1,
+        `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uq_supplier_name` (`name`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // Money is stored as the net and the VAT, never as gross-and-a-rate.
+    // Recomputing VAT from a gross figure and a percentage reintroduces a
+    // rounding difference on every read, and those pennies are exactly what
+    // makes a VAT return fail to reconcile.
+    //
+    // `recoverable` is separate from the VAT amount because input VAT on
+    // entertainment and most cars is charged but cannot be reclaimed — it
+    // belongs in the cost, not in Box 4.
+    'purchase_invoices' => "CREATE TABLE IF NOT EXISTS `purchase_invoices` (
+        `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `supplier_id`    INT UNSIGNED NOT NULL DEFAULT 0,
+        `invoice_number` VARCHAR(80)  NOT NULL DEFAULT '',
+        `invoice_date`   DATE         NOT NULL,
+        `due_date`       DATE         NULL DEFAULT NULL,
+        `category`       VARCHAR(60)  NOT NULL DEFAULT '',
+        `net`            DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `vat_rate_id`    INT UNSIGNED NOT NULL DEFAULT 0,
+        `vat_amount`     DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `recoverable`    TINYINT(1)   NOT NULL DEFAULT 1,
+        `paid_amount`    DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `paid_on`        DATE         NULL DEFAULT NULL,
+        `payment_method` VARCHAR(40)  NOT NULL DEFAULT '',
+        `reference`      VARCHAR(120) NOT NULL DEFAULT '',
+        `notes`          TEXT         NULL,
+        `receipt_file`   VARCHAR(255) NOT NULL DEFAULT '',
+        `created_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_date` (`invoice_date`),
+        KEY `idx_supplier` (`supplier_id`),
+        UNIQUE KEY `uq_supplier_invoice` (`supplier_id`, `invoice_number`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    'expenses' => "CREATE TABLE IF NOT EXISTS `expenses` (
+        `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `expense_date`   DATE         NOT NULL,
+        `supplier_id`    INT UNSIGNED NOT NULL DEFAULT 0,
+        `supplier_name`  VARCHAR(180) NOT NULL DEFAULT '',
+        `category`       VARCHAR(60)  NOT NULL DEFAULT 'Miscellaneous',
+        `description`    VARCHAR(255) NOT NULL DEFAULT '',
+        `net`            DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `vat_rate_id`    INT UNSIGNED NOT NULL DEFAULT 0,
+        `vat_amount`     DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `recoverable`    TINYINT(1)   NOT NULL DEFAULT 1,
+        `payment_method` VARCHAR(40)  NOT NULL DEFAULT 'Bank Transfer',
+        `reference`      VARCHAR(120) NOT NULL DEFAULT '',
+        `notes`          TEXT         NULL,
+        `receipt_file`   VARCHAR(255) NOT NULL DEFAULT '',
+        `created_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_date` (`expense_date`),
+        KEY `idx_category` (`category`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // Chart of accounts. `code` follows the usual ranges (1000 assets, 2000
+    // liabilities, 3000 capital, 4000 income, 5000+ costs) so reports can sort
+    // and group without a hardcoded list of names.
+    'ledger_accounts' => "CREATE TABLE IF NOT EXISTS `ledger_accounts` (
+        `id`       INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `code`     VARCHAR(10)  NOT NULL,
+        `name`     VARCHAR(120) NOT NULL,
+        `type`     ENUM('asset','liability','equity','income','expense') NOT NULL,
+        `vat_role` ENUM('none','output_vat','input_vat') NOT NULL DEFAULT 'none',
+        `system`   TINYINT(1)   NOT NULL DEFAULT 0,
+        `active`   TINYINT(1)   NOT NULL DEFAULT 1,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uq_code` (`code`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // A journal entry is the header; the lines carry the debits and credits.
+    // Nothing is ever deleted — `reversed_by` points at the entry that undoes
+    // it, so the history stays intact and an auditor can follow it.
+    'journal_entries' => "CREATE TABLE IF NOT EXISTS `journal_entries` (
+        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `entry_date`  DATE         NOT NULL,
+        `reference`   VARCHAR(120) NOT NULL DEFAULT '',
+        `memo`        VARCHAR(255) NOT NULL DEFAULT '',
+        `source`      VARCHAR(40)  NOT NULL DEFAULT 'manual',
+        `source_id`   INT UNSIGNED NOT NULL DEFAULT 0,
+        `reversed_by` INT UNSIGNED NOT NULL DEFAULT 0,
+        `created_by`  VARCHAR(120) NOT NULL DEFAULT '',
+        `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_date` (`entry_date`),
+        KEY `idx_source` (`source`, `source_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    'journal_lines' => "CREATE TABLE IF NOT EXISTS `journal_lines` (
+        `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `entry_id`    INT UNSIGNED NOT NULL,
+        `account_id`  INT UNSIGNED NOT NULL,
+        `debit`       DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `credit`      DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `description` VARCHAR(255) NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`),
+        KEY `idx_entry` (`entry_id`),
+        KEY `idx_account` (`account_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // A filed return is a snapshot. The nine boxes are stored as they stood
+    // when it was filed, NOT recomputed on view — a later edit to an old
+    // invoice must never silently change a return that has already gone to
+    // HMRC.
+    'vat_returns' => "CREATE TABLE IF NOT EXISTS `vat_returns` (
+        `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `period_from`  DATE NOT NULL,
+        `period_to`    DATE NOT NULL,
+        `status`       ENUM('draft','submitted') NOT NULL DEFAULT 'draft',
+        `box1` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `box2` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `box3` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `box4` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `box5` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `box6` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `box7` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `box8` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `box9` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `submitted_at` DATETIME NULL DEFAULT NULL,
+        `submitted_by` VARCHAR(120) NOT NULL DEFAULT '',
+        `notes`        TEXT NULL,
+        `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uq_period` (`period_from`, `period_to`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // Every adjustment carries a reason. HMRC expects an audit trail for any
+    // figure that differs from the accounting records, so the note is NOT
+    // optional and the UI refuses to save without one.
+    'vat_adjustments' => "CREATE TABLE IF NOT EXISTS `vat_adjustments` (
+        `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `return_id`  INT UNSIGNED NOT NULL,
+        `box`        TINYINT UNSIGNED NOT NULL,
+        `amount`     DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        `reason`     VARCHAR(255) NOT NULL,
+        `created_by` VARCHAR(120) NOT NULL DEFAULT '',
+        `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_return` (`return_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    'accounting_audit' => "CREATE TABLE IF NOT EXISTS `accounting_audit` (
+        `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `occurred_at` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `user_name`  VARCHAR(120) NOT NULL DEFAULT '',
+        `action`     VARCHAR(80)  NOT NULL,
+        `entity`     VARCHAR(60)  NOT NULL DEFAULT '',
+        `entity_id`  INT UNSIGNED NOT NULL DEFAULT 0,
+        `old_value`  TEXT NULL,
+        `new_value`  TEXT NULL,
+        `ip_address` VARCHAR(45)  NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`),
+        KEY `idx_when` (`occurred_at`),
+        KEY `idx_entity` (`entity`, `entity_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 ];
 
 foreach ($tables as $name => $sql) {
@@ -622,6 +830,96 @@ try {
     }
 } catch (Throwable $e) {
     $results[] = ['table' => 'gallery', 'col' => 'misplaced photos', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+}
+
+// ── 2e. Seed VAT rates and the chart of accounts ───────────
+//
+// INSERT IGNORE against a unique key, so this is safe to re-run and never
+// disturbs a rate or account someone has since edited.
+//
+// The rates are the UK set as at 2026: 20% standard, 5% reduced, 0% zero-rated,
+// plus Exempt and Outside Scope. Zero-rated and Exempt are both "no VAT
+// charged" and are NOT interchangeable — zero-rated sales belong in Box 6 and
+// exempt ones do not, which is why `kind` exists alongside `rate`.
+try {
+    if (cb_table_exists($pdo, 'vat_rates')) {
+        $seedRates = [
+            ['Standard 20%',   0.2000, 'standard',      1],
+            ['Reduced 5%',     0.0500, 'reduced',       2],
+            ['Zero rated 0%',  0.0000, 'zero',          3],
+            ['Exempt',         0.0000, 'exempt',        4],
+            ['Outside scope',  0.0000, 'outside_scope', 5],
+        ];
+        $st = $pdo->prepare("INSERT IGNORE INTO vat_rates (label, rate, kind, sort_order) VALUES (?,?,?,?)");
+        $n = 0;
+        foreach ($seedRates as $r) { $st->execute($r); $n += $st->rowCount(); }
+        $results[] = ['table' => 'vat_rates', 'col' => '(seed)',
+                      'status' => $n > 0 ? "✅ {$n} rate(s) added" : 'already seeded ✓', 'ok' => true];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'vat_rates', 'col' => '(seed)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+}
+
+try {
+    if (cb_table_exists($pdo, 'ledger_accounts')) {
+        // Codes follow the usual ranges so reports can group by the first
+        // digit: 1 asset, 2 liability, 3 equity, 4 income, 5+ cost.
+        // `system` marks the accounts the automatic postings depend on —
+        // those must not be deleted or the ledger stops balancing.
+        $accounts = [
+            ['1000','Cash','asset','none',1],
+            ['1010','Bank','asset','none',1],
+            ['1100','Accounts Receivable','asset','none',1],
+            ['1200','Inventory','asset','none',1],
+            ['1400','Equipment','asset','none',0],
+            ['1450','Accumulated Depreciation','asset','none',0],
+            ['2000','Accounts Payable','liability','none',1],
+            ['2200','Sales VAT (output)','liability','output_vat',1],
+            ['2210','Purchase VAT (input)','asset','input_vat',1],
+            ['3000','Capital','equity','none',0],
+            ['3100','Owner Drawings','equity','none',0],
+            ['3200','Retained Earnings','equity','none',0],
+            ['4000','Sales','income','none',1],
+            ['4100','Delivery Income','income','none',1],
+            ['5000','Purchases','expense','none',1],
+            ['5010','Cost of Goods Sold','expense','none',0],
+            ['6000','Utilities','expense','none',0],
+            ['6010','Rent','expense','none',0],
+            ['6020','Insurance','expense','none',0],
+            ['6030','Vehicle & Fuel','expense','none',0],
+            ['6040','Office Supplies','expense','none',0],
+            ['6050','Cleaning','expense','none',0],
+            ['6060','Packaging','expense','none',0],
+            ['6070','Ingredients','expense','none',0],
+            ['6080','Marketing','expense','none',0],
+            ['6090','Repairs','expense','none',0],
+            ['6100','Professional Fees','expense','none',0],
+            ['6110','Payroll','expense','none',0],
+            ['6120','Depreciation','expense','none',0],
+            ['6900','Miscellaneous','expense','none',0],
+        ];
+        $st = $pdo->prepare("INSERT IGNORE INTO ledger_accounts (code, name, type, vat_role, system) VALUES (?,?,?,?,?)");
+        $n = 0;
+        foreach ($accounts as $a) { $st->execute($a); $n += $st->rowCount(); }
+        $results[] = ['table' => 'ledger_accounts', 'col' => '(chart of accounts)',
+                      'status' => $n > 0 ? "✅ {$n} account(s) added" : 'already seeded ✓', 'ok' => true];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'ledger_accounts', 'col' => '(chart of accounts)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+}
+
+// The single settings row. is_registered stays 0 — installing this module
+// must not start treating a business as VAT registered on its behalf.
+try {
+    if (cb_table_exists($pdo, 'vat_settings')) {
+        $st = $pdo->prepare("INSERT IGNORE INTO vat_settings (id, business_name, period_start) VALUES (1, ?, ?)");
+        $st->execute([SHOP_NAME, date('Y-04-01')]);
+        $results[] = ['table' => 'vat_settings', 'col' => '(seed row)',
+                      'status' => $st->rowCount() > 0 ? '✅ created (VAT registration OFF until you set it)' : 'already present ✓',
+                      'ok' => true];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'vat_settings', 'col' => '(seed row)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 3. gallery: image/title -> filename/caption rename ──
