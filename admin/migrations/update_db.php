@@ -262,6 +262,24 @@ $tables = [
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 
+    // One row per Stripe refund actually issued. Append-only audit trail —
+    // never updated or deleted, same convention as journal_entries in the
+    // accounting module below. The authoritative "how much is left to
+    // refund" check is always a live call to Stripe (see
+    // admin/handlers/refund_order.php); this table is for the admin UI and
+    // the record, not the ceiling.
+    'order_refunds' => "CREATE TABLE IF NOT EXISTS `order_refunds` (
+        `id`                INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `order_id`          INT NOT NULL,
+        `amount`            DECIMAL(10,2) NOT NULL,
+        `reason`            VARCHAR(255) NOT NULL DEFAULT '',
+        `stripe_refund_id`  VARCHAR(64) NOT NULL DEFAULT '',
+        `created_by`        VARCHAR(150) NOT NULL DEFAULT '',
+        `created_at`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_order_refunds_order` (`order_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
     // ════════════════════════════════════════════════════════
     //  VAT & Accounting
     // ════════════════════════════════════════════════════════
@@ -920,6 +938,25 @@ try {
     }
 } catch (PDOException $e) {
     $results[] = ['table' => 'vat_settings', 'col' => '(seed row)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+}
+
+// ── 2f. Add "Bank" as a recognised order payment status ────
+//
+// payment_status started as a plain Unpaid/Paid/Cash enum. A bank-transfer
+// order had nowhere honest to go except "Cash" (paid, not online), which
+// hid it from a refund needing to know it can't call Stripe. Widening the
+// enum keeps payment_status the single source of truth instead of adding a
+// second flag that could disagree with it.
+try {
+    $col = $pdo->query("SHOW COLUMNS FROM `orders` LIKE 'payment_status'")->fetch();
+    if ($col && str_contains($col['Type'], "'Bank'")) {
+        $results[] = ['table' => 'orders', 'col' => 'payment_status (Bank)', 'status' => 'already present ✓', 'ok' => true];
+    } else {
+        $pdo->exec("ALTER TABLE `orders` MODIFY COLUMN `payment_status` ENUM('Unpaid','Paid','Cash','Bank') NOT NULL DEFAULT 'Unpaid'");
+        $results[] = ['table' => 'orders', 'col' => 'payment_status (Bank)', 'status' => '✅ enum widened to include Bank', 'ok' => true];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'orders', 'col' => 'payment_status (Bank)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 3. gallery: image/title -> filename/caption rename ──

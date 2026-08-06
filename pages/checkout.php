@@ -979,10 +979,16 @@ async function handleCheckout() {
     }
 
     if (currentPaymentMethod === 'later') {
-        // Pay Later — just submit the form
+        // Pay Later — just submit the form. The scoop-stacking loader is
+        // shown while the page navigates; it also disables the button, so a
+        // double-click cannot submit two orders.
         document.querySelector('[name="payment_method"]').value = 'later';
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Placing order...';
+        if (typeof cbScoopLoader === 'function') {
+            cbScoopLoader(btn, 'Building your order');
+        } else {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Placing order...';
+        }
         form.submit();
         return;
     }
@@ -993,8 +999,25 @@ async function handleCheckout() {
         return;
     }
 
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing payment...';
+    // Swap in the scoop-stacking loader while the payment round-trip runs.
+    // restore() undoes it on the error path; setLabel rewords the caption
+    // once the charge has succeeded. Falls back to the plain spinner if
+    // animations.js failed to load — and it must show SOMETHING, so the
+    // fallback sets its own busy content rather than leaving the button
+    // sitting on "Pay Now" for the whole round-trip.
+    var busy = (typeof cbScoopLoader === 'function')
+        ? cbScoopLoader(btn, 'Processing payment')
+        : (function () {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing payment...';
+            return {
+                restore: function () {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Pay Now</span>';
+                },
+                setLabel: function () {}   // the plain spinner already says enough
+            };
+        })();
 
     const errEl = document.getElementById('stripeError');
     errEl.style.display = 'none';
@@ -1012,12 +1035,11 @@ async function handleCheckout() {
     if (error) {
         errEl.textContent = error.message;
         errEl.style.display = 'block';
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Pay Now</span>';
+        busy.restore();
     } else {
         // Payment succeeded — submit form to save order
         document.querySelector('[name="payment_method"]').value = 'online';
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving order...';
+        busy.setLabel('Saving your order');
         form.submit();
     }
 }
@@ -1036,6 +1058,11 @@ const FREE_MILES        = <?= json_encode(FREE_DELIVERY_MILES) ?>;
 // that actually blocks the order.
 const MIN_ORDER         = <?= json_encode(MIN_DELIVERY_ORDER) ?>;
 const MAX_DELIVERY_MILES = <?= json_encode(DELIVERY_RADIUS_MILES) ?>;
+// Scales the straight-line figure toward a realistic driving distance — see
+// DELIVERY_DISTANCE_FACTOR in config.php for where this number comes from.
+// Same constant the server applies, so this page can never show a distance
+// the server would disagree with.
+const DISTANCE_FACTOR = <?= json_encode(DELIVERY_DISTANCE_FACTOR) ?>;
 // Pre-formatted for the messages below: "6" not "6.0", "1.99" with two places.
 const MAX_MILES_TXT = MAX_DELIVERY_MILES.toString().replace(/\.0$/, '');
 const DELIVERY_CHARGE_TXT = '£' + DELIVERY_CHARGE.toFixed(2);
@@ -1115,7 +1142,10 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const straightLine = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    // Scaled toward a realistic driving distance, same as the server — see
+    // DISTANCE_FACTOR above.
+    return straightLine * DISTANCE_FACTOR;
 }
 
 function isValidUKPostcode(pc) {

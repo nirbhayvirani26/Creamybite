@@ -229,6 +229,7 @@ acctPageStart('expenses', 'Expenses', acctPeriodLabel(['from' => $from, 'to' => 
             </select></div>
         <button type="submit" class="btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
         <span class="cbac-spacer"></span>
+        <a class="btn-sm" href="export.php?type=expenses&from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?><?= $catFilt !== '' ? '&category=' . urlencode($catFilt) : '' ?>"><i class="fa-solid fa-file-csv"></i> CSV</a>
         <button type="button" class="btn-sm" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
     </form>
 

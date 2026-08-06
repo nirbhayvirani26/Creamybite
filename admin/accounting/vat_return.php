@@ -159,7 +159,7 @@ acctPageStart('vat_return', 'VAT Return', acctPeriodLabel($period));
     <a class="btn-sm" href="?on=<?= $next ?>">Next period <i class="fa-solid fa-chevron-right"></i></a>
     <span class="cbac-spacer"></span>
     <button type="button" class="btn-sm" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
-    <a class="btn-sm" href="vat_return_export.php?on=<?= urlencode($period['from']) ?>"><i class="fa-solid fa-file-csv"></i> CSV</a>
+    <a class="btn-sm" href="export.php?type=vat_return&on=<?= urlencode($period['from']) ?>"><i class="fa-solid fa-file-csv"></i> CSV</a>
 </div>
 
 <?php if ($isSubmitted): ?>

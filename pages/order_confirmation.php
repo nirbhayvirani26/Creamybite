@@ -42,6 +42,9 @@ $items = json_decode($order['items_json'], true) ?? [];
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Confirmed! – <?= SHOP_NAME ?></title>
     <meta name="description" content="Your ice cream order has been confirmed at <?= SHOP_NAME ?>.">
+    <?php // Private, per-order page: the URL carries a code only the buyer knows,
+          // so it must never be indexed or followed by search engines. ?>
+    <meta name="robots" content="noindex, nofollow">
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
@@ -66,7 +69,7 @@ $items = json_decode($order['items_json'], true) ?? [];
 
 <main class="confirmation-page">
     <div class="container">
-        <div class="confirmation-icon">🎉</div>
+        <div class="confirmation-icon cb-scoop-pop">🎉<span class="cb-conf-emoji" aria-hidden="true">🍦</span></div>
         <h1 class="confirmation-title">Order <span class="gradient-text-warm">Placed!</span></h1>
         <?php
         $isCollection = (strpos($order['address'], 'Collection') !== false);

@@ -133,8 +133,8 @@ if (isset($_GET['access_denied'])) $errorMsg = "You don't have access to that se
 $totalOrders   = $pdo->query("SELECT COUNT(*) FROM orders")->fetchColumn();
 $pendingOrders = $pdo->query("SELECT COUNT(*) FROM orders WHERE status = 'Pending'")->fetchColumn();
 // Cancelled orders must not count as revenue — the money was refunded or
-// never taken, but the row keeps its Paid/Cash payment_status.
-$totalRevenue  = $pdo->query("SELECT COALESCE(SUM(total_price), 0) FROM orders WHERE payment_status IN ('Paid', 'Cash') AND status <> 'Cancelled'")->fetchColumn();
+// never taken, but the row keeps its Paid/Cash/Bank payment_status.
+$totalRevenue  = $pdo->query("SELECT COALESCE(SUM(total_price), 0) FROM orders WHERE payment_status IN ('Paid', 'Cash', 'Bank') AND status <> 'Cancelled'")->fetchColumn();
 $totalProducts = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
 
 // ── Active tab ────────────────────────────────────────────
@@ -185,6 +185,18 @@ $orders = $pdo->query(
        LEFT JOIN sales_reps r ON r.id = o.sales_rep_id
       ORDER BY o.created_at DESC"
 )->fetchAll();
+
+// How much has actually been refunded per order, for the "£X refunded" chip.
+// Wrapped like the owner_settings lookup elsewhere — a server that hasn't
+// run the migration yet just shows no chips rather than fataling the page.
+$refundsByOrder = [];
+try {
+    $refundRows = $pdo->query("SELECT order_id, SUM(amount) AS refunded FROM order_refunds GROUP BY order_id")
+                       ->fetchAll(PDO::FETCH_KEY_PAIR);
+    $refundsByOrder = array_map('floatval', $refundRows);
+} catch (PDOException $e) {
+    $refundsByOrder = [];
+}
 
 // ── Load stock data (for Stock tab) ───────────────────────
 $stockProducts      = [];
@@ -363,16 +375,28 @@ if ($activeTab === 'revenue') {
 
     // Summary by payment status
     try {
-        $rstmt = $pdo->prepare("SELECT payment_status, SUM(total_price) AS total, COUNT(*) AS cnt FROM orders WHERE DATE(created_at) BETWEEN :f AND :t GROUP BY payment_status");
+        // Cancelled must not count as revenue here either — this query had no
+        // status filter at all, so a cancelled Paid order was still adding
+        // itself to the "Paid Online" stat card above.
+        $rstmt = $pdo->prepare("SELECT payment_status, SUM(total_price) AS total, COUNT(*) AS cnt FROM orders WHERE DATE(created_at) BETWEEN :f AND :t AND status <> 'Cancelled' GROUP BY payment_status");
         $rstmt->execute(['f' => $revFrom, 't' => $revTo]);
         $byStatus = [];
         while ($r = $rstmt->fetch()) $byStatus[$r['payment_status']] = $r;
         $revData['online']       = (float)($byStatus['Paid']['total']  ?? 0);
         $revData['cash']         = (float)($byStatus['Cash']['total']  ?? 0);
-        $revData['total']        = $revData['online'] + $revData['cash'];
+        $revData['bank']         = (float)($byStatus['Bank']['total']  ?? 0);
+        $revData['total']        = $revData['online'] + $revData['cash'] + $revData['bank'];
         $revData['unpaid_total'] = (float)($byStatus['Unpaid']['total'] ?? 0);
         $revData['unpaid_count'] = (int)($byStatus['Unpaid']['cnt']    ?? 0);
-    } catch (PDOException $e) { $revData['total'] = 0; $revData['online'] = 0; $revData['cash'] = 0; $revData['unpaid_total'] = 0; $revData['unpaid_count'] = 0; }
+    } catch (PDOException $e) { $revData['total'] = 0; $revData['online'] = 0; $revData['cash'] = 0; $revData['bank'] = 0; $revData['unpaid_total'] = 0; $revData['unpaid_count'] = 0; }
+
+    // Refunds actually issued/logged in this period (by refund date, not the
+    // original order date — a refund can land weeks after the sale).
+    try {
+        $rfstmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM order_refunds WHERE DATE(created_at) BETWEEN :f AND :t");
+        $rfstmt->execute(['f' => $revFrom, 't' => $revTo]);
+        $revData['refunded'] = (float)$rfstmt->fetchColumn();
+    } catch (PDOException $e) { $revData['refunded'] = 0.0; }
 
     // ── Split retail vs trade, and add invoices raised outside an order ──
     // Cancelled orders are excluded: the money was refunded or never taken,
@@ -385,7 +409,7 @@ if ($activeTab === 'revenue') {
                     COALESCE(SUM(total_price), 0) AS total, COUNT(*) AS cnt
                FROM orders
               WHERE DATE(created_at) BETWEEN :f AND :t
-                AND payment_status IN ('Paid','Cash')
+                AND payment_status IN ('Paid','Cash','Bank')
                 AND status <> 'Cancelled'
            GROUP BY kind"
         );
@@ -447,7 +471,7 @@ if ($activeTab === 'revenue') {
     } catch (PDOException $e) { $revOrders = []; }
 
     foreach ($revOrders as $o) {
-        $isPaid = in_array($o['payment_status'], ['Paid', 'Cash']);
+        $isPaid = in_array($o['payment_status'], ['Paid', 'Cash', 'Bank']);
         $items  = json_decode($o['items_json'], true) ?? [];
         foreach ($items as $it) {
             $pid  = $it['product_id'] ?? 0;
@@ -465,7 +489,7 @@ if ($activeTab === 'revenue') {
 
     // Product charts: all-time paid orders
     try {
-        $allStmt = $pdo->query("SELECT items_json, created_at FROM orders WHERE payment_status IN ('Paid','Cash')");
+        $allStmt = $pdo->query("SELECT items_json, created_at FROM orders WHERE payment_status IN ('Paid','Cash','Bank')");
         while ($o = $allStmt->fetch()) {
             $dt    = new DateTime($o['created_at']);
             $items = json_decode($o['items_json'], true) ?? [];
@@ -1133,7 +1157,7 @@ $pageTitles = [
                                 $tradeStore = trim($m[1]);
                             }
                         ?>
-                        <tr id="row-<?= $order['id'] ?>" class="order-row" data-id="<?= $order['id'] ?>" data-date="<?= strtotime($order['created_at']) ?>" data-status="<?= htmlspecialchars($order['status']) ?>" data-payment-status="<?= htmlspecialchars($order['payment_status'] ?? 'Unpaid') ?>" data-payment-method="<?= htmlspecialchars($order['payment_method'] ?? 'later') ?>" data-order-code="<?= htmlspecialchars($order['order_code'], ENT_QUOTES) ?>" data-customer="<?= htmlspecialchars($order['customer_name'], ENT_QUOTES) ?>" data-phone="<?= htmlspecialchars($order['phone'] ?? '', ENT_QUOTES) ?>" data-store="<?= htmlspecialchars($order['trade_business_name'] ?? '', ENT_QUOTES) ?>">
+                        <tr id="row-<?= $order['id'] ?>" class="order-row" data-id="<?= $order['id'] ?>" data-date="<?= strtotime($order['created_at']) ?>" data-status="<?= htmlspecialchars($order['status']) ?>" data-payment-status="<?= htmlspecialchars($order['payment_status'] ?? 'Unpaid') ?>" data-payment-method="<?= htmlspecialchars($order['payment_method'] ?? 'later') ?>" data-order-code="<?= htmlspecialchars($order['order_code'], ENT_QUOTES) ?>" data-customer="<?= htmlspecialchars($order['customer_name'], ENT_QUOTES) ?>" data-phone="<?= htmlspecialchars($order['phone'] ?? '', ENT_QUOTES) ?>" data-store="<?= htmlspecialchars($order['trade_business_name'] ?? '', ENT_QUOTES) ?>" data-total="<?= (float)$order['total_price'] ?>" data-refunded="<?= (float)($refundsByOrder[$order['id']] ?? 0) ?>">
                             <td>
                                 <button class="expand-btn" onclick="toggleDetail(<?= $order['id'] ?>)" title="View details">
                                     <i class="fa-solid fa-chevron-down" id="icon-<?= $order['id'] ?>"></i>
@@ -1194,6 +1218,10 @@ $pageTitles = [
                                         $payIcon = '<i class="fa-solid fa-money-bill-wave"></i>';
                                         $payLabel = 'Cash';
                                         $payStateClass = 'is-cash';
+                                    } elseif ($ps === 'Bank') {
+                                        $payIcon = '<i class="fa-solid fa-building-columns"></i>';
+                                        $payLabel = 'Bank Transfer';
+                                        $payStateClass = 'is-bank';
                                     } else {
                                         $payIcon = '<i class="fa-solid fa-clock"></i>';
                                         $payLabel = 'Unpaid';
@@ -1204,18 +1232,26 @@ $pageTitles = [
                                     <?= $payIcon ?> <?= $payLabel ?>
                                 </span>
                                 <?php
-                                // A card order links straight to its payment in Stripe.
-                                // Refunds happen there, not here, so the useful thing this
-                                // page can do is take you to the right payment rather than
-                                // leave you matching amounts by eye in a list of them.
                                 $pi = trim((string)($order['stripe_payment_intent'] ?? ''));
-                                if ($pi !== ''):
+                                // Card-paid with a live Stripe payment behind it, or a cash /
+                                // bank-transfer order — the cases where money actually changed
+                                // hands and could need to come back. An Unpaid order has
+                                // nothing to refund at all.
+                                $isCardPayment  = $ps === 'Paid' && in_array($pm, ['online', 'card', 'stripe'], true) && $pi !== '';
+                                $isManualPaid   = in_array($ps, ['Cash', 'Bank'], true);
+                                $canRefund      = $isCardPayment || $isManualPaid;
+                                $refundedSoFar = $refundsByOrder[$order['id']] ?? 0.0;
+                                if ($refundedSoFar > 0):
                                 ?>
+                                <span id="refund-chip-<?= $order['id'] ?>" class="cbi-ord-refund-chip" title="Total refunded on this order so far">
+                                    <i class="fa-solid fa-rotate-left"></i> £<?= number_format($refundedSoFar, 2) ?> refunded
+                                </span>
+                                <?php endif; if ($pi !== ''): ?>
                                 <a href="https://dashboard.stripe.com/payments/<?= urlencode($pi) ?>"
                                    target="_blank" rel="noopener noreferrer"
                                    class="cbi-ord-stripe-link"
-                                   title="Open this payment in Stripe — refunds are made there">
-                                    <i class="fa-brands fa-stripe-s"></i> Refund in Stripe
+                                   title="View this payment in Stripe">
+                                    <i class="fa-brands fa-stripe-s"></i> View in Stripe
                                 </a>
                                 <?php endif; ?>
                             </td>
@@ -1225,6 +1261,30 @@ $pageTitles = [
                             </td>
                             <td class="cbi-col-right">
                                 <div class="cbi-ord-actions">
+                                    <?php if ($canRefund):
+                                        $refundKind = $isCardPayment ? 'card' : ($ps === 'Bank' ? 'bank' : 'cash');
+                                        $refundItems = json_decode($order['items_json'] ?? '', true) ?: [];
+                                        // Keep the modal's payload small — only what it needs to
+                                        // show a line and price, not the full cart row shape.
+                                        $refundItemsSlim = array_map(fn($it) => [
+                                            'n' => trim(($it['name'] ?? 'Item') . ' ' . ($it['variant_name'] ?? '')),
+                                            'p' => (float)($it['price'] ?? 0),
+                                            'q' => (int)($it['quantity'] ?? 1),
+                                        ], $refundItems);
+                                        $refundAmount = max(0, round((float)$order['total_price'] - $refundedSoFar, 2));
+                                        // json_encode()'s own string delimiters are always literal
+                                        // double quotes, so this whole attribute has to be
+                                        // single-quoted (like cbiEditStaff below uses) — a
+                                        // double-quoted onclick="..." here silently truncated the
+                                        // items array at its first "key": value pair.
+                                        $cbiRefundFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP;
+                                    ?>
+                                    <button class="btn-sm btn-sm-refund cbi-ord-action-btn"
+                                            onclick='openRefundModal(<?= (int)$order['id'] ?>, <?= json_encode($order['order_code'], $cbiRefundFlags) ?>, <?= json_encode($refundAmount, $cbiRefundFlags) ?>, "", <?= json_encode($refundKind, $cbiRefundFlags) ?>, <?= json_encode($refundItemsSlim, $cbiRefundFlags) ?>)'
+                                            title="<?= $refundKind === 'card' ? 'Refund this order' : 'Record a refund for this order' ?>">
+                                        <i class="fa-solid fa-rotate-left"></i>
+                                    </button>
+                                    <?php endif; ?>
                                     <a href="delivery_note.php?code=<?= urlencode($order['order_code']) ?>" target="_blank" class="btn-sm btn-sm-outline cbi-ord-action-btn" title="Print Delivery Note & Invoice">
                                         <i class="fa-solid fa-print"></i>
                                     </a>
@@ -1374,22 +1434,35 @@ $pageTitles = [
                                         <div class="cbi-ord-divider"></div>
 
                                         <!-- Payment Status -->
-                                        <?php if (($order['payment_status'] ?? '') === 'Paid'): ?>
-                                        <div class="cbi-ord-paid-locked">
-                                            <i class="fa-solid fa-lock cbi-badge-sm"></i> ✅ Paid Online (Locked)
-                                        </div>
-                                        <?php else: ?>
                                         <div class="cbi-inline-row">
                                             <label class="cbi-ord-field-label">Payment</label>
                                             <select class="status-select" id="pstatus-<?= $order['id'] ?>">
                                                 <option value="Unpaid"  <?= ($order['payment_status'] ?? 'Unpaid') === 'Unpaid' ? 'selected' : '' ?>>⏳ Not Paid</option>
                                                 <option value="Paid"    <?= ($order['payment_status'] ?? '') === 'Paid'   ? 'selected' : '' ?>>✅ Paid Online</option>
                                                 <option value="Cash"    <?= ($order['payment_status'] ?? '') === 'Cash'   ? 'selected' : '' ?>>💵 Cash Received</option>
+                                                <option value="Bank"    <?= ($order['payment_status'] ?? '') === 'Bank'   ? 'selected' : '' ?>>🏦 Bank Transfer</option>
                                             </select>
                                             <button class="btn-sm btn-sm-primary" onclick="updatePaymentStatus(<?= $order['id'] ?>)">
                                                 <i class="fa-solid fa-check"></i> Save
                                             </button>
                                         </div>
+                                        <?php
+                                        // No longer a hard lock — a Stripe refund/log can be issued
+                                        // right here now. Just a reminder so changing this away from
+                                        // Paid isn't mistaken for the actual refund.
+                                        $isStripePaid = ($order['payment_status'] ?? '') === 'Paid'
+                                            && in_array($order['payment_method'] ?? '', ['online', 'card', 'stripe'], true);
+                                        if ($isStripePaid):
+                                        ?>
+                                        <div class="cbi-ord-paid-note">
+                                            <i class="fa-solid fa-circle-info"></i> Paid by card through Stripe — use Refund to actually return the money, changing this dropdown alone does not.
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if ($canRefund): ?>
+                                        <button class="btn-sm btn-sm-refund"
+                                                onclick='openRefundModal(<?= (int)$order['id'] ?>, <?= json_encode($order['order_code'], $cbiRefundFlags) ?>, <?= json_encode($refundAmount, $cbiRefundFlags) ?>, "", <?= json_encode($refundKind, $cbiRefundFlags) ?>, <?= json_encode($refundItemsSlim, $cbiRefundFlags) ?>)'>
+                                            <i class="fa-solid fa-rotate-left"></i> <?= $refundKind === 'card' ? 'Refund' : 'Record Refund' ?>
+                                        </button>
                                         <?php endif; ?>
 
                                         <span id="status-msg-<?= $order['id'] ?>" class="cbi-ord-status-msg"></span>
@@ -2030,10 +2103,21 @@ $pageTitles = [
                 <div class="stat-label">Cash</div>
                 <div class="stat-value cbi-rev-value-cash">£<?= number_format($revData['cash'] ?? 0, 2) ?></div>
             </div>
+            <div class="stat-card glass-panel cbi-rev-card-bank">
+                <div class="stat-card-icon">🏦</div>
+                <div class="stat-label">Bank Transfer</div>
+                <div class="stat-value cbi-rev-value-bank">£<?= number_format($revData['bank'] ?? 0, 2) ?></div>
+            </div>
             <div class="stat-card glass-panel cbi-rev-card-unpaid">
                 <div class="stat-card-icon">⏳</div>
                 <div class="stat-label">Unpaid (<?= $revData['unpaid_count'] ?? 0 ?> orders)</div>
                 <div class="stat-value cbi-rev-value-unpaid">£<?= number_format($revData['unpaid_total'] ?? 0, 2) ?></div>
+            </div>
+            <div class="stat-card glass-panel cbi-rev-card-refunded">
+                <div class="stat-card-icon">↩️</div>
+                <div class="stat-label">Refunded (this period)</div>
+                <div class="stat-value cbi-rev-value-refunded">£<?= number_format($revData['refunded'] ?? 0, 2) ?></div>
+                <div class="cbi-stat-subnote">net revenue: £<?= number_format(($revData['total'] ?? 0) - ($revData['refunded'] ?? 0), 2) ?></div>
             </div>
         </div>
 
@@ -2980,6 +3064,23 @@ function updateStatus(orderId, orderCode, repId) {
                 repCell.innerHTML = '<span class="cbi-rep-name"><i class="fa-solid fa-truck"></i> ' +
                                     data.rep_name.replace(/[<>&]/g, '') + '</span>';
             }
+            mainRow.setAttribute('data-status', status);
+
+            // Cancelling a paid order — card, cash or bank — is exactly the
+            // moment the money should come back. Offer it straight away
+            // instead of sending the admin off to find the Refund button.
+            if (status === 'Cancelled') {
+                const payStatus = mainRow.getAttribute('data-payment-status');
+                const paidCard  = payStatus === 'Paid'
+                    && ['online', 'card', 'stripe'].includes(mainRow.getAttribute('data-payment-method'));
+                const kind = paidCard ? 'card' : (payStatus === 'Bank' ? 'bank' : (payStatus === 'Cash' ? 'cash' : null));
+                const alreadyRefunded = !!document.getElementById('refund-chip-' + orderId);
+                if (kind && !alreadyRefunded) {
+                    const total    = parseFloat(mainRow.getAttribute('data-total') || '0');
+                    const refunded = parseFloat(mainRow.getAttribute('data-refunded') || '0');
+                    openRefundModal(orderId, orderCode, Math.max(0, total - refunded), 'Order cancelled', kind, null);
+                }
+            }
             setTimeout(() => msgEl.textContent = '', 3000);
         } else {
             msgEl.textContent = '❌ ' + (data.message || 'Failed to save.');
@@ -3102,9 +3203,190 @@ function wdConfirm(orderId, orderCode) {
     updateStatus(orderId, orderCode, repId);
 }
 
-function updatePaymentStatus(orderId) {
+// Refund modal — amount + reason, built on demand the same way
+// askWhoDelivered() is above. Opened from the row's Refund button, or
+// automatically after cancelling a paid order / removing an item from one.
+// The prefilled amount is only a starting point — handlers/refund_order.php
+// checks the real remaining balance against Stripe before moving any money.
+let rfOnClose = null;
+
+// items, when given, is [{n: 'Item name', p: unitPrice, q: quantity}, ...] —
+// ticking one recomputes the amount field, so "refund the whole order" and
+// "refund just this tub" both end up as the same amount + confirm click
+// rather than the admin doing the arithmetic by hand.
+function openRefundModal(orderId, orderCode, amount, reason, kind, items, onClose) {
+    const existing = document.getElementById('refundBackdrop');
+    if (existing) existing.remove();
+    rfOnClose = onClose || null;
+
+    // Same dialog for all three — the point is that a refund looks and feels
+    // like the same action to an admin no matter how the order was paid.
+    // Only the wording changes: a card refund is Stripe moving the money for
+    // you, cash/bank are you recording that you already sent it back.
+    const wording = {
+        card: { subtitle: "This refunds the customer's card through Stripe right away.", label: 'Refund' },
+        cash: { subtitle: 'This was paid in cash — hand the money back, then record it here so it shows on the order.', label: 'Record refund' },
+        bank: { subtitle: 'This was paid by bank transfer — send the money back from your online banking, then record it here so it shows on the order.', label: 'Record refund' },
+    };
+    const w = wording[kind] || wording.card;
+
+    let itemsHtml = '';
+    if (Array.isArray(items) && items.length) {
+        const rows = items.map(it => {
+            const price = Number(it.p) || 0;
+            const qty   = Number(it.q) || 1;
+            const name  = String(it.n || 'Item').replace(/[<>&]/g, '');
+            return '<label class="cbi-rf-item">' +
+                       '<input type="checkbox" class="cbi-rf-item-check" data-price="' + price + '" data-qty="' + qty + '" onchange="rfRecalc()">' +
+                       '<span class="cbi-rf-item-name">' + name + ' × ' + qty + '</span>' +
+                       '<span class="cbi-rf-item-price">£' + (price * qty).toFixed(2) + '</span>' +
+                   '</label>';
+        }).join('');
+        itemsHtml =
+            '<label class="cbi-rf-label">Refund specific items (optional)</label>' +
+            '<div class="cbi-rf-item-list">' + rows + '</div>' +
+            '<div class="cbi-rf-item-actions">' +
+                '<button type="button" class="btn-sm btn-sm-outline" onclick="rfSelectAll(true)">Whole order</button>' +
+                '<button type="button" class="btn-sm btn-sm-outline" onclick="rfSelectAll(false)">Clear</button>' +
+            '</div>';
+    }
+
+    const wrap = document.createElement('div');
+    wrap.id = 'refundBackdrop';
+    wrap.className = 'cbi-rf-backdrop';
+    wrap.innerHTML = `
+        <div class="cbi-rf-box" role="dialog" aria-modal="true" aria-labelledby="rfTitle">
+            <h3 id="rfTitle" class="cbi-rf-title"><i class="fa-solid fa-rotate-left"></i> Refund ${orderCode}</h3>
+            <p class="cbi-rf-sub">${w.subtitle}</p>
+
+            ${itemsHtml}
+
+            <label class="cbi-rf-label" for="rfAmount">Amount to refund (£)</label>
+            <input type="number" id="rfAmount" class="form-control" step="0.01" min="0.01" value="${Number(amount || 0).toFixed(2)}">
+
+            <label class="cbi-rf-label" for="rfReason">Reason</label>
+            <input type="text" id="rfReason" class="form-control" maxlength="255" placeholder="e.g. Order cancelled" value="${String(reason || '').replace(/"/g, '&quot;')}">
+
+            <div id="rfMsg" class="cbi-wd-msg"></div>
+
+            <div class="cbi-rf-actions">
+                <button type="button" class="btn-secondary" onclick="rfClose()">Not now</button>
+                <button type="button" class="btn-primary" id="rfConfirmBtn" onclick="rfConfirm(${orderId})">
+                    <i class="fa-solid fa-check"></i> ${w.label}
+                </button>
+            </div>
+        </div>`;
+    document.body.appendChild(wrap);
+
+    wrap.addEventListener('click', e => { if (e.target === wrap) rfClose(); });
+    document.addEventListener('keydown', rfEsc);
+
+    requestAnimationFrame(() => {
+        wrap.classList.add('is-open');
+        const inp = document.getElementById('rfAmount');
+        if (inp) { inp.focus(); inp.select(); }
+    });
+}
+
+// Sum of ticked items becomes the amount — an admin can still type over it
+// by hand afterwards for a partial/goodwill figure.
+function rfRecalc() {
+    const checks = document.querySelectorAll('.cbi-rf-item-check:checked');
+    const amountEl = document.getElementById('rfAmount');
+    if (!amountEl) return;
+    let sum = 0;
+    checks.forEach(c => { sum += parseFloat(c.dataset.price) * parseFloat(c.dataset.qty); });
+    amountEl.value = sum.toFixed(2);
+}
+
+function rfSelectAll(select) {
+    document.querySelectorAll('.cbi-rf-item-check').forEach(c => { c.checked = select; });
+    rfRecalc();
+}
+
+function rfEsc(e) { if (e.key === 'Escape') rfClose(); }
+
+function rfClose() {
+    const el = document.getElementById('refundBackdrop');
+    const cb = rfOnClose;
+    rfOnClose = null;
+    if (!el) { if (cb) cb(); return; }
+    el.classList.remove('is-open');
+    document.removeEventListener('keydown', rfEsc);
+    setTimeout(() => { el.remove(); if (cb) cb(); }, 180);
+}
+
+function rfConfirm(orderId) {
+    const amountEl = document.getElementById('rfAmount');
+    const reasonEl = document.getElementById('rfReason');
+    const msg      = document.getElementById('rfMsg');
+    const btn      = document.getElementById('rfConfirmBtn');
+    const amount   = parseFloat(amountEl.value);
+
+    if (!amount || amount <= 0) { msg.textContent = 'Enter an amount to refund.'; return; }
+
+    btn.disabled = true;
+    msg.style.color = '';
+    msg.textContent = 'Processing…';
+
+    fetch('handlers/refund_order.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'order_id=' + orderId + '&amount=' + encodeURIComponent(amount) + '&reason=' + encodeURIComponent(reasonEl.value || ''),
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        if (!data.success) {
+            msg.style.color = 'var(--color-danger)';
+            msg.textContent = data.message || 'Could not process that refund.';
+            return;
+        }
+        // Reflect the new refunded total on the row without a reload.
+        const mainRow = document.getElementById('row-' + orderId);
+        let chip = document.getElementById('refund-chip-' + orderId);
+        if (!chip && mainRow) {
+            const badge = document.getElementById('pay-badge-' + orderId);
+            chip = document.createElement('span');
+            chip.id = 'refund-chip-' + orderId;
+            chip.className = 'cbi-ord-refund-chip';
+            chip.title = 'Total refunded on this order so far';
+            if (badge) badge.insertAdjacentElement('afterend', chip);
+        }
+        if (chip) chip.innerHTML = '<i class="fa-solid fa-rotate-left"></i> £' + data.refunded_total + ' refunded';
+        if (mainRow) mainRow.setAttribute('data-refunded', data.refunded_total);
+        rfClose();
+    })
+    .catch(() => {
+        btn.disabled = false;
+        msg.style.color = 'var(--color-danger)';
+        msg.textContent = 'Could not reach the server.';
+    });
+}
+
+async function updatePaymentStatus(orderId) {
     const ps    = document.getElementById('pstatus-' + orderId).value;
     const msgEl = document.getElementById('status-msg-' + orderId);
+    const row   = document.getElementById('row-' + orderId);
+
+    // The dropdown is never locked any more, but changing a Stripe-paid
+    // order away from Paid while nothing has actually been refunded is
+    // exactly how a real payment quietly stops being tracked anywhere — so
+    // ask, once, right before it happens.
+    if (row) {
+        const wasStripePaid = row.getAttribute('data-payment-status') === 'Paid'
+            && ['online', 'card', 'stripe'].includes(row.getAttribute('data-payment-method'));
+        const alreadyRefunded = !!document.getElementById('refund-chip-' + orderId);
+        if (wasStripePaid && ps !== 'Paid' && !alreadyRefunded) {
+            const ok = await cbConfirm(
+                'This order was paid by card through Stripe and no refund has been logged for it yet. ' +
+                'Changing the payment status alone does NOT return any money — use the Refund button for that.\n\n' +
+                'Change the status anyway?',
+                {title: 'Unrefunded card payment', tone: 'danger', okText: 'Change anyway'}
+            );
+            if (!ok) return;
+        }
+    }
 
     fetch('handlers/update_order.php', {
         method: 'POST',
@@ -3122,13 +3404,14 @@ function updatePaymentStatus(orderId) {
                 // Same three states the PHP above renders, so a badge updated
                 // here looks identical to one rendered on a fresh page load.
                 const map = {
-                    'Paid':   { icon: '<i class="fa-solid fa-circle-check"></i>',    label: 'Paid Online',   cls: 'is-paid'   },
-                    'Cash':   { icon: '<i class="fa-solid fa-money-bill-wave"></i>', label: 'Cash Received', cls: 'is-cash'   },
-                    'Unpaid': { icon: '<i class="fa-solid fa-clock"></i>',           label: 'Not Paid',      cls: 'is-unpaid' },
+                    'Paid':   { icon: '<i class="fa-solid fa-circle-check"></i>',      label: 'Paid Online',    cls: 'is-paid'   },
+                    'Cash':   { icon: '<i class="fa-solid fa-money-bill-wave"></i>',   label: 'Cash Received',  cls: 'is-cash'   },
+                    'Bank':   { icon: '<i class="fa-solid fa-building-columns"></i>',  label: 'Bank Transfer',  cls: 'is-bank'   },
+                    'Unpaid': { icon: '<i class="fa-solid fa-clock"></i>',             label: 'Not Paid',       cls: 'is-unpaid' },
                 };
                 const m = map[ps] || map['Unpaid'];
                 badge.innerHTML = m.icon + ' ' + m.label;
-                badge.classList.remove('is-paid', 'is-cash', 'is-unpaid');
+                badge.classList.remove('is-paid', 'is-cash', 'is-bank', 'is-unpaid');
                 badge.classList.add(m.cls);
             }
 
@@ -3529,10 +3812,21 @@ async function removeOrderItem(orderId, itemIndex, itemName) {
     .then(r => r.json())
     .then(data => {
         if (!data.success) { cbAlert(data.message || 'Could not remove that item.', {title:'Could not remove item', tone:'danger'}); return; }
-        let msg = data.message;
-        if (data.refund_due) msg += '\n\nThis order was already paid — £' + data.refund_due + ' is owed back to the customer.';
-        cbAlert(msg, {title:'Item removed', tone:'success'});
-        location.reload();
+        // A paid order — card, cash or bank — owes the customer the
+        // difference. The modal adapts its wording to which one this is; the
+        // handler behind it does the right thing either way (a real Stripe
+        // refund for card, just a record for cash/bank).
+        const row       = document.getElementById('row-' + orderId);
+        const payStatus = row ? row.getAttribute('data-payment-status') : '';
+        const kind      = payStatus === 'Bank' ? 'bank' : (payStatus === 'Cash' ? 'cash' : 'card');
+
+        return cbAlert(data.message, {title:'Item removed', tone:'success'}).then(() => {
+            if (data.refund_due) {
+                openRefundModal(orderId, orderCode, parseFloat(data.refund_due), 'Item removed: ' + itemName, kind, null, () => location.reload());
+            } else {
+                location.reload();
+            }
+        });
     })
     .catch(err => cbAlert('Could not reach the server: ' + err.message, {title:'Request failed', tone:'danger'}));
 }

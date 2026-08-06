@@ -36,6 +36,7 @@ function acctNav(): array
         'vat_return' => ['VAT Return',  'fa-file-invoice-dollar'],
         'expenses'   => ['Expenses',    'fa-receipt'],
         'purchases'  => ['Purchases',   'fa-truck-field'],
+        'refunds'    => ['Refunds',     'fa-rotate-left'],
         'ledger'     => ['Ledger',      'fa-book'],
         'reports'    => ['Reports',     'fa-chart-column'],
         'settings'   => ['Settings',    'fa-gear'],

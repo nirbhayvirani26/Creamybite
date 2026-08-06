@@ -71,7 +71,10 @@ function calculateDeliveryCharge(string $postcode, float $subtotal = 0.0): float
                 $dLat  = deg2rad($lat2 - $shopLat);
                 $dLon  = deg2rad($lon2 - $shopLon);
                 $a     = sin($dLat / 2) ** 2 + cos(deg2rad($shopLat)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
-                $miles = $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
+                $straightLine = $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
+                // Scaled toward a realistic driving distance — see
+                // DELIVERY_DISTANCE_FACTOR in config.php for why.
+                $miles = $straightLine * DELIVERY_DISTANCE_FACTOR;
                 $result = $miles <= $freeMiles ? 0.0 : $charge;
             }
         }

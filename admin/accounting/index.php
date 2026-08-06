@@ -161,9 +161,9 @@ acctPageStart('index', 'VAT & Accounting',
         <span class="cbac-card-note"><?= $purchases['count'] ?> recorded</span>
     </div>
     <div class="cbac-card <?= $grossProfit >= 0 ? '' : 'is-refund' ?>">
-        <span class="cbac-card-label">Gross profit</span>
+        <span class="cbac-card-label">Profit (summary)</span>
         <span class="cbac-card-value"><?= acctMoney($grossProfit) ?></span>
-        <span class="cbac-card-note">sales less recorded costs</span>
+        <span class="cbac-card-note">sales less recorded costs — <a href="reports.php">full P&amp;L</a></span>
     </div>
     <div class="cbac-card">
         <span class="cbac-card-label">Owed to you</span>
@@ -175,6 +175,13 @@ acctPageStart('index', 'VAT & Accounting',
         <span class="cbac-card-value"><?= acctMoney($owedByUs) ?></span>
         <span class="cbac-card-note">unpaid supplier bills</span>
     </div>
+    <?php if ($sales['refunded'] > 0): ?>
+    <div class="cbac-card is-refund">
+        <span class="cbac-card-label">Refunded this period</span>
+        <span class="cbac-card-value"><?= acctMoney($sales['refunded']) ?></span>
+        <span class="cbac-card-note">already subtracted from sales &amp; VAT above</span>
+    </div>
+    <?php endif; ?>
 </div>
 
 <?php if ($purchases['count'] === 0): ?>

@@ -36,6 +36,26 @@
         <priority>0.4</priority>
     </url>
     <url>
+        <loc>https://orders.creamybite.com/pages/faq.php</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.4</priority>
+    </url>
+    <url>
+        <loc>https://orders.creamybite.com/pages/allergens.php</loc>
+        <changefreq>monthly</changefreq>
+        <priority>0.4</priority>
+    </url>
+    <url>
+        <loc>https://orders.creamybite.com/pages/storage.php</loc>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://orders.creamybite.com/pages/cookies.php</loc>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
         <loc>https://orders.creamybite.com/pages/privacy.php</loc>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>

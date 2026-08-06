@@ -330,9 +330,11 @@ function invoiceSettleFromPaidOrder(PDO $pdo, int $invoiceId): bool
             return false;
         }
 
-        $method = ($row['payment_method'] ?? '') === 'cash' || $row['payment_status'] === 'Cash'
-            ? 'Cash'
-            : 'Card (online)';
+        $method = match (true) {
+            ($row['payment_method'] ?? '') === 'cash' || $row['payment_status'] === 'Cash' => 'Cash',
+            $row['payment_status'] === 'Bank' => 'Bank Transfer',
+            default => 'Card (online)',
+        };
 
         $pdo->prepare(
             "INSERT INTO invoice_payments (invoice_id, paid_on, amount, method, reference)

@@ -177,7 +177,10 @@ function getPostcodeDistanceMiles(string $postcode, ?string &$reason = null): ?f
         $dLat  = deg2rad($lat2 - $shopLat);
         $dLon  = deg2rad($lon2 - $shopLon);
         $a     = sin($dLat/2)**2 + cos(deg2rad($shopLat)) * cos(deg2rad($lat2)) * sin($dLon/2)**2;
-        return $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $straightLine = $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
+        // Straight-line, scaled toward a realistic driving distance — see the
+        // constant's own comment in config.php for where 1.3 comes from.
+        return $straightLine * DELIVERY_DISTANCE_FACTOR;
     } catch (Throwable $e) {
         $reason = 'unreachable';
         return null;

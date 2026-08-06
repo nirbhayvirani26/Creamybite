@@ -253,6 +253,271 @@ img.cb-img-loading {
     html { scroll-behavior: smooth; }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   ICE CREAM THEME — playful touches that say "scoops, not SaaS".
+
+   Everything in this block is decorative: it floats behind or
+   around real content, never over it, and the rules that disable
+   animation under prefers-reduced-motion also hide the purely
+   decorative bits so nobody is left watching static confetti.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Floating scoops & drips in the hero ────────────────── */
+/* A slow, gentle bob — like a scoop wobbling in a bowl. */
+@keyframes cbBob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50%      { transform: translateY(-14px) rotate(3deg); }
+}
+
+/* Long lazy drips for the hero decorations — one emoji melts
+   slowly and resets, looped. Fine under reduced-motion. */
+@keyframes cbDrip {
+    0%   { transform: translateY(-8px) scaleY(.9); opacity: 0; }
+    20%  { opacity: .9; }
+    70%  { transform: translateY(46px) scaleY(1.12); opacity: .85; }
+    100% { transform: translateY(64px) scaleY(1.2); opacity: 0; }
+}
+
+.cb-hero-float {
+    position: absolute;
+    z-index: 0;
+    font-size: 52px;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 10px 18px rgba(92, 29, 36, .22));
+}
+/* Sizes + positions are set by extra classes so a page can mix
+   scoops and cones without repeating the block above. */
+.cb-hero-float--sm { font-size: 34px; }
+.cb-hero-float--lg { font-size: 74px; }
+
+.cb-hero-float--bob    { animation: cbBob 4.5s ease-in-out infinite; }
+.cb-hero-float--bob-2  { animation: cbBob 5.2s ease-in-out infinite reverse; }
+.cb-hero-float--drip   { animation: cbDrip 5.5s ease-in-out infinite; }
+.cb-hero-float--drip-2 { animation: cbDrip 6.2s ease-in-out 1.8s infinite; }
+
+/* ── Falling sprinkles in the hero ──────────────────────── */
+@keyframes cbSprinkle {
+    0%   { transform: translate3d(0, -20px, 0) rotate(0deg); opacity: 0; }
+    12%  { opacity: .95; }
+    85%  { opacity: .75; }
+    100% { transform: translate3d(var(--cb-drift, 26px), 430px, 0) rotate(300deg); opacity: 0; }
+}
+
+.cb-sprinkle {
+    position: absolute;
+    top: -14px;
+    z-index: 0;
+    width: 9px;
+    height: 4px;
+    border-radius: 4px;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    animation: cbSprinkle var(--cb-fall, 6s) linear infinite;
+    animation-delay: var(--cb-delay, 0s);
+}
+.cb-sprinkle--tall { width: 11px; height: 5px; }
+.cb-sprinkle--round { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Brand-tinted sprinkle palette — matches the warm palette
+   (chocolate, gold, mint, rose) rather than primary-colour
+   confetti that clashes with it. */
+.cb-sprinkle--cocoa    { background: #8C3A43; }
+.cb-sprinkle--gold     { background: #D49A37; }
+.cb-sprinkle--mint     { background: #0FA88A; }
+.cb-sprinkle--rose     { background: #E86A7F; }
+.cb-sprinkle--vanilla  { background: #F4E3C7; }
+.cb-sprinkle--amber    { background: #C78829; }
+
+/* ── Jelly wobble on product emojis when you hover ──────── */
+@keyframes cbWobble {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    25%      { transform: scale(1.12, .92) rotate(-3deg); }
+    50%      { transform: scale(.94, 1.08) rotate(2deg); }
+    75%      { transform: scale(1.06, .96) rotate(-1deg); }
+}
+/* Targets the elements that actually carry the emoji in the
+   shipped markup: the placeholder span under the product image
+   on order.php, and the flavour-card image block on the home
+   page. (The old .product-emoji / em hooks matched nothing.) */
+.product-card:hover .product-image-placeholder,
+.flavour-card:hover .flavour-card-img {
+    animation: cbWobble .55s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ── Sprinkle burst on add-to-cart ──────────────────────── */
+/* Tiny coloured particles launched from the + button. Each one
+   is positioned by JS with --cb-x / --cb-y offsets, so the same
+   keyframes serve every starting point. */
+@keyframes cbBurst {
+    0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--cb-x, 30px), var(--cb-y, -40px)) scale(.15); opacity: 0; }
+}
+
+.cb-burst {
+    position: fixed;
+    z-index: 960;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: cbBurst .6s cubic-bezier(.16, 1, .3, 1) forwards;
+}
+.cb-burst--rod {
+    width: 12px;
+    height: 5px;
+    border-radius: 5px;
+}
+
+/* ── Melting drip under section headings ────────────────── */
+/* A row of three CSS "drips" under the section header — a drop
+   shape (rounded top, pointed bottom) that settles into place
+   once on page load. Pure CSS so it renders identically on
+   every platform, unlike emoji. */
+@keyframes cbDripSettle {
+    0%   { transform: scaleY(0); opacity: 0; }
+    70%  { opacity: 1; }
+    100% { transform: scaleY(1); opacity: 1; }
+}
+.cb-drip-line {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin: 10px auto 0;
+    height: 16px;
+}
+.cb-drip-line span {
+    width: 13px;
+    height: 16px;
+    border-radius: 60% 60% 55% 55% / 70% 70% 30% 30%;
+    background: var(--drip-color, var(--color-primary-light, #8C3A43));
+    opacity: 0;
+    transform-origin: top center;
+    /* The stagger comes from each child's own delay — the parent
+       carries no animation of its own, so the drips do not settle
+       twice. */
+    animation: cbDripSettle .6s cubic-bezier(.16, 1, .3, 1) both;
+}
+.cb-drip-line span:nth-child(1) { --drip-color: var(--color-primary-light, #8C3A43); }
+.cb-drip-line span:nth-child(2) { --drip-color: var(--color-secondary, #C78829); animation-delay: .12s; }
+.cb-drip-line span:nth-child(3) { --drip-color: var(--color-accent, #D49A37); animation-delay: .24s; }
+
+/* ── Order confirmation scoop-pop ───────────────────────── */
+/* The 🎉 (or the page's chosen emoji) pops in with a scoop-roll:
+   a small scale-up and settle, once, then stays still. */
+@keyframes cbScoopPop {
+    0%   { transform: scale(.4) rotate(-14deg); opacity: 0; }
+    55%  { transform: scale(1.12) rotate(5deg); opacity: 1; }
+    75%  { transform: scale(.96) rotate(-3deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+.cb-scoop-pop {
+    animation: cbScoopPop .7s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+
+/* A second scoop peeking in beside the confirmation icon, purely
+   decorative — a tiny 🍦 that bobs while you read the page. */
+.cb-conf-emoji {
+    display: inline-block;
+    margin-left: 10px;
+    animation: cbBob 3.2s ease-in-out infinite;
+}
+
+/* Hide the decorative bits entirely for reduced-motion users —
+   not just freeze them; they are pure decoration and no one
+   should have to stare at static sprinkles. */
+@media (prefers-reduced-motion: reduce) {
+    .cb-hero-float,
+    .cb-sprinkle,
+    .cb-drip-line,
+    .cb-conf-emoji { display: none !important; }
+    .cb-scoop-pop { animation: none; }
+    .product-card:hover .product-image-placeholder,
+    .flavour-card:hover .flavour-card-img { animation: none; }
+}
+
+/* ── Scoop-stacking loader (checkout button) ─────────────── */
+/* When Place Order is pressed the button briefly builds an ice cream
+   while the request is in flight: a waffle cone drops in, two scoops
+   stack on top one at a time (each settling with a small bounce), and a
+   cherry lands on top. Pure CSS shapes, so it renders identically
+   everywhere with no image assets; the whole thing sways gently once
+   assembled. The JS in animations.js swaps in a plain spinner for
+   reduced-motion users, so this block needs no override of its own. */
+
+@keyframes cbConeIn {
+    0%   { transform: translateX(-50%) translateY(-14px); opacity: 0; }
+    100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+@keyframes cbScoopDrop {
+    0%   { transform: translateX(-50%) translateY(-22px) scale(.55); opacity: 0; }
+    60%  { transform: translateX(-50%) translateY(3px) scale(1.1); opacity: 1; }
+    80%  { transform: translateX(-50%) translateY(-2px) scale(.97); }
+    100% { transform: translateX(-50%) translateY(0) scale(1); }
+}
+@keyframes cbCherryPop {
+    0%   { transform: translateX(-50%) translateY(-14px) scale(0) rotate(-30deg); opacity: 0; }
+    60%  { transform: translateX(-50%) translateY(2px) scale(1.3) rotate(8deg); opacity: 1; }
+    100% { transform: translateX(-50%) translateY(0) scale(1) rotate(0); }
+}
+
+.cb-scoop-loader {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+}
+.cb-scoop-ice {
+    position: relative;
+    width: 40px;
+    height: 36px;
+    flex: 0 0 auto;
+    animation: cbBob 3.6s ease-in-out .95s infinite;
+}
+/* Waffle cone — a striped triangle. */
+.cb-scoop-cone {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 20px;
+    height: 14px;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #C78829 25%, #D49A37 25%, #D49A37 50%, #C78829 50%, #C78829 75%, #D49A37 75%);
+    background-size: 9px 9px;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    animation: cbConeIn .3s ease-out both;
+}
+/* Scoops — stacked with a soft highlight so they read as scoops. */
+.cb-scoop-s {
+    position: absolute;
+    left: 50%;
+    width: 22px;
+    height: 16px;
+    border-radius: 50% 50% 46% 46%;
+    transform: translateX(-50%);
+    box-shadow: inset 0 -4px 5px rgba(92, 29, 36, .16);
+    animation: cbScoopDrop .5s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+.cb-scoop-s--1 { bottom: 7px;  background: radial-gradient(circle at 32% 28%, #F7A9C4, #E86A7F 60%, #C24E6A); animation-delay: .14s; }
+.cb-scoop-s--2 { bottom: 17px; background: radial-gradient(circle at 32% 28%, #FFDA90, #D49A37 60%, #A97A1D); animation-delay: .4s;  }
+.cb-scoop-cherry {
+    position: absolute;
+    left: 50%;
+    bottom: 29px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #FF8FA5, #D6305B 65%);
+    animation: cbCherryPop .45s cubic-bezier(.34, 1.56, .64, 1) .66s both;
+}
+.cb-scoop-label {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
 /* ── Category filter (order page) ─────────────────────────── */
 /*  Hiding is a class, not an inline style, so the card keeps whatever
     display the grid gives it when it comes back.                     */

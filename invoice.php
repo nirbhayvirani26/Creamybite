@@ -42,6 +42,8 @@ if (!$inv) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <?php // Token-gated page — must never be indexed. ?>
+        <meta name="robots" content="noindex, nofollow">
         <title>Invoice not found – <?= SHOP_NAME ?></title>
         <link rel="stylesheet" href="assets/css/style.css">
         <link rel="stylesheet" href="assets/css/components.css">
@@ -87,6 +89,8 @@ function invLines(string $text): string
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php // Token-gated page — must never be indexed. ?>
+<meta name="robots" content="noindex, nofollow">
 <title>Invoice <?= htmlspecialchars($inv['invoice_number']) ?> – <?= SHOP_NAME ?></title>
 <link rel="stylesheet" href="admin/assets/css/invoice-print.css">
 </head>

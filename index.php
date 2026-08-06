@@ -106,6 +106,34 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
 
 <!-- ══ Hero ════════════════════════════════════════════════ -->
 <section class="landing-hero">
+    <?php // Decorative scoops, cones and falling sprinkles. Purely cosmetic —
+          // hidden for reduced-motion users via animations.css, and painted
+          // behind the text (z-index 0) so they never cover content. ?>
+    <span class="cb-hero-float cb-hero-float--lg cb-hero-float--bob" aria-hidden="true" style="left:4%; top:16%;">🍦</span>
+    <span class="cb-hero-float cb-hero-float--bob-2" aria-hidden="true" style="right:7%; top:20%;">🍨</span>
+    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--bob" aria-hidden="true" style="right:16%; bottom:24%;">🍧</span>
+    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--drip" aria-hidden="true" style="left:12%; bottom:30%;">🍫</span>
+    <span class="cb-hero-float cb-hero-float--drip-2" aria-hidden="true" style="right:24%; top:8%;">🥛</span>
+    <?php
+    // Falling sprinkles — positions, colours, drift and timing vary per
+    // dot so the loop reads as confetti rather than a metronome.
+    $sprinkles = [
+        ['left' => '8%',  'class' => 'cb-sprinkle--cocoa',   'drift' => '18px',  'fall' => '5.6s', 'delay' => '0.2s'],
+        ['left' => '16%', 'class' => 'cb-sprinkle--gold',    'drift' => '-22px', 'fall' => '6.4s', 'delay' => '1.1s'],
+        ['left' => '24%', 'class' => 'cb-sprinkle--mint',    'drift' => '14px',  'fall' => '5.1s', 'delay' => '2.3s'],
+        ['left' => '33%', 'class' => 'cb-sprinkle--rose',    'drift' => '-16px', 'fall' => '6.9s', 'delay' => '0.8s'],
+        ['left' => '42%', 'class' => 'cb-sprinkle--amber',   'drift' => '24px',  'fall' => '5.9s', 'delay' => '3.0s'],
+        ['left' => '51%', 'class' => 'cb-sprinkle--vanilla', 'drift' => '-18px', 'fall' => '6.2s', 'delay' => '1.7s'],
+        ['left' => '58%', 'class' => 'cb-sprinkle--cocoa',   'drift' => '20px',  'fall' => '5.4s', 'delay' => '2.8s'],
+        ['left' => '67%', 'class' => 'cb-sprinkle--gold',    'drift' => '-24px', 'fall' => '6.7s', 'delay' => '0.5s'],
+        ['left' => '76%', 'class' => 'cb-sprinkle--mint',    'drift' => '16px',  'fall' => '5.3s', 'delay' => '3.6s'],
+        ['left' => '84%', 'class' => 'cb-sprinkle--rose',    'drift' => '-14px', 'fall' => '6.5s', 'delay' => '1.4s'],
+        ['left' => '92%', 'class' => 'cb-sprinkle--amber',   'drift' => '22px',  'fall' => '5.8s', 'delay' => '2.1s'],
+    ];
+    foreach ($sprinkles as $s): ?>
+    <span class="cb-sprinkle <?= $s['class'] ?>" aria-hidden="true"
+          style="left: <?= $s['left'] ?>; --cb-drift: <?= $s['drift'] ?>; --cb-fall: <?= $s['fall'] ?>; --cb-delay: <?= $s['delay'] ?>"></span>
+    <?php endforeach; ?>
     <div class="container landing-hero-inner">
         <div class="landing-eyebrow">✨ Freshly Made Every Day</div>
         <h1 class="landing-title">Every Scoop is a<br>Sweet Adventure!</h1>
@@ -152,6 +180,7 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
         <div class="section-header">
             <span class="section-label">Our Flavours</span>
             <h2 class="section-title">A Taste for Every Mood 🍨</h2>
+            <div class="cb-drip-line" aria-hidden="true"><span></span><span></span><span></span></div>
             <p class="section-subtitle">From indulgent chocolate to refreshing sorbets — handcrafted with love for every craving.</p>
         </div>
         <div class="flavour-cards-grid">

@@ -191,7 +191,7 @@ function acctSalesTotals(PDO $pdo, string $from, string $to): array
     // created_at is the best available proxy and is flagged as such to the
     // user on the return page rather than hidden.
     $where = $isCash
-        ? "payment_status IN ('Paid','Cash') AND status <> 'Cancelled'"
+        ? "payment_status IN ('Paid','Cash','Bank') AND status <> 'Cancelled'"
         : "status <> 'Cancelled'";
 
     $sql = "SELECT
@@ -213,14 +213,66 @@ function acctSalesTotals(PDO $pdo, string $from, string $to): array
     $gross = (float)($r['gross'] ?? 0);
     $vat   = (float)($r['vat'] ?? 0);
 
+    // A refunded order still shows its full original value above — nothing
+    // in the query knows a refund happened. Subtract it here, once, so every
+    // caller (VAT boxes, the dashboard, the P&L) is corrected automatically
+    // rather than each having to remember to do it separately.
+    $refund = acctRefundTotals($pdo, $from, $to);
+    $gross -= $refund['gross'];
+    $vat   -= $refund['vat'];
+
     return [
         'count'    => (int)($r['n'] ?? 0),
         'gross'    => round($gross, 2),
         'vat'      => round($vat, 2),
         'net'      => round($gross - $vat, 2),
         'delivery' => round((float)($r['delivery'] ?? 0), 2),
+        'refunded'     => $refund['gross'],
+        'refunded_vat' => $refund['vat'],
+        'refunded_net' => $refund['net'],
         'basis'    => $isCash ? 'cash' : 'accrual',
     ];
+}
+
+/**
+ * Refunds issued in a period, split proportionally into net/VAT using each
+ * refunded order's own recorded rate. A flat 20% would be wrong for a retail
+ * order (which never carried VAT to begin with) and right only by
+ * coincidence for a trade one.
+ *
+ * Matches HMRC's own treatment: a refund/credit note adjusts output VAT in
+ * the period the refund was GIVEN, not by restating the original sale's
+ * period — so this is keyed on order_refunds.created_at, not orders.created_at.
+ */
+function acctRefundTotals(PDO $pdo, string $from, string $to): array
+{
+    try {
+        // A cancelled order's revenue was never in acctSalesTotals' `gross`
+        // to begin with (it's excluded outright) — including its refund here
+        // too would subtract money that was never added.
+        $st = $pdo->prepare(
+            "SELECT r.amount, o.total_price, o.vat_amount
+               FROM order_refunds r
+               JOIN orders o ON o.id = r.order_id AND o.status <> 'Cancelled'
+              WHERE DATE(r.created_at) BETWEEN :f AND :t"
+        );
+        $st->execute(['f' => $from, 't' => $to]);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return ['gross' => 0.0, 'vat' => 0.0, 'net' => 0.0, 'count' => 0];
+    }
+
+    $gross = 0.0; $vat = 0.0;
+    foreach ($rows as $r) {
+        $refundAmt  = (float)$r['amount'];
+        $orderTotal = (float)$r['total_price'];
+        $gross += $refundAmt;
+        if ($orderTotal > 0) {
+            $vat += (float)$r['vat_amount'] * min(1.0, $refundAmt / $orderTotal);
+        }
+    }
+    return ['gross' => round($gross, 2), 'vat' => round($vat, 2),
+            'net' => round($gross - $vat, 2), 'count' => count($rows)];
 }
 
 /** Standalone invoices that are not tied to an order, so nothing is counted twice. */
@@ -310,20 +362,28 @@ function acctComputeReturn(PDO $pdo, string $from, string $to): array
 
     $workings = [
         1 => [
-            ['Orders (' . $sales['count'] . ')', $sales['vat']],
+            ['Orders (' . $sales['count'] . ')', round($sales['vat'] + $sales['refunded_vat'], 2)],
             ['Standalone invoices (' . $invoices['count'] . ')', $invoices['vat']],
         ],
         4 => [
             ['Purchase invoices & expenses (' . $buys['count'] . ')', $buys['vat']],
         ],
         6 => [
-            ['Order sales excluding VAT', $sales['net']],
+            ['Order sales excluding VAT', round($sales['net'] + $sales['refunded_net'], 2)],
             ['Invoice sales excluding VAT', $invoices['net']],
         ],
         7 => [
             ['Purchases & expenses excluding VAT', $buys['net']],
         ],
     ];
+
+    // Shown as its own line rather than folded silently into the "Orders"
+    // figure above, so a refund's effect on the return is something an
+    // admin can actually see, not just trust happened.
+    if ($sales['refunded'] > 0) {
+        $workings[1][] = ['Refunds issued', -$sales['refunded_vat']];
+        $workings[6][] = ['Refunds issued (excluding VAT)', -$sales['refunded_net']];
+    }
 
     if ($buys['vat_blocked'] > 0) {
         $workings[4][] = ['Non-recoverable VAT excluded', -$buys['vat_blocked']];
@@ -564,4 +624,70 @@ function acctCategoryAccount(string $category): string
         'Wages' => '6110', 'Professional Fees' => '6100', 'Marketing' => '6080',
     ];
     return $map[$category] ?? '6900';   // Miscellaneous
+}
+
+// ── Profit & Loss ───────────────────────────────────────────
+
+/** Reverse lookup: which group (Premises/Stock/Operations/...) a category belongs to. */
+function acctExpenseCategoryGroup(string $category): string
+{
+    foreach (acctExpenseCategories() as $group => $items) {
+        if (in_array($category, $items, true)) {
+            return $group;
+        }
+    }
+    return 'Other';
+}
+
+/**
+ * Revenue, cost of sales, gross and net profit for a period.
+ *
+ * There is no per-product cost field anywhere in this app — wholesale_price
+ * is what a trade customer pays, not what a tub costs to make — so a true
+ * COGS figure cannot be built from products. The Stock category group
+ * (ingredients, packaging, etc.) is the closest honest substitute for cost
+ * of sales; everything else recorded is treated as an operating expense.
+ */
+function acctProfitLoss(PDO $pdo, string $from, string $to): array
+{
+    $sales    = acctSalesTotals($pdo, $from, $to);      // already refund-corrected
+    $invoices = acctInvoiceTotals($pdo, $from, $to);
+    $revenue  = round($sales['net'] + $invoices['net'], 2);
+
+    // Group every expense + purchase line (net only — VAT is HMRC's money,
+    // not a real cost to the business) by category group, from both tables
+    // at once, the same way acctPurchaseTotals() already unions them.
+    $byGroup = [];
+    foreach ([['expenses', 'expense_date'], ['purchase_invoices', 'invoice_date']] as [$table, $dateCol]) {
+        try {
+            $st = $pdo->prepare("SELECT category, net FROM `{$table}` WHERE `{$dateCol}` BETWEEN :f AND :t");
+            $st->execute(['f' => $from, 't' => $to]);
+            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $g = acctExpenseCategoryGroup((string)$r['category']);
+                $byGroup[$g] = ($byGroup[$g] ?? 0.0) + (float)$r['net'];
+            }
+        } catch (PDOException $e) {
+            // Table not migrated yet — contributes nothing.
+        }
+    }
+
+    $costOfSales = round($byGroup['Stock'] ?? 0.0, 2);
+    $grossProfit = round($revenue - $costOfSales, 2);
+    $opexGroups  = array_diff_key($byGroup, ['Stock' => true]);
+    ksort($opexGroups);
+    $totalOpex   = round(array_sum($opexGroups), 2);
+    $netProfit   = round($grossProfit - $totalOpex, 2);
+
+    return [
+        'from' => $from, 'to' => $to,
+        'revenue'       => $revenue,
+        'cost_of_sales' => $costOfSales,
+        'gross_profit'  => $grossProfit,
+        'gross_margin'  => $revenue > 0 ? round($grossProfit / $revenue * 100, 1) : 0.0,
+        'opex'          => array_map(static fn($v) => round($v, 2), $opexGroups),
+        'total_opex'    => $totalOpex,
+        'net_profit'    => $netProfit,
+        'net_margin'    => $revenue > 0 ? round($netProfit / $revenue * 100, 1) : 0.0,
+        'refunded'      => $sales['refunded'],
+    ];
 }

@@ -215,6 +215,89 @@
         setTimeout(function () { ghost.remove(); }, 760);
     };
 
+    /* ── Sprinkle burst on add-to-cart ───────────────────── */
+    // Launches a handful of brand-coloured particles from a button.
+    // cbSprinkleBurst(buttonEl, n) — n defaults to 10. Each particle
+    // flies a short random distance and fades, and is removed afterwards.
+    window.cbSprinkleBurst = function (fromEl, n) {
+        if (reduced || !fromEl || typeof document === 'undefined') return;
+        n = n || 10;
+        var rect = fromEl.getBoundingClientRect();
+        var cx = rect.left + rect.width / 2;
+        var cy = rect.top + rect.height / 2;
+        var colors = ['#D49A37', '#8C3A43', '#0FA88A', '#E86A7F', '#C78829', '#F4E3C7'];
+
+        for (var i = 0; i < n; i++) {
+            var p = document.createElement('span');
+            p.className = 'cb-burst' + (i % 3 === 0 ? ' cb-burst--rod' : '');
+            p.style.left = cx + 'px';
+            p.style.top  = cy + 'px';
+            p.style.background = colors[i % colors.length];
+
+            // Outward in a rough fan, mostly upward and to the sides.
+            var angle = (Math.random() * Math.PI) - (Math.PI / 2) * 0.9 + (Math.PI / 2);
+            var dist  = 34 + Math.random() * 46;
+            p.style.setProperty('--cb-x', (Math.cos(angle) * dist).toFixed(1) + 'px');
+            p.style.setProperty('--cb-y', (Math.sin(angle) * dist).toFixed(1) + 'px');
+
+            document.body.appendChild(p);
+            (function (el) {
+                setTimeout(function () { el.remove(); }, 650);
+            })(p);
+        }
+    };
+
+    /* ── Scoop-stacking loader (checkout button) ────────────── */
+    // cbScoopLoader(btn, label) swaps a button's content for a little ice
+    // cream that builds itself while a request is in flight: a cone drops
+    // in, two scoops stack on top one at a time, and a cherry lands on top
+    // (the CSS in animations.css drives the timing). Returns
+    // { restore, setLabel } — restore puts the original content back for an
+    // error path, setLabel swaps the caption (e.g. from "Processing payment"
+    // to "Saving your order"). Reduced-motion users get a plain spinner;
+    // the stacking is pure decoration.
+    window.cbScoopLoader = function (btn, label) {
+        var noop = { restore: function () {}, setLabel: function () {} };
+        if (!btn) return noop;
+
+        var original = btn.innerHTML;
+        var reduced  = window.matchMedia &&
+                       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Disabling here too means a double-click cannot slip a second
+        // submission through while the loader is up.
+        btn.disabled = true;
+
+        if (reduced) {
+            btn.innerHTML = '<span class="cb-scoop-loader">' +
+                '<i class="fa-solid fa-spinner fa-spin"></i>' +
+                '<span class="cb-scoop-label">' + (label || 'Please wait') + '</span>' +
+                '</span>';
+        } else {
+            btn.innerHTML =
+                '<span class="cb-scoop-loader">' +
+                    '<span class="cb-scoop-ice" aria-hidden="true">' +
+                        '<span class="cb-scoop-cone"></span>' +
+                        '<span class="cb-scoop-s cb-scoop-s--1"></span>' +
+                        '<span class="cb-scoop-s cb-scoop-s--2"></span>' +
+                        '<span class="cb-scoop-cherry"></span>' +
+                    '</span>' +
+                    '<span class="cb-scoop-label">' + (label || 'Please wait') + '</span>' +
+                '</span>';
+        }
+
+        return {
+            restore: function () {
+                btn.innerHTML = original;
+                btn.disabled = false;
+            },
+            setLabel: function (text) {
+                var el = btn.querySelector('.cb-scoop-label');
+                if (el) el.textContent = text;
+            }
+        };
+    };
+
     /* ── Button busy state ───────────────────────────────── */
     // Any form marked data-busy shows a spinner on submit, which also stops
     // impatient double-clicks creating two orders.

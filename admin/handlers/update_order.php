@@ -233,40 +233,26 @@ if (isset($_POST['status'])) {
 // ── Update Payment Status ─────────────────────────────────
 if (isset($_POST['payment_status'])) {
     $ps      = trim($_POST['payment_status']);
-    $allowed = ['Unpaid', 'Paid', 'Cash'];
+    $allowed = ['Unpaid', 'Paid', 'Cash', 'Bank'];
 
     if (!in_array($ps, $allowed)) {
         echo json_encode(['success' => false, 'message' => 'Invalid payment status']);
         exit;
     }
 
-    // Guard: Online paid orders are locked and cannot have payment status manually changed
-    $chkStmt = $pdo->prepare("SELECT payment_status, payment_method FROM orders WHERE id = :id");
-    $chkStmt->execute(['id' => $orderId]);
-    $currOrder = $chkStmt->fetch(PDO::FETCH_ASSOC);
-
-    // Lock only genuine ONLINE card payments — those are settled with Stripe
-    // and must not be edited by hand. The lock used to trigger on
-    // payment_status alone, so mis-clicking "Paid" on a cash order made that
-    // mistake permanent with no way back.
-    $isOnlinePaid = $currOrder
-        && $currOrder['payment_status'] === 'Paid'
-        && in_array($currOrder['payment_method'] ?? '', ['online', 'card', 'stripe'], true);
-
-    if ($isOnlinePaid) {
-        echo json_encode([
-            'success' => false,
-            'message' => 'This order was paid by card through Stripe, so its payment status is locked. Refund it in Stripe to change this.',
-        ]);
-        exit;
-    }
+    // Stripe card orders used to be locked here entirely — the only way to
+    // change one was to go refund it in Stripe first. Now that a refund can
+    // be issued (or logged) right from this page, that hard block would just
+    // be in the way. The warning about an unrefunded balance is given
+    // client-side instead, as a confirm() before this request is even sent —
+    // see updatePaymentStatus() in admin/index.php.
 
     try {
         $pdo->prepare("UPDATE orders SET payment_status = :ps WHERE id = :id")
             ->execute(['ps' => $ps, 'id' => $orderId]);
 
         // Send payment receipt email to customer if newly paid
-        if (in_array($ps, ['Paid', 'Cash'])) {
+        if (in_array($ps, ['Paid', 'Cash', 'Bank'])) {
             try {
                 $order = $pdo->prepare("SELECT * FROM orders WHERE id = :id");
                 $order->execute(['id' => $orderId]);

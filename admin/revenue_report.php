@@ -37,7 +37,12 @@ try {
 // Category revenue breakdown
 $catRevenue = [];
 foreach ($orders as $order) {
-    if (!in_array($order['payment_status'], ['Paid', 'Cash'])) continue;
+    // Cancelled orders must not count as revenue even if payment_status still
+    // says Paid/Cash/Bank — this check was missing here (present everywhere
+    // else revenue is totalled), so a cancelled order could still show up in
+    // this CSV even after being correctly excluded from every other report.
+    if ($order['status'] === 'Cancelled') continue;
+    if (!in_array($order['payment_status'], ['Paid', 'Cash', 'Bank'])) continue;
     $items = json_decode($order['items_json'], true) ?? [];
     foreach ($items as $item) {
         $pid = $item['product_id'];
@@ -70,6 +75,7 @@ fputcsv($fp, [
 $totalRevenue = 0;
 $totalOnline  = 0;
 $totalCash    = 0;
+$totalBank    = 0;
 $totalUnpaid  = 0;
 
 foreach ($orders as $order) {
@@ -98,16 +104,37 @@ foreach ($orders as $order) {
         number_format($order['total_price'], 2),
     ]);
     
+    // Cancelled orders must not count as revenue even though the row keeps
+    // its Paid/Cash/Bank payment_status — same rule the category breakdown
+    // above already applies, missing here until now.
+    if ($order['status'] === 'Cancelled') continue;
     if ($order['payment_status'] === 'Paid')  { $totalRevenue += $order['total_price']; $totalOnline += $order['total_price']; }
     if ($order['payment_status'] === 'Cash')  { $totalRevenue += $order['total_price']; $totalCash   += $order['total_price']; }
+    if ($order['payment_status'] === 'Bank')  { $totalRevenue += $order['total_price']; $totalBank   += $order['total_price']; }
     if ($order['payment_status'] === 'Unpaid') $totalUnpaid  += $order['total_price'];
+}
+
+// Refunds issued in this period — by when the refund was given, not when the
+// original order was placed, since a refund can land weeks after the sale.
+$totalRefunded = 0.0;
+try {
+    $rf = $pdo->prepare(
+        "SELECT COALESCE(SUM(amount), 0) FROM order_refunds WHERE DATE(created_at) BETWEEN :f AND :t"
+    );
+    $rf->execute(['f' => $from, 't' => $to]);
+    $totalRefunded = (float)$rf->fetchColumn();
+} catch (PDOException $e) {
+    $totalRefunded = 0.0;
 }
 
 fputcsv($fp, []);
 fputcsv($fp, ['', '', '', '', '', '', '', 'TOTAL REVENUE:', '£' . number_format($totalRevenue, 2)]);
 fputcsv($fp, ['', '', '', '', '', '', '', 'Online (Card):', '£' . number_format($totalOnline,  2)]);
 fputcsv($fp, ['', '', '', '', '', '', '', 'Cash:', '£' . number_format($totalCash,    2)]);
+fputcsv($fp, ['', '', '', '', '', '', '', 'Bank Transfer:', '£' . number_format($totalBank,    2)]);
 fputcsv($fp, ['', '', '', '', '', '', '', 'Unpaid Total:', '£' . number_format($totalUnpaid,  2)]);
+fputcsv($fp, ['', '', '', '', '', '', '', 'Refunded (this period):', '£' . number_format($totalRefunded, 2)]);
+fputcsv($fp, ['', '', '', '', '', '', '', 'Net Revenue (after refunds):', '£' . number_format($totalRevenue - $totalRefunded, 2)]);
 
 // ── Section 2: Category Breakdown ─────────────────────────
 fputcsv($fp, []);

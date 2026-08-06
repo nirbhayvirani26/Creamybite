@@ -118,6 +118,17 @@ define('FREE_DELIVERY_MILES',   3.0);    // free inside this radius
 define('DELIVERY_RADIUS_MILES', 6.0);    // furthest we will drive at all
 define('DELIVERY_CHARGE',       1.99);   // charged between the two
 
+// Every distance in this app is straight-line (Haversine) between two
+// coordinates, not an actual driving route — postcodes.io gives coordinates,
+// not routes. A real road network is never a straight line, so this factor
+// scales the straight-line figure up to a realistic driving-distance estimate
+// before it is compared against the radius above or shown to a customer.
+// 1.3 is a standard urban "circuity factor" (driving distance is typically
+// 25-35% longer than straight-line in a town/city road grid) — checked
+// against a real route (HA1 2SP to NW3 3RA: 7.55mi straight-line, 9.84mi
+// actually driven, a 1.30x ratio) rather than picked arbitrarily.
+define('DELIVERY_DISTANCE_FACTOR', 1.3);
+
 // ── Auto-Detect Environment (Local MAMP vs Live Server) ────────
 //  CLI has no HTTP_HOST. Treat that as LOCAL, not live — otherwise any
 //  command-line script silently connects to the production database.

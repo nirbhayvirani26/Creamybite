@@ -105,6 +105,7 @@ acctPageStart('ledger', 'Ledger', acctPeriodLabel(['from' => $from, 'to' => $to]
         <input type="date" id="tt" name="to" class="form-control" value="<?= htmlspecialchars($to) ?>"></div>
     <button type="submit" class="btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
     <span class="cbac-spacer"></span>
+    <a class="btn-sm" href="export.php?type=ledger&from=<?= urlencode($from) ?>&to=<?= urlencode($to) ?>"><i class="fa-solid fa-file-csv"></i> CSV</a>
     <button type="button" class="btn-sm" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
 </form>
 

@@ -62,6 +62,8 @@ $customerNo = 'TC-' . str_pad((string)$userId, 5, '0', STR_PAD_LEFT);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice <?= htmlspecialchars($code) ?> – <?= SHOP_NAME ?></title>
+    <?php // Private, login-gated invoice — must never be indexed. ?>
+    <meta name="robots" content="noindex, nofollow">
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/trade-invoice.css">

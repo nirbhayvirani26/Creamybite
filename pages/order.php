@@ -225,6 +225,7 @@ if (!empty($products)) {
         <div class="section-header">
             <span class="section-label">Our Menu</span>
             <h1 class="section-title">Pick Your Favourite 🍨</h1>
+            <div class="cb-drip-line" aria-hidden="true"><span></span><span></span><span></span></div>
             <p class="section-subtitle">Every product is handcrafted fresh daily with premium ingredients. No preservatives, just pure deliciousness.</p>
         </div>
 
@@ -343,7 +344,8 @@ if (!empty($products)) {
                                 '<?= addslashes($product['emoji'] ?? '🍦') ?>',
                                 '<?= addslashes($imgSrc) ?>',
                                 <?= $hasVariants ? 'true' : 'false' ?>,
-                                '<?= $variantsJson ?>'
+                                '<?= $variantsJson ?>',
+                                this
                             )"
                             aria-label="Add <?= htmlspecialchars($product['name']) ?> to cart"
                             id="addbtn-<?= $product['id'] ?>"
@@ -417,21 +419,21 @@ function closeCart() { document.getElementById('cartSidebar').classList.remove('
 // ── Variant Picker ───────────────────────────────────────────
 let currentPickerData = null;
 
-function handleAddToCart(productId, name, emoji, imgSrc, hasVariants, variantsJson) {
+function handleAddToCart(productId, name, emoji, imgSrc, hasVariants, variantsJson, fromEl) {
     if (!hasVariants) {
-        addToCart(productId, 0, name, emoji);
+        addToCart(productId, 0, name, emoji, null, null, fromEl);
         return;
     }
     // Parse variants
     let variants;
     try { variants = JSON.parse(variantsJson); } catch(e) { variants = []; }
-    if (!variants.length) { addToCart(productId, 0, name, emoji); return; }
+    if (!variants.length) { addToCart(productId, 0, name, emoji, null, null, fromEl); return; }
 
-    openVariantPicker(productId, name, emoji, imgSrc, variants);
+    openVariantPicker(productId, name, emoji, imgSrc, variants, fromEl);
 }
 
-function openVariantPicker(productId, name, emoji, imgSrc, variants) {
-    currentPickerData = { productId, name, emoji, imgSrc, variants };
+function openVariantPicker(productId, name, emoji, imgSrc, variants, fromEl) {
+    currentPickerData = { productId, name, emoji, imgSrc, variants, fromEl };
 
     // Set image/emoji
     const imgEl = document.getElementById('variantPickerImg');
@@ -457,7 +459,7 @@ function openVariantPicker(productId, name, emoji, imgSrc, variants) {
             btn.classList.add('selected');
             // Short delay then add and close
             setTimeout(() => {
-                addToCart(productId, v.id, name, emoji, v.name, v.price);
+                addToCart(productId, v.id, name, emoji, v.name, v.price, currentPickerData ? currentPickerData.fromEl : null);
                 closeVariantPicker();
             }, 180);
         });
@@ -484,7 +486,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Add to Cart ──────────────────────────────────────────────
-function addToCart(productId, variantId, name, emoji, variantName, variantPrice) {
+function addToCart(productId, variantId, name, emoji, variantName, variantPrice, fromEl) {
     variantId = variantId || 0;
     let body = 'action=add&product_id=' + productId;
     if (variantId > 0) body += '&variant_id=' + variantId;
@@ -503,6 +505,11 @@ function addToCart(productId, variantId, name, emoji, variantName, variantPrice)
             const label = variantName ? name + ' (' + variantName + ')' : name;
             showToast('Added to Order!', label + ' added to your cart');
             bumpBadge();
+
+            // Little fanfare: sprinkles fly from wherever the add happened.
+            if (typeof cbSprinkleBurst === 'function' && fromEl) {
+                cbSprinkleBurst(fromEl, 10);
+            }
 
             if (!sessionStorage.getItem('delivery_popup_shown')) {
                 sessionStorage.setItem('delivery_popup_shown', '1');

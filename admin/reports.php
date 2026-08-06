@@ -194,7 +194,7 @@ try {
 }
 
 $paidOrders = array_filter($orders, fn($o) =>
-    in_array($o['payment_status'], ['Paid', 'Cash'], true) && $o['status'] !== 'Cancelled');
+    in_array($o['payment_status'], ['Paid', 'Cash', 'Bank'], true) && $o['status'] !== 'Cancelled');
 
 // ── Summary figures ──────────────────────────────────────────
 $sum = [
@@ -210,7 +210,7 @@ foreach ($orders as $o) {
         $sum['cancelled'] += $amt; $sum['cancelled_n']++;
         continue;
     }
-    if (in_array($o['payment_status'], ['Paid', 'Cash'], true)) {
+    if (in_array($o['payment_status'], ['Paid', 'Cash', 'Bank'], true)) {
         $k = ((int)$o['trade_user_id'] > 0) ? 'trade' : 'retail';
         $sum[$k] += $amt; $sum[$k . '_n']++;
         $sum['vat']      += (float)($o['vat_amount'] ?? 0);
@@ -252,7 +252,7 @@ foreach ($orders as $o) {
         ];
     }
     $clients[$key]['orders']++;
-    if (in_array($o['payment_status'], ['Paid', 'Cash'], true)) {
+    if (in_array($o['payment_status'], ['Paid', 'Cash', 'Bank'], true)) {
         $clients[$key]['paid'] += (float)$o['total_price'];
     } else {
         $clients[$key]['unpaid'] += (float)$o['total_price'];

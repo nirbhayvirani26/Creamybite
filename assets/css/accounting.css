@@ -98,6 +98,16 @@
 .cbac-balanced td   { color: #1a7a4c; font-weight: 700; font-size: 12.5px; }
 .cbac-unbalanced td { color: #a04040; font-weight: 700; font-size: 12.5px; }
 
+/* Paid/owing status on a purchase row — same colour language as the
+   banners above (is-ok green, is-warn amber) rather than inventing a third. */
+.cbac-badge   { display: inline-block; padding: 3px 9px; border-radius: 999px;
+                font-size: 11px; font-weight: 700; white-space: nowrap; }
+.cbac-badge.is-ok   { background: rgba(16,185,129,0.12); color: #0f7a52; }
+.cbac-badge.is-warn { background: rgba(245,158,11,0.15); color: #b45309; }
+
+/* A loss line on the P&L — same red the VAT-owed box already uses. */
+.cbac-table tr.cbac-neg td { color: #a04040; }
+
 /* ── VAT return boxes ──────────────────────────────────── */
 .cbac-boxes .cbac-box-n { width: 52px; font-weight: 800; color: var(--color-primary); font-size: 15px; }
 .cbac-box-amount { font-size: 15px; font-weight: 700; white-space: nowrap; }
