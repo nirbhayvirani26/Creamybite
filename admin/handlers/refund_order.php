@@ -22,11 +22,25 @@ require_once __DIR__ . '/../_guard.php';
 header('Content-Type: application/json');
 csrfCheckJson();
 require_once __DIR__ . '/../_permissions.php';
+
+// Refunding moves real money out of the Stripe account, so it is not covered
+// by the ordinary Orders permission — a staff member trusted to mark an order
+// Delivered is not automatically trusted to send money back. Owner only,
+// matching the rule already applied to VAT settings and manual journals.
 adminRequire('orders');
+if (!adminIsOwner()) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Only the owner can issue a refund. Ask them to do it, or to give you owner access.',
+    ]);
+    exit;
+}
 
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/db.php';
 require_once __DIR__ . '/../../includes/mailer.php';
+require_once __DIR__ . '/../../includes/accounting.php';
 
 $orderId = (int)($_POST['order_id'] ?? 0);
 $amount  = round((float)($_POST['amount'] ?? 0), 2);
@@ -39,6 +53,15 @@ if ($orderId <= 0) {
 if ($amount <= 0) {
     echo json_encode(['success' => false, 'message' => 'Enter an amount to refund.']);
     exit;
+}
+// A refund with no reason is unarguable six months later — and a chargeback
+// is won or lost on exactly this kind of record.
+if ($reason === '') {
+    echo json_encode(['success' => false, 'message' => 'Give a reason for the refund. It goes on the order and into the audit trail.']);
+    exit;
+}
+if (mb_strlen($reason) > 255) {
+    $reason = mb_substr($reason, 0, 255);
 }
 
 try {
@@ -62,8 +85,30 @@ try {
         && $pi !== '';
     // Cash and Bank Transfer are both "paid, but nothing this app can move
     // automatically" — same manual/local path, just different wording below.
+    //
+    // 'Paid' WITHOUT a Stripe reference belongs here too, and used to fall
+    // through every branch and be refused with "this order has not been paid"
+    // — while the order plainly read Paid. That is a Pay Later order settled
+    // in person and then marked Paid, which is how most of this shop's orders
+    // are taken, so the commonest kind of order could not be refunded at all.
+    // The money was handed over in person, so it goes back the same way.
     $manualKind = $order['payment_status'] === 'Cash' ? 'cash'
-                : ($order['payment_status'] === 'Bank' ? 'bank' : null);
+                : ($order['payment_status'] === 'Bank' ? 'bank'
+                : (($order['payment_status'] === 'Paid' && !$isCardPaid) ? 'cash' : null));
+
+    // A refund already fully given leaves nothing to give back a second time.
+    if (in_array($order['payment_status'], ['Refunded'], true)) {
+        $pdo->rollBack();
+        echo json_encode(['success' => false, 'message' => 'This order has already been refunded in full.']);
+        exit;
+    }
+
+    // Part-refunded keeps whichever route it was paid by; the running total
+    // below is what caps the next one.
+    if ($order['payment_status'] === 'Part-refunded' && $manualKind === null && !$isCardPaid) {
+        $manualKind = $pi !== '' ? null : 'cash';
+        if ($pi !== '') { $isCardPaid = true; }
+    }
 
     if (!$isCardPaid && $manualKind === null) {
         $pdo->rollBack();
@@ -164,10 +209,65 @@ try {
     $note    = "[REFUND {$stamp}] £" . number_format($amount, 2) . " refunded {$howWord}"
              . ($reason !== '' ? " — reason: {$reason}" : '')
              . ($isCardPaid ? " (ref {$stripeRefundId})" : " — recorded by " . adminStaffName());
-    $pdo->prepare("UPDATE orders SET notes = :n WHERE id = :id")
-        ->execute(['n' => trim($note . "\n\n" . (string)$order['notes']), 'id' => $orderId]);
+
+    // ── Mark the order for what it now is ────────────────────
+    //
+    // A fully refunded order used to keep reading "Paid", so the list showed
+    // money the shop no longer has exactly like money it does. Derived from
+    // the running total rather than from this one refund, so two partials
+    // that together clear the order land on 'Refunded' and not on a second
+    // 'Part-refunded'.
+    $refundedNow = round($alreadyRefunded + $amount, 2);
+    $newStatus   = ($refundedNow >= (float)$order['total_price'] - 0.005) ? 'Refunded' : 'Part-refunded';
+
+    $pdo->prepare("UPDATE orders SET notes = :n, payment_status = :ps WHERE id = :id")
+        ->execute([
+            'n'  => trim($note . "\n\n" . (string)$order['notes']),
+            'ps' => $newStatus,
+            'id' => $orderId,
+        ]);
+
+    // ── Put it in the ledger ─────────────────────────────────
+    //
+    // The VAT return already knew about refunds; the ledger did not, so the
+    // two disagreed by exactly the refunded amount. A refund reverses part of
+    // a sale: sales income and output VAT are debited back, and the money
+    // account is credited because the cash has left.
+    //
+    // Non-fatal on purpose. The money has already moved at Stripe by this
+    // point — failing the whole request over a bookkeeping entry would leave
+    // the customer refunded with no record of it at all, which is far worse
+    // than a missing journal line that can be posted by hand.
+    try {
+        if (acctInstalled($pdo)) {
+            $orderTotal = (float)$order['total_price'];
+            $orderVat   = (float)($order['vat_amount'] ?? 0);
+            // Split this refund proportionally, the same way the VAT return
+            // does, so the two never disagree about how much of it was VAT.
+            $vatPart = ($orderTotal > 0 && $orderVat > 0)
+                ? round($orderVat * min(1.0, $amount / $orderTotal), 2)
+                : 0.00;
+            $netPart = round($amount - $vatPart, 2);
+            $moneyOut = in_array($order['payment_status'], ['Cash'], true) ? '1000' : '1010';
+
+            $lines = [['code' => '4000', 'debit' => $netPart, 'credit' => 0, 'description' => 'Refund — ' . $order['order_code']]];
+            if ($vatPart > 0) {
+                $lines[] = ['code' => '2200', 'debit' => $vatPart, 'credit' => 0, 'description' => 'Output VAT reversed'];
+            }
+            $lines[] = ['code' => $moneyOut, 'debit' => 0, 'credit' => $amount, 'description' => 'Refund to ' . $order['customer_name']];
+
+            acctPostJournal($pdo, date('Y-m-d'), 'Refund ' . $order['order_code'],
+                            $lines, 'refund', $orderId, $stripeRefundId ?: $reason, adminStaffName());
+        }
+    } catch (Throwable $e) {
+        error_log('Refund ledger posting failed for order ' . $orderId . ': ' . $e->getMessage());
+    }
 
     $pdo->commit();
+
+    acctAudit($pdo, 'order.refund', 'orders', $orderId,
+        json_encode(['payment_status' => $order['payment_status'], 'refunded' => $alreadyRefunded]),
+        json_encode(['payment_status' => $newStatus, 'refunded' => $refundedNow, 'amount' => $amount, 'reason' => $reason]));
 
     // ── Tell the customer ────────────────────────────────────
     if (!empty($order['customer_email'])) {

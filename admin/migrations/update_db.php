@@ -947,16 +947,45 @@ try {
 // hid it from a refund needing to know it can't call Stripe. Widening the
 // enum keeps payment_status the single source of truth instead of adding a
 // second flag that could disagree with it.
+//
+// 'Refunded' and 'Part-refunded' added for the same reason. A fully refunded
+// order used to keep reading "Paid", so the orders list showed money the shop
+// no longer has exactly like money it does — and there was no way to filter
+// for refunds or to see one at a glance.
 try {
     $col = $pdo->query("SHOW COLUMNS FROM `orders` LIKE 'payment_status'")->fetch();
-    if ($col && str_contains($col['Type'], "'Bank'")) {
-        $results[] = ['table' => 'orders', 'col' => 'payment_status (Bank)', 'status' => 'already present ✓', 'ok' => true];
+    $wanted = "ENUM('Unpaid','Paid','Cash','Bank','Part-refunded','Refunded')";
+    if ($col && str_contains($col['Type'], "'Refunded'")) {
+        $results[] = ['table' => 'orders', 'col' => 'payment_status', 'status' => 'already includes Refunded ✓', 'ok' => true];
     } else {
-        $pdo->exec("ALTER TABLE `orders` MODIFY COLUMN `payment_status` ENUM('Unpaid','Paid','Cash','Bank') NOT NULL DEFAULT 'Unpaid'");
-        $results[] = ['table' => 'orders', 'col' => 'payment_status (Bank)', 'status' => '✅ enum widened to include Bank', 'ok' => true];
+        $pdo->exec("ALTER TABLE `orders` MODIFY COLUMN `payment_status` {$wanted} NOT NULL DEFAULT 'Unpaid'");
+        $results[] = ['table' => 'orders', 'col' => 'payment_status',
+                      'status' => '✅ enum widened — Bank, Part-refunded, Refunded', 'ok' => true];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'orders', 'col' => 'payment_status (Bank)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'orders', 'col' => 'payment_status', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+}
+
+// ── 2g. Backfill the refund status on orders already refunded ──
+//
+// Refunds recorded before the enum existed left their order reading "Paid".
+// Re-derived from order_refunds so the list is honest about money that has
+// gone back, rather than only being right for refunds issued from now on.
+try {
+    if (cb_table_exists($pdo, 'order_refunds')) {
+        $fixed = $pdo->exec(
+            "UPDATE orders o
+                JOIN (SELECT order_id, SUM(amount) AS refunded
+                        FROM order_refunds GROUP BY order_id) r ON r.order_id = o.id
+                 SET o.payment_status = IF(r.refunded >= o.total_price - 0.005, 'Refunded', 'Part-refunded')
+               WHERE o.payment_status IN ('Paid','Cash','Bank')
+                 AND r.refunded > 0"
+        );
+        $results[] = ['table' => 'orders', 'col' => 'refund status backfill',
+                      'status' => $fixed > 0 ? "✅ {$fixed} order(s) corrected" : 'nothing to correct ✓', 'ok' => true];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'orders', 'col' => 'refund status backfill', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 3. gallery: image/title -> filename/caption rename ──

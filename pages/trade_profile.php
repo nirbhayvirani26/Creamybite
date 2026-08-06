@@ -114,6 +114,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
 // ── Load this partner's orders ───────────────────────────────
 $orders = [];
 try {
+    // How much has gone back on each order, so a part-refund can say the
+    // amount rather than just the fact.
+    $refundsByOrder = [];
+    try {
+        $refundsByOrder = $pdo->query(
+            "SELECT order_id, SUM(amount) FROM order_refunds GROUP BY order_id"
+        )->fetchAll(PDO::FETCH_KEY_PAIR);
+    } catch (PDOException $e) {
+        // Table arrives with the migration; no refunds shown until then.
+    }
+
     $oStmt = $pdo->prepare("SELECT * FROM orders WHERE trade_user_id = :uid ORDER BY created_at DESC");
     $oStmt->execute(['uid' => $userId]);
     $orders = $oStmt->fetchAll();
@@ -501,13 +512,27 @@ function statusPill(string $status): array
                                 £<?= number_format((float)$o['total_price'], 2) ?>
                             </td>
                             <td>
-                                <?php if ($ps === 'Paid'): ?>
-                                <span class="cbtp-pay-state cbtp-ink-success"><i class="fa-solid fa-circle-check"></i> Paid Online</span>
-                                <?php elseif ($ps === 'Cash'): ?>
-                                <span class="cbtp-pay-state cbtp-ink-warn"><i class="fa-solid fa-money-bill-wave"></i> Paid in Cash</span>
-                                <?php else: ?>
-                                <span class="cbtp-pay-state cbtp-ink-danger"><i class="fa-solid fa-clock"></i> Unpaid</span>
-                                <?php endif; ?>
+                                <?php
+                                // Every status gets its own branch. A refunded order used
+                                // to fall through to the else and read "Unpaid", which told
+                                // the customer the opposite of the truth — they had paid,
+                                // and had been paid back.
+                                $refundedOnOrder = (float)($refundsByOrder[$o['id']] ?? 0);
+                                switch ($ps):
+                                    case 'Paid': ?>
+                                    <span class="cbtp-pay-state cbtp-ink-success"><i class="fa-solid fa-circle-check"></i> Paid</span>
+                                <?php break; case 'Cash': ?>
+                                    <span class="cbtp-pay-state cbtp-ink-warn"><i class="fa-solid fa-money-bill-wave"></i> Paid in Cash</span>
+                                <?php break; case 'Bank': ?>
+                                    <span class="cbtp-pay-state cbtp-ink-success"><i class="fa-solid fa-building-columns"></i> Paid by Transfer</span>
+                                <?php break; case 'Refunded': ?>
+                                    <span class="cbtp-pay-state cbtp-ink-success"><i class="fa-solid fa-rotate-left"></i> Refunded</span>
+                                <?php break; case 'Part-refunded': ?>
+                                    <span class="cbtp-pay-state cbtp-ink-warn"><i class="fa-solid fa-rotate-left"></i>
+                                        £<?= number_format($refundedOnOrder, 2) ?> refunded</span>
+                                <?php break; default: ?>
+                                    <span class="cbtp-pay-state cbtp-ink-danger"><i class="fa-solid fa-clock"></i> Unpaid</span>
+                                <?php endswitch; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

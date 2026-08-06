@@ -200,7 +200,7 @@ if (isset($_POST['status'])) {
 
         // ── Cancelled: give the stock back ──────────────────
         if ($status === 'Cancelled') {
-            $chk = $pdo->prepare("SELECT stock_deducted, items_json FROM orders WHERE id = :id");
+            $chk = $pdo->prepare("SELECT * FROM orders WHERE id = :id");
             $chk->execute(['id' => $orderId]);
             $orderRow = $chk->fetch(PDO::FETCH_ASSOC);
 
@@ -212,6 +212,35 @@ if (isset($_POST['status'])) {
                 $pdo->prepare("UPDATE orders SET stock_deducted = 0 WHERE id = :id")
                     ->execute(['id' => $orderId]);
             }
+
+            // ── Tell the customer ────────────────────────────
+            //
+            // Delivered sent an email and Paid sent an email, but Cancelled
+            // sent nothing — so a customer found out their order was gone by
+            // wondering where it had got to.
+            if ($statusChanged && $orderRow && !empty($orderRow['customer_email'])) {
+                try {
+                    $paidWord = in_array($orderRow['payment_status'], ['Paid','Cash','Bank'], true)
+                        ? '<p>You paid for this order, so a refund is on its way back to you. '
+                          . 'If you paid by card it usually reaches your statement within 5 to 10 working days.</p>'
+                        : '<p>Nothing was taken from you for this order, so there is nothing to refund.</p>';
+
+                    sendGenericEmail(
+                        $orderRow['customer_email'],
+                        'Your order ' . $orderRow['order_code'] . ' has been cancelled',
+                        '<p>Hello ' . htmlspecialchars($orderRow['customer_name']) . ',</p>'
+                        . '<p>We have had to cancel order <strong>' . htmlspecialchars($orderRow['order_code'])
+                        . '</strong>. We are sorry about that.</p>'
+                        . $paidWord
+                        . '<p>If you would like to reorder, or you think this is a mistake, call us on '
+                        . htmlspecialchars(SHOP_PHONE) . ' or reply to this email.</p>'
+                        . '<p>— ' . SHOP_NAME . '</p>'
+                    );
+                } catch (Throwable $e) {
+                    error_log('Cancellation email failed for order ' . $orderId . ': ' . $e->getMessage());
+                }
+            }
+
         }
 
         // Send the name back so the row can show who it was credited to

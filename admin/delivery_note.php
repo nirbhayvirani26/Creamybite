@@ -37,6 +37,20 @@ if (!$order) {
     die('Order not found.');
 }
 
+// Refunds against this order, for the credit note at the bottom.
+//
+// Looked up separately rather than joined so the note still prints on a
+// server whose order_refunds table has not been created yet — a delivery note
+// that will not print is worse than one missing a credit line.
+$refundRows = [];
+try {
+    $rfStmt = $pdo->prepare("SELECT amount, reason, created_at FROM order_refunds WHERE order_id = ? ORDER BY created_at");
+    $rfStmt->execute([(int)$order['id']]);
+    $refundRows = $rfStmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $refundRows = [];
+}
+
 // Who delivered it, if it has been marked Delivered against a named person.
 //
 // Looked up separately rather than joined so the note still prints on a
@@ -210,6 +224,45 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
             <span>TOTAL DUE:</span>
             <span>£<?= number_format((float)$order['total_price'], 2) ?></span>
         </div>
+
+        <?php
+        // Refunds shown on the document itself, with the VAT split out.
+        //
+        // A trade customer who has reclaimed VAT on this order needs a credit
+        // note to reverse it — a smaller number with no explanation is not
+        // something their accountant can post. The VAT share is worked out
+        // proportionally from the order's own VAT, the same way the VAT return
+        // does it, so the two can never disagree.
+        if (!empty($refundRows)):
+            $refundTotal = array_sum(array_map(static fn($r) => (float)$r['amount'], $refundRows));
+            $orderTotal  = (float)$order['total_price'];
+            $orderVat    = (float)($order['vat_amount'] ?? 0);
+            $refundVat   = ($orderTotal > 0 && $orderVat > 0)
+                ? round($orderVat * min(1.0, $refundTotal / $orderTotal), 2) : 0.00;
+        ?>
+        <div class="cbdn-credit">
+            <div class="cbdn-credit-head">CREDIT NOTE — REFUNDS AGAINST THIS ORDER</div>
+            <?php foreach ($refundRows as $r): ?>
+            <div class="cbdn-row-split cbdn-total-row">
+                <span>
+                    <?= htmlspecialchars(date('j M Y', strtotime($r['created_at']))) ?>
+                    <?= $r['reason'] !== '' ? ' — ' . htmlspecialchars($r['reason']) : '' ?>
+                </span>
+                <span>−£<?= number_format((float)$r['amount'], 2) ?></span>
+            </div>
+            <?php endforeach; ?>
+            <?php if ($refundVat > 0): ?>
+            <div class="cbdn-row-split cbdn-total-row cbdn-credit-vat">
+                <span>of which VAT</span>
+                <span>−£<?= number_format($refundVat, 2) ?></span>
+            </div>
+            <?php endif; ?>
+            <div class="grand-total cbdn-row-split">
+                <span>NET AFTER REFUNDS:</span>
+                <span>£<?= number_format(max(0, $orderTotal - $refundTotal), 2) ?></span>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <!-- Signatures Block -->

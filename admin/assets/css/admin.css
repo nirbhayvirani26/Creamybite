@@ -1516,3 +1516,12 @@ th.inv-sort i.is-sorted   { opacity: 1; }
 .cbi-owner-meta       { display: flex; flex-wrap: wrap; gap: 18px 32px; margin-bottom: 20px; font-size: 13.5px; }
 .cbi-owner-meta-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
                          color: var(--text-muted); margin-bottom: 3px; }
+
+/* Credit note on a delivery note / invoice. Boxed and headed so a refund
+   reads as a separate document section rather than a stray negative line —
+   a trade customer's accountant needs to see it is a credit note. */
+.cbdn-credit      { margin-top: 14px; padding-top: 12px; border-top: 2px solid #a04040; }
+.cbdn-credit-head { font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
+                    color: #a04040; margin-bottom: 8px; }
+.cbdn-credit .cbdn-total-row span:last-child { color: #a04040; }
+.cbdn-credit-vat  { font-style: italic; opacity: 0.85; }
