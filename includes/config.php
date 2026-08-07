@@ -10,6 +10,23 @@
 //  served over the web. Keep this file out of any public repo or ZIP.
 // ============================================================
 
+// ── Time ────────────────────────────────────────────────────
+//
+// Everything this shop records is a UK local time — when an order came in,
+// when it was delivered, which day it belongs to on a VAT return. Without
+// this line PHP falls back to the server default, which is UTC on Hostinger
+// and on MAMP, so every order was stamped an hour behind the clock on the
+// wall for the seven months a year Britain is on BST.
+//
+// It has to be the SAME zone MySQL uses, because both write timestamps:
+// created_at comes from PHP date(), while delivered_at, printed_at, sent_at
+// and the VAT submitted_at come from SQL NOW(). Two zones meant those two
+// sets of times disagreed with each other by an hour, so an order delivered
+// five minutes after it arrived looked like it took an hour and five.
+// includes/db.php pins the database session to match.
+define('CB_TIMEZONE', 'Europe/London');
+date_default_timezone_set(CB_TIMEZONE);
+
 // Be safe to include more than once.
 //
 // require_once de-duplicates by resolved PATH STRING. macOS is
