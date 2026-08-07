@@ -168,10 +168,6 @@ $meta  = $data['meta'];
 // DELIVERY on an order the customer is coming to fetch.
 $address      = (string)($order['address'] ?? '');
 $isCollection = $address !== '' && str_contains($address, 'Collection');
-$collectPoint = $isCollection
-    ? trim((string)preg_replace('/^\s*Collection\s*-\s*/i', '', $address))
-    : '';
-
 $postcode = trim((string)($order['postcode'] ?? ''));
 $status   = (string)($order['status'] ?? '');
 $isCancelled = strcasecmp($status, 'Cancelled') === 0;
@@ -308,10 +304,10 @@ $placed = strtotime((string)($order['created_at'] ?? '')) ?: time();
         <!-- ── Where it goes ──────────────────────────────── -->
         <?php if ($isCollection): ?>
         <div class="cbr-banner">
+            <?php // No address on a collection order. The only address there is to
+                  // print is the shop's own, and this receipt never leaves the shop —
+                  // it just costs a line of paper and pushes the items further down. ?>
             <div class="cbr-banner-title">Collection</div>
-            <?php if ($collectPoint !== ''): ?>
-            <div class="cbr-banner-body"><?= $h($collectPoint) ?></div>
-            <?php endif; ?>
             <div class="cbr-banner-note">Customer is collecting - do not send out.</div>
         </div>
         <?php else: ?>
