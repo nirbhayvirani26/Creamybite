@@ -14,6 +14,26 @@ try {
     $featured = $stmt->fetchAll();
 } catch (PDOException $e) { }
 
+// Home page banner slides.
+//
+// Only live ones: active, and inside their date window if they have been
+// given one. The window is checked in SQL rather than in PHP so a promotion
+// that ended yesterday is gone the moment the page is loaded, without anyone
+// having to switch it off.
+$banners = [];
+try {
+    $banners = $pdo->query(
+        "SELECT * FROM banners
+          WHERE active = 1
+            AND (starts_on IS NULL OR starts_on <= CURDATE())
+            AND (ends_on   IS NULL OR ends_on   >= CURDATE())
+       ORDER BY sort_order ASC, id ASC"
+    )->fetchAll();
+} catch (PDOException $e) {
+    // Table arrives with the migration. The hero below stands in until then,
+    // so the home page never loses its top section.
+}
+
 // Customer reviews for the testimonials strip.
 //
 // Approved only, and the section hides itself entirely when there are none —
@@ -105,6 +125,151 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
 </div>
 
 <!-- ══ Hero ════════════════════════════════════════════════ -->
+<?php if (!empty($banners)): ?>
+<!-- ══ Banner slider ════════════════════════════════════════ -->
+<?php
+// Replaces the hero rather than sitting above it. Two full-height panels
+// stacked would push everything below the fold, and a banner slider is the
+// hero on a shop that has one. With no banners set up the hero below runs as
+// it always has, so this can be switched on and off from the admin without
+// ever leaving the page headless.
+//
+// Built on the same scroll-snap track as the reviews slider: it works by
+// swipe and keyboard with no JavaScript at all, and the arrows, dots and
+// auto-advance are layered on top.
+?>
+<section class="cbbn" id="homeBanner" aria-roledescription="carousel" aria-label="Offers">
+    <div class="cbbn-track" id="cbbnTrack" tabindex="0">
+        <?php foreach ($banners as $i => $b): ?>
+        <?php
+            $hasLink = trim((string)$b['link_url']) !== '';
+            $tag     = $hasLink && trim((string)$b['link_text']) === '' ? 'a' : 'div';
+        ?>
+        <<?= $tag ?> class="cbbn-slide"
+            <?= $tag === 'a' ? 'href="' . htmlspecialchars($b['link_url']) . '"' : '' ?>
+            role="group" aria-roledescription="slide"
+            aria-label="<?= $i + 1 ?> of <?= count($banners) ?>">
+            <img class="cbbn-img"
+                 src="<?= SITE_BASE ?>/assets/images/banners/<?= htmlspecialchars($b['image']) ?>"
+                 alt="<?= htmlspecialchars($b['headline'] ?: 'Creamy Bite offer') ?>"
+                 <?= $i === 0 ? '' : 'loading="lazy"' ?>>
+            <?php if (trim((string)$b['headline']) !== '' || trim((string)$b['subtext']) !== ''): ?>
+            <div class="cbbn-caption">
+                <?php if (trim((string)$b['headline']) !== ''): ?>
+                <h2 class="cbbn-headline"><?= htmlspecialchars($b['headline']) ?></h2>
+                <?php endif; ?>
+                <?php if (trim((string)$b['subtext']) !== ''): ?>
+                <p class="cbbn-sub"><?= htmlspecialchars($b['subtext']) ?></p>
+                <?php endif; ?>
+                <?php if ($hasLink && trim((string)$b['link_text']) !== ''): ?>
+                <a class="btn-cta-white cbbn-cta" href="<?= htmlspecialchars($b['link_url']) ?>">
+                    <?= htmlspecialchars($b['link_text']) ?>
+                </a>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+        </<?= $tag ?>>
+        <?php endforeach; ?>
+    </div>
+
+    <?php if (count($banners) > 1): ?>
+    <button type="button" class="cbbn-nav cbbn-prev" id="cbbnPrev" aria-label="Previous slide" hidden>
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <button type="button" class="cbbn-nav cbbn-next" id="cbbnNext" aria-label="Next slide" hidden>
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+    <div class="cbbn-dots" id="cbbnDots" hidden></div>
+    <?php endif; ?>
+</section>
+
+<?php if (count($banners) > 1): ?>
+<script>
+// Banner slider. The track already scroll-snaps in CSS, so this only adds the
+// arrows, the dots and the auto-advance — with the script blocked it is still
+// a swipeable strip rather than a broken box.
+(function () {
+    const track = document.getElementById('cbbnTrack');
+    const prev  = document.getElementById('cbbnPrev');
+    const next  = document.getElementById('cbbnNext');
+    const dots  = document.getElementById('cbbnDots');
+    if (!track || !prev || !next || !dots) return;
+
+    const slides = [...track.querySelectorAll('.cbbn-slide')];
+    if (slides.length < 2) return;
+
+    let timer = null;
+    const DELAY = 6000;
+
+    function page() {
+        return track.clientWidth > 0 ? Math.round(track.scrollLeft / track.clientWidth) : 0;
+    }
+
+    function go(i, smooth) {
+        // Wraps at both ends so the arrows never dead-end on a carousel.
+        const n = slides.length;
+        const target = ((i % n) + n) % n;
+        track.scrollTo({ left: target * track.clientWidth, behavior: smooth === false ? 'auto' : 'smooth' });
+    }
+
+    function sync() {
+        const p = page();
+        [...dots.children].forEach((d, i) => {
+            d.classList.toggle('is-active', i === p);
+            d.setAttribute('aria-current', i === p ? 'true' : 'false');
+        });
+    }
+
+    slides.forEach((_, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cbbn-dot';
+        b.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        b.addEventListener('click', () => { go(i); restart(); });
+        dots.appendChild(b);
+    });
+    prev.hidden = next.hidden = dots.hidden = false;
+
+    prev.addEventListener('click', () => { go(page() - 1); restart(); });
+    next.addEventListener('click', () => { go(page() + 1); restart(); });
+
+    let settle;
+    track.addEventListener('scroll', () => { clearTimeout(settle); settle = setTimeout(sync, 90); }, { passive: true });
+    window.addEventListener('resize', () => { clearTimeout(settle); settle = setTimeout(sync, 150); });
+
+    // ── Auto-advance ────────────────────────────────────────
+    //
+    // Paused on hover, on keyboard focus, and whenever the tab is in the
+    // background — a carousel that keeps cycling while nobody is looking is
+    // just wasted work, and one that moves while someone is reading it is
+    // worse than one that does not move at all.
+    function start() {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        stop();
+        timer = setInterval(() => { if (!document.hidden) go(page() + 1); }, DELAY);
+    }
+    function stop()    { if (timer) { clearInterval(timer); timer = null; } }
+    function restart() { stop(); start(); }
+
+    const box = document.getElementById('homeBanner');
+    box.addEventListener('mouseenter', stop);
+    box.addEventListener('mouseleave', start);
+    box.addEventListener('focusin',  stop);
+    box.addEventListener('focusout', start);
+    document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+
+    // Left/right arrow keys when the strip has focus.
+    track.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight') { e.preventDefault(); go(page() + 1); restart(); }
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); go(page() - 1); restart(); }
+    });
+
+    sync();
+    start();
+})();
+</script>
+<?php endif; ?>
+<?php else: ?>
 <section class="landing-hero">
     <?php // Decorative scoops, cones and falling sprinkles. Purely cosmetic —
           // hidden for reduced-motion users via animations.css, and painted
@@ -151,6 +316,7 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
         </div>
     </div>
 </section>
+<?php endif; ?>
 
 <!-- ══ Stats Strip ═════════════════════════════════════════ -->
 <div class="hero-stats">

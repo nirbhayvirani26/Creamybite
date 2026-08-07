@@ -23,7 +23,7 @@ require_once __DIR__ . '/../../includes/db.php';
 // staff management is owner-only, enforced above, not by this list.
 const CBI_GRANTABLE_SECTIONS = [
     'orders', 'invoices', 'revenue', 'products', 'stock',
-    'categories', 'promos', 'trade', 'inquiries', 'gallery', 'reviews',
+    'categories', 'promos', 'trade', 'inquiries', 'gallery', 'banners', 'reviews',
     'accounting',
 ];
 

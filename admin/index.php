@@ -145,7 +145,7 @@ $totalProducts = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
 // instead of silently rendering Orders to someone who wasn't granted it.
 $activeTab = $_GET['tab'] ?? 'orders';
 $validTabs = ['orders','products','gallery','categories','promos','stock',
-              'revenue','inquiries','trade','invoices','reviews','staff'];
+              'revenue','inquiries','trade','invoices','reviews','banners','staff'];
 if (!in_array($activeTab, $validTabs, true)) $activeTab = 'orders';
 
 if (!adminCan($activeTab)) {
@@ -248,6 +248,12 @@ try {
 $products = $pdo->query("SELECT * FROM products ORDER BY id DESC")->fetchAll();
 
 // ── Load gallery ──────────────────────────────────────────
+// Home page banners, newest ordering first so the admin list matches the
+// order they appear on the site.
+$bannerItems = [];
+try { $bannerItems = $pdo->query("SELECT * FROM banners ORDER BY sort_order ASC, id ASC")->fetchAll(); }
+catch (PDOException $e) {}
+
 $galleryItems = [];
 try { $galleryItems = $pdo->query("SELECT * FROM gallery ORDER BY sort_order ASC, created_at DESC")->fetchAll(); } catch (PDOException $e) {}
 
@@ -586,6 +592,7 @@ $adminNav = [
      'perm' => 'accounting'],
 
     ['group' => 'Content'],
+    ['tab' => 'banners',    'icon' => 'fa-rectangle-ad',       'label' => 'Home Banner'],
     ['tab' => 'gallery',    'icon' => 'fa-images',             'label' => 'Gallery'],
     ['tab' => 'reviews',    'icon' => 'fa-star',               'label' => 'Reviews',
      'badge' => $pendingReviews > 0 ? (string)$pendingReviews : null, 'alert' => true],
@@ -621,6 +628,7 @@ $pageTitles = [
     'stock'      => ['📦 Stock',           'Stock levels, damage and offline sales'],
     'invoices'   => ['🧾 Invoices',        'Create, amend and track invoices'],
     'revenue'    => ['📈 Revenue',         'Sales performance over time'],
+    'banners'    => ['🖼️ Home Banner',     'The slider at the top of the home page'],
     'gallery'    => ['🖼️ Gallery',         'Photos shown on the public gallery'],
     'categories' => ['🏷️ Categories',      'Organise the menu'],
     'promos'     => ['🎟️ Promos',          'Discount codes'],
@@ -2358,6 +2366,144 @@ $pageTitles = [
         </div>
 
         <!-- ═══════════════════ GALLERY TAB ══════════════════ -->
+        <?php elseif ($activeTab === 'banners'): ?>
+        <div class="glass-panel cbi-panel-lg">
+            <h3 class="cbi-section-heading"><i class="fa-solid fa-plus"></i> Add a banner</h3>
+            <p class="cbi-bn-intro">
+                These are the slides at the top of the home page. With none set up, the
+                usual hero shows instead — so you can switch the slider on and off just
+                by adding or removing slides.
+                <strong>Landscape images work best, around 1600&nbsp;&times;&nbsp;600.</strong>
+            </p>
+
+            <div id="bannerAddResult"></div>
+
+            <form id="bannerAddForm" class="cbi-bn-form">
+                <div class="cbi-bn-grid">
+                    <div class="form-group cbi-bn-span">
+                        <label class="form-label" for="bnImage">Image *</label>
+                        <input type="file" id="bnImage" name="banner_image" class="form-control"
+                               accept="image/jpeg,image/png,image/webp,image/gif" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="bnHead">Headline</label>
+                        <input type="text" id="bnHead" name="headline" class="form-control" maxlength="120"
+                               placeholder="Two scoops, half price">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="bnSub">Sub text</label>
+                        <input type="text" id="bnSub" name="subtext" class="form-control" maxlength="255"
+                               placeholder="Every Friday through August">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="bnUrl">Links to</label>
+                        <input type="text" id="bnUrl" name="link_url" class="form-control" maxlength="255"
+                               placeholder="pages/order.php">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="bnBtn">Button text</label>
+                        <input type="text" id="bnBtn" name="link_text" class="form-control" maxlength="60"
+                               placeholder="Order now">
+                        <small class="cbi-bn-hint">Leave blank to make the whole banner clickable.</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="bnFrom">Show from</label>
+                        <input type="date" id="bnFrom" name="starts_on" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="bnTo">Show until</label>
+                        <input type="date" id="bnTo" name="ends_on" class="form-control">
+                        <small class="cbi-bn-hint">
+                            Leave both blank to run forever. Dates let a promotion start and
+                            stop on its own.
+                        </small>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary"><i class="fa-solid fa-upload"></i> Add banner</button>
+            </form>
+
+            <h3 class="cbi-section-heading">
+                <i class="fa-solid fa-rectangle-ad"></i> Banners (<?= count($bannerItems) ?>)
+            </h3>
+
+            <?php if (!$bannerItems): ?>
+            <p class="cbi-bn-empty">
+                No banners yet — the home page is showing its usual hero. Add one above and
+                it appears at the top of the site straight away.
+            </p>
+            <?php else: ?>
+            <div class="cbi-bn-list" id="bannerList">
+                <?php foreach ($bannerItems as $i => $b): ?>
+                <?php
+                    $today   = date('Y-m-d');
+                    $pending = $b['starts_on'] && $b['starts_on'] > $today;
+                    $expired = $b['ends_on']   && $b['ends_on']   < $today;
+                    $live    = $b['active'] && !$pending && !$expired;
+                ?>
+                <div class="cbi-bn-item<?= $live ? '' : ' is-off' ?>" id="bn-<?= (int)$b['id'] ?>">
+                    <img class="cbi-bn-thumb"
+                         src="../assets/images/banners/<?= htmlspecialchars($b['image']) ?>"
+                         alt="<?= htmlspecialchars($b['headline'] ?: 'Banner') ?>">
+
+                    <div class="cbi-bn-body">
+                        <strong class="cbi-bn-head"><?= htmlspecialchars($b['headline'] ?: '(no headline)') ?></strong>
+                        <?php if (trim((string)$b['subtext']) !== ''): ?>
+                        <span class="cbi-bn-subtext"><?= htmlspecialchars($b['subtext']) ?></span>
+                        <?php endif; ?>
+                        <span class="cbi-bn-meta">
+                            <?php if ($b['link_url']): ?>
+                                <i class="fa-solid fa-link"></i> <?= htmlspecialchars($b['link_url']) ?>
+                                <?= $b['link_text'] ? ' · “' . htmlspecialchars($b['link_text']) . '”' : ' · whole banner clickable' ?>
+                            <?php else: ?>
+                                <i class="fa-solid fa-link-slash"></i> not clickable
+                            <?php endif; ?>
+                        </span>
+                        <?php if ($b['starts_on'] || $b['ends_on']): ?>
+                        <span class="cbi-bn-meta">
+                            <i class="fa-regular fa-calendar"></i>
+                            <?= $b['starts_on'] ? 'from ' . date('j M Y', strtotime($b['starts_on'])) : 'from now' ?>
+                            <?= $b['ends_on']   ? ' until ' . date('j M Y', strtotime($b['ends_on'])) : ' onwards' ?>
+                        </span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="cbi-bn-state">
+                        <?php if ($live): ?>
+                            <span class="cbi-bn-badge is-live">Showing now</span>
+                        <?php elseif ($pending): ?>
+                            <span class="cbi-bn-badge is-wait">Starts <?= date('j M', strtotime($b['starts_on'])) ?></span>
+                        <?php elseif ($expired): ?>
+                            <span class="cbi-bn-badge is-done">Ended</span>
+                        <?php else: ?>
+                            <span class="cbi-bn-badge is-off">Switched off</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="cbi-bn-actions">
+                        <button type="button" class="btn-sm" title="Move up"
+                                onclick="bnMove(<?= (int)$b['id'] ?>, -1)" <?= $i === 0 ? 'disabled' : '' ?>>
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
+                        <button type="button" class="btn-sm" title="Move down"
+                                onclick="bnMove(<?= (int)$b['id'] ?>, 1)" <?= $i === count($bannerItems) - 1 ? 'disabled' : '' ?>>
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </button>
+                        <button type="button" class="btn-sm" onclick="bnToggle(<?= (int)$b['id'] ?>)">
+                            <?= $b['active'] ? 'Switch off' : 'Switch on' ?>
+                        </button>
+                        <button type="button" class="btn-sm btn-sm-danger"
+                                onclick="bnDelete(<?= (int)$b['id'] ?>)"
+                                data-confirm="Delete this banner? The image is removed too and this cannot be undone."
+                                data-confirm-title="Delete banner?" data-confirm-tone="danger" data-confirm-ok="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
         <?php elseif ($activeTab === 'gallery'): ?>
         <div class="glass-panel cbi-panel-lg">
 
@@ -2923,7 +3069,7 @@ $pageTitles = [
                 'orders' => 'Orders', 'invoices' => 'Invoices', 'revenue' => 'Revenue',
                 'products' => 'Products', 'stock' => 'Stock', 'categories' => 'Categories',
                 'promos' => 'Promos', 'trade' => 'Trade Accounts', 'inquiries' => 'Inquiries',
-                'gallery' => 'Gallery', 'reviews' => 'Reviews',
+                'gallery' => 'Gallery', 'banners' => 'Home Banner', 'reviews' => 'Reviews',
                   'accounting' => 'VAT & Accounting',
             ];
             ?>
@@ -3479,7 +3625,60 @@ function triggerGalleryUpload(input) {
     });
 }
 
-async function deleteGalleryItem(id) {
+async // ── Home banners ──────────────────────────────────────────
+const bnForm = document.getElementById('bannerAddForm');
+if (bnForm) {
+    bnForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const out = document.getElementById('bannerAddResult');
+        out.innerHTML = '<div class="alert alert-info">Uploading…</div>';
+        const fd = new FormData(bnForm);
+        fd.append('action', 'add');
+        fetch('handlers/banner_handler.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) { location.reload(); }
+                else { out.innerHTML = '<div class="alert alert-danger">' + (d.message || 'Could not add that banner.') + '</div>'; }
+            })
+            .catch(() => { out.innerHTML = '<div class="alert alert-danger">Could not reach the server.</div>'; });
+    });
+}
+
+function bnPost(body, onOk) {
+    fetch('handlers/banner_handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body,
+    })
+    .then(r => r.json())
+    .then(d => { if (d.success) { onOk ? onOk(d) : location.reload(); }
+                 else { cbAlert(d.message || 'That did not work.', {title: 'Banner', tone: 'danger'}); } })
+    .catch(() => cbAlert('Could not reach the server.', {title: 'Banner', tone: 'danger'}));
+}
+
+function bnToggle(id) { bnPost('action=toggle&id=' + id); }
+
+async function bnDelete(id) {
+    // The confirm text lives on the button's data-confirm, same as every other
+    // destructive action in this panel, so it reads the same way everywhere.
+    bnPost('action=delete&id=' + id);
+}
+
+// Reorder by swapping with the neighbour, then sending the whole order. The
+// server takes a list rather than a pair, so two people reordering at once
+// cannot leave the sequence with a gap or a duplicate.
+function bnMove(id, dir) {
+    const list = document.getElementById('bannerList');
+    if (!list) return;
+    const ids = [...list.children].map(el => parseInt(el.id.replace('bn-', ''), 10));
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    bnPost('action=reorder&' + ids.map(x => 'ids[]=' + x).join('&'));
+}
+
+function deleteGalleryItem(id) {
     if (!await cbConfirm('Delete this photo? This cannot be undone.', {title:'Delete photo?', tone:'danger', okText:'Delete'})) return;
     fetch('handlers/gallery_handler.php?action=delete&id=' + id)
     .then(r => r.json())

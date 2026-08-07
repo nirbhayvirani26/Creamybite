@@ -1412,3 +1412,63 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
    working. */
 .cbco-hidden { display: none; }
 .cbor-hidden { display: none; }
+
+/* ============================================================
+   Home page banner slider
+   ============================================================
+   The track is a scroll-snapping row, so it works by swipe and by keyboard
+   with no JavaScript at all; the arrows, dots and auto-advance are layered
+   on top and hide themselves if the script never runs.
+
+   Slides are sized in vh with a max, not in px: a banner that is 420px tall
+   dominates a laptop and looks like a stripe on a large monitor. */
+.cbbn            { position: relative; background: var(--color-primary-dark); overflow: hidden; }
+.cbbn-track      { display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+                   scroll-behavior: smooth; scrollbar-width: none; -ms-overflow-style: none; }
+.cbbn-track::-webkit-scrollbar { display: none; }
+.cbbn-track:focus-visible { outline: 3px solid var(--color-secondary); outline-offset: -3px; }
+
+.cbbn-slide      { position: relative; flex: 0 0 100%; scroll-snap-align: start;
+                   display: block; text-decoration: none; color: #fff;
+                   height: clamp(260px, 42vh, 460px); }
+.cbbn-img        { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* A gradient rather than a flat wash: the text end stays readable while the
+   far side of the photograph is left alone. */
+.cbbn-caption    { position: absolute; inset: 0; display: flex; flex-direction: column;
+                   align-items: flex-start; justify-content: center; gap: 12px;
+                   padding: 0 clamp(22px, 7vw, 90px);
+                   background: linear-gradient(90deg, rgba(44,13,17,0.78) 0%,
+                                                      rgba(44,13,17,0.55) 45%,
+                                                      rgba(44,13,17,0.08) 100%); }
+.cbbn-headline   { font-size: clamp(24px, 4.2vw, 46px); margin: 0; line-height: 1.12;
+                   color: #fff; max-width: 17ch; text-shadow: 0 2px 12px rgba(0,0,0,0.35); }
+.cbbn-sub        { font-size: clamp(14px, 1.7vw, 19px); margin: 0; max-width: 42ch;
+                   line-height: 1.55; color: rgba(255,255,255,0.93); }
+.cbbn-cta        { margin-top: 6px; }
+
+/* ── Arrows and dots ─────────────────────────────────────── */
+.cbbn-nav        { position: absolute; top: 50%; transform: translateY(-50%);
+                   width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer;
+                   background: rgba(255,255,255,0.9); color: var(--color-primary);
+                   font-size: 17px; display: flex; align-items: center; justify-content: center;
+                   transition: background 0.18s ease, transform 0.18s ease; z-index: 2; }
+.cbbn-nav:hover  { background: #fff; transform: translateY(-50%) scale(1.06); }
+.cbbn-prev       { left: 16px; }
+.cbbn-next       { right: 16px; }
+
+.cbbn-dots       { position: absolute; left: 0; right: 0; bottom: 16px; z-index: 2;
+                   display: flex; justify-content: center; gap: 8px; }
+.cbbn-dot        { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 50%;
+                   background: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.2s ease; }
+.cbbn-dot.is-active { background: #fff; width: 26px; border-radius: 5px; }
+
+@media (max-width: 620px) {
+    /* Swipe is the natural gesture on a phone, and the arrows sit on top of
+       the picture where a thumb already is. */
+    .cbbn-nav     { display: none; }
+    .cbbn-caption { background: linear-gradient(180deg, rgba(44,13,17,0.25) 0%, rgba(44,13,17,0.82) 100%);
+                    align-items: center; text-align: center; justify-content: flex-end;
+                    padding-bottom: 46px; }
+    .cbbn-headline { max-width: none; }
+}

@@ -255,6 +255,29 @@ $tables = [
     // .env ADMIN_PASSWORD is authoritative", checked in admin/login.php and
     // admin/handlers/staff_handler.php. Not seeded — every column has a safe
     // default, so the first password change does the insert via upsert.
+    // Home page banner slider, managed from Admin → Banners.
+    //
+    // starts_on / ends_on let a promotion be written now and appear on its own
+    // — a "Bank Holiday offer" banner is worth nothing if somebody has to
+    // remember to switch it on that morning and off again the day after. NULL
+    // on either side means "no limit that end", so a permanent banner needs
+    // neither date.
+    'banners' => "CREATE TABLE IF NOT EXISTS `banners` (
+        `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `image`      VARCHAR(255) NOT NULL DEFAULT '',
+        `headline`   VARCHAR(120) NOT NULL DEFAULT '',
+        `subtext`    VARCHAR(255) NOT NULL DEFAULT '',
+        `link_url`   VARCHAR(255) NOT NULL DEFAULT '',
+        `link_text`  VARCHAR(60)  NOT NULL DEFAULT '',
+        `sort_order` INT          NOT NULL DEFAULT 0,
+        `active`     TINYINT(1)   NOT NULL DEFAULT 1,
+        `starts_on`  DATE         NULL DEFAULT NULL,
+        `ends_on`    DATE         NULL DEFAULT NULL,
+        `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_live` (`active`, `sort_order`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
     'owner_settings' => "CREATE TABLE IF NOT EXISTS `owner_settings` (
         `id`            TINYINT UNSIGNED NOT NULL DEFAULT 1,
         `password_hash` VARCHAR(255) NULL DEFAULT NULL,

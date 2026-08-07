@@ -1525,3 +1525,32 @@ th.inv-sort i.is-sorted   { opacity: 1; }
                     color: #a04040; margin-bottom: 8px; }
 .cbdn-credit .cbdn-total-row span:last-child { color: #a04040; }
 .cbdn-credit-vat  { font-style: italic; opacity: 0.85; }
+
+/* ── Home banner manager ──────────────────────────────────── */
+.admin-wrapper.has-sidebar .cbi-bn-intro { font-size:13.5px; color:var(--text-secondary); line-height:1.65; margin:0 0 16px; max-width:70ch; }
+.admin-wrapper.has-sidebar .cbi-bn-form  { margin-bottom:30px; }
+.admin-wrapper.has-sidebar .cbi-bn-grid  { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:14px; }
+.admin-wrapper.has-sidebar .cbi-bn-span  { grid-column:1 / -1; }
+.admin-wrapper.has-sidebar .cbi-bn-hint  { display:block; font-size:12px; color:var(--text-muted); margin-top:5px; line-height:1.5; }
+.admin-wrapper.has-sidebar .cbi-bn-empty { font-size:14px; color:var(--text-secondary); line-height:1.6; padding:14px 0; }
+
+.admin-wrapper.has-sidebar .cbi-bn-list  { display:flex; flex-direction:column; gap:12px; }
+.admin-wrapper.has-sidebar .cbi-bn-item  { display:flex; gap:16px; align-items:center; flex-wrap:wrap;
+                                           padding:12px 14px; border:1px solid var(--border-light);
+                                           border-radius:var(--radius-md); background:var(--bg-surface); }
+/* A banner that is off, not started or finished is dimmed rather than hidden —
+   it still exists and still needs finding. */
+.admin-wrapper.has-sidebar .cbi-bn-item.is-off { opacity:0.55; }
+.admin-wrapper.has-sidebar .cbi-bn-thumb { width:150px; height:60px; object-fit:cover; border-radius:var(--radius-sm); flex:0 0 auto; }
+.admin-wrapper.has-sidebar .cbi-bn-body  { flex:1; min-width:190px; display:flex; flex-direction:column; gap:3px; }
+.admin-wrapper.has-sidebar .cbi-bn-head  { font-size:14.5px; }
+.admin-wrapper.has-sidebar .cbi-bn-subtext { font-size:13px; color:var(--text-secondary); }
+.admin-wrapper.has-sidebar .cbi-bn-meta  { font-size:11.5px; color:var(--text-muted); }
+.admin-wrapper.has-sidebar .cbi-bn-state { flex:0 0 auto; }
+.admin-wrapper.has-sidebar .cbi-bn-badge { display:inline-block; padding:3px 10px; border-radius:999px;
+                                           font-size:11px; font-weight:700; white-space:nowrap; }
+.admin-wrapper.has-sidebar .cbi-bn-badge.is-live { background:rgba(16,185,129,0.14); color:#0f7a52; }
+.admin-wrapper.has-sidebar .cbi-bn-badge.is-wait { background:rgba(245,158,11,0.16); color:#b45309; }
+.admin-wrapper.has-sidebar .cbi-bn-badge.is-done,
+.admin-wrapper.has-sidebar .cbi-bn-badge.is-off  { background:rgba(92,29,36,0.10); color:var(--text-secondary); }
+.admin-wrapper.has-sidebar .cbi-bn-actions { display:flex; gap:6px; flex-wrap:wrap; flex:0 0 auto; }
