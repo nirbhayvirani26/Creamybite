@@ -3753,7 +3753,7 @@ function bnMove(id, dir) {
     bnPost('action=reorder&' + ids.map(x => 'ids[]=' + x).join('&'));
 }
 
-function deleteGalleryItem(id) {
+async function deleteGalleryItem(id) {
     if (!await cbConfirm('Delete this photo? This cannot be undone.', {title:'Delete photo?', tone:'danger', okText:'Delete'})) return;
     fetch('handlers/gallery_handler.php?action=delete&id=' + id)
     .then(r => r.json())
