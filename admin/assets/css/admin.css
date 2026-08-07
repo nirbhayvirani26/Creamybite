@@ -431,6 +431,14 @@ body.admin-wrapper.has-sidebar {
 .admin-wrapper.has-sidebar .cbi-text-amber { color:#f59e0b; }
 .admin-wrapper.has-sidebar .cbi-text-violet { color:#8b5cf6; }
 .admin-wrapper.has-sidebar .cbi-text-red { color:#ef4444; }
+.admin-wrapper.has-sidebar .cbi-text-blue { color:#3b82f6; }
+
+/* Label text for an icon that is the only visible indicator (e.g. the
+   repeat-customer chip) — read by screen readers, never shown. */
+.admin-wrapper.has-sidebar .cbi-sr-only {
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
 
 /* ── Invoices tab ─────────────────────────────── */
 .admin-wrapper.has-sidebar .cbi-inv-action-btn { padding:6px 10px; font-size:12px; }
@@ -918,6 +926,10 @@ img.cbpf-current-thumb     { max-height: 160px; object-fit: contain; }
 .cbpf-emoji-group          { margin-top: 14px; }
 label.cbpf-emoji-label     { font-size: 11px; }
 input.cbpf-emoji-input     { font-size: 22px; max-width: 100px; }
+/* Readout under the emoji field: the column stores the emoji, the shop draws
+   the matching icon, and this is where the owner sees which one that is. */
+.cbpf-emoji-resolved       { display: block; margin-top: 6px; font-size: 12px; color: var(--text-muted); }
+.cbpf-emoji-resolved-icon  { font-size: 20px; color: var(--color-primary); vertical-align: -3px; margin-left: 2px; }
 button.cbpf-submit-btn     { width: 100%; justify-content: center; font-size: 16px; padding: 16px; }
 
 /* ── Live preview card ──────────────────────────────────── */

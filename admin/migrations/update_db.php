@@ -47,6 +47,42 @@ function cb_column_type(PDO $pdo, string $table, string $col, string $fallback):
     return $type ? strtoupper((string)$type) : $fallback;
 }
 
+/**
+ * Turn one step's status message into the HTML the results table prints.
+ *
+ * Every message is escaped before it reaches the page — several of them end in
+ * a raw MySQL error — so an <i> tag written straight into a status string
+ * would appear on screen as literal markup. The messages therefore carry a
+ * plain-text marker, [ok] / [warn] / [err], and the icon is substituted here
+ * AFTER escaping, leaving the rest of the text escaped exactly as before.
+ *
+ * The marker is replaced wherever it appears, not just at the start: the
+ * gallery step appends its warning to the end of an otherwise successful
+ * message.
+ *
+ * The icon itself is decorative and hidden from assistive technology; the word
+ * beside it is what gets announced, because a green tick and a red cross carry
+ * their meaning through colour and shape alone.
+ */
+function cb_status_html(string $status): string {
+    $marks = [
+        '[ok]'   => ['fa-circle-check',         'su-mark-ok',   'Done'],
+        '[warn]' => ['fa-triangle-exclamation', 'su-mark-warn', 'Warning'],
+        '[err]'  => ['fa-circle-xmark',         'su-mark-err',  'Failed'],
+    ];
+
+    $out = htmlspecialchars($status);
+    foreach ($marks as $token => [$icon, $cls, $label]) {
+        $out = str_replace(
+            $token,
+            '<i class="fa-solid ' . $icon . ' su-mark ' . $cls . '" aria-hidden="true"></i>'
+            . '<span class="su-sr-only">' . $label . ':</span>',
+            $out
+        );
+    }
+    return $out;
+}
+
 // Match product_variants.product_id to whatever products.id really is.
 $productIdType = cb_column_type($pdo, 'products', 'id', 'INT UNSIGNED');
 
@@ -516,7 +552,7 @@ foreach ($tables as $name => $sql) {
     try {
         $existed = cb_table_exists($pdo, $name);
         $pdo->exec($sql);
-        $results[] = ['table' => $name, 'col' => '(table)', 'status' => $existed ? 'already exists ✓' : '✅ table created', 'ok' => true];
+        $results[] = ['table' => $name, 'col' => '(table)', 'status' => $existed ? 'already exists ✓' : '[ok] table created', 'ok' => true];
     } catch (PDOException $e) {
         // A rejected foreign key must not cost us the whole table. The code
         // reads and writes these tables by id regardless of whether the
@@ -541,7 +577,7 @@ foreach ($tables as $name => $sql) {
                 $results[] = [
                     'table'  => $name,
                     'col'    => '(table)',
-                    'status' => '⚠️ created WITHOUT its foreign key — parent column type differs (' . $e->getMessage() . ')',
+                    'status' => '[warn] created WITHOUT its foreign key — parent column type differs (' . $e->getMessage() . ')',
                     'ok'     => false,
                 ];
                 continue;
@@ -549,7 +585,7 @@ foreach ($tables as $name => $sql) {
                 $e = $e2;
             }
         }
-        $results[] = ['table' => $name, 'col' => '(table)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+        $results[] = ['table' => $name, 'col' => '(table)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
     }
 }
 
@@ -662,10 +698,10 @@ foreach ($columns as [$table, $col, $sql]) {
             $results[] = ['table' => $table, 'col' => $col, 'status' => 'already exists ✓', 'ok' => true];
         } else {
             $pdo->exec($sql);
-            $results[] = ['table' => $table, 'col' => $col, 'status' => '✅ column added', 'ok' => true];
+            $results[] = ['table' => $table, 'col' => $col, 'status' => '[ok] column added', 'ok' => true];
         }
     } catch (PDOException $e) {
-        $results[] = ['table' => $table, 'col' => $col, 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+        $results[] = ['table' => $table, 'col' => $col, 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
     }
 }
 
@@ -686,12 +722,12 @@ try {
         $results[] = [
             'table'  => 'products',
             'col'    => 'nuts_allergy → allergens',
-            'status' => $moved > 0 ? "✅ {$moved} product(s) carried over" : 'nothing to carry over ✓',
+            'status' => $moved > 0 ? "[ok] {$moved} product(s) carried over" : 'nothing to carry over ✓',
             'ok'     => true,
         ];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'products', 'col' => 'nuts_allergy → allergens', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'products', 'col' => 'nuts_allergy → allergens', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2c. Seed the standard case quantities ──────────────────
@@ -721,12 +757,12 @@ try {
         $results[] = [
             'table'  => 'product_variants',
             'col'    => 'case_qty (500ml→8, 1L→6)',
-            'status' => $seeded > 0 ? "✅ {$seeded} size(s) set" : 'nothing to set ✓',
+            'status' => $seeded > 0 ? "[ok] {$seeded} size(s) set" : 'nothing to set ✓',
             'ok'     => true,
         ];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'product_variants', 'col' => 'case_qty', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'product_variants', 'col' => 'case_qty', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2d. Give every flavour a 500ml and a 1L ────────────────
@@ -785,13 +821,13 @@ try {
             'table'  => 'product_variants',
             'col'    => '500ml + 1L for every flavour',
             'status' => $added > 0
-                ? "✅ {$added} size(s) created — unpriced and switched OFF until you set prices in Products → edit → Sizes"
+                ? "[ok] {$added} size(s) created — unpriced and switched OFF until you set prices in Products → edit → Sizes"
                 : 'every product already has both sizes ✓',
             'ok'     => true,
         ];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'product_variants', 'col' => '500ml + 1L', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'product_variants', 'col' => '500ml + 1L', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2d. Rescue gallery photos saved to the wrong folder ────
@@ -859,10 +895,10 @@ try {
         }
 
         $msg = $moved > 0
-            ? "✅ {$moved} photo(s) moved into assets/images/gallery — they will show on the gallery page now"
+            ? "[ok] {$moved} photo(s) moved into assets/images/gallery — they will show on the gallery page now"
             : 'no photos needed moving ✓';
         if ($skipped) { $msg .= " ({$skipped} already in place)"; }
-        if ($failed)  { $msg .= " — ⚠️ {$failed} could not be moved, check folder permissions"; }
+        if ($failed)  { $msg .= " — [warn] {$failed} could not be moved, check folder permissions"; }
         if (!$folderGone && ($moved || $skipped)) {
             $msg .= ' — admin/assets still holds other files, delete it by hand if you want it gone';
         }
@@ -870,7 +906,7 @@ try {
         $results[] = ['table' => 'gallery', 'col' => 'misplaced photos', 'status' => $msg, 'ok' => ($failed === 0)];
     }
 } catch (Throwable $e) {
-    $results[] = ['table' => 'gallery', 'col' => 'misplaced photos', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'gallery', 'col' => 'misplaced photos', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2e. Seed VAT rates and the chart of accounts ───────────
@@ -895,10 +931,10 @@ try {
         $n = 0;
         foreach ($seedRates as $r) { $st->execute($r); $n += $st->rowCount(); }
         $results[] = ['table' => 'vat_rates', 'col' => '(seed)',
-                      'status' => $n > 0 ? "✅ {$n} rate(s) added" : 'already seeded ✓', 'ok' => true];
+                      'status' => $n > 0 ? "[ok] {$n} rate(s) added" : 'already seeded ✓', 'ok' => true];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'vat_rates', 'col' => '(seed)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'vat_rates', 'col' => '(seed)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 try {
@@ -943,10 +979,10 @@ try {
         $n = 0;
         foreach ($accounts as $a) { $st->execute($a); $n += $st->rowCount(); }
         $results[] = ['table' => 'ledger_accounts', 'col' => '(chart of accounts)',
-                      'status' => $n > 0 ? "✅ {$n} account(s) added" : 'already seeded ✓', 'ok' => true];
+                      'status' => $n > 0 ? "[ok] {$n} account(s) added" : 'already seeded ✓', 'ok' => true];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'ledger_accounts', 'col' => '(chart of accounts)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'ledger_accounts', 'col' => '(chart of accounts)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // The single settings row. is_registered stays 0 — installing this module
@@ -956,11 +992,11 @@ try {
         $st = $pdo->prepare("INSERT IGNORE INTO vat_settings (id, business_name, period_start) VALUES (1, ?, ?)");
         $st->execute([SHOP_NAME, date('Y-04-01')]);
         $results[] = ['table' => 'vat_settings', 'col' => '(seed row)',
-                      'status' => $st->rowCount() > 0 ? '✅ created (VAT registration OFF until you set it)' : 'already present ✓',
+                      'status' => $st->rowCount() > 0 ? '[ok] created (VAT registration OFF until you set it)' : 'already present ✓',
                       'ok' => true];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'vat_settings', 'col' => '(seed row)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'vat_settings', 'col' => '(seed row)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2f. Add "Bank" as a recognised order payment status ────
@@ -983,10 +1019,10 @@ try {
     } else {
         $pdo->exec("ALTER TABLE `orders` MODIFY COLUMN `payment_status` {$wanted} NOT NULL DEFAULT 'Unpaid'");
         $results[] = ['table' => 'orders', 'col' => 'payment_status',
-                      'status' => '✅ enum widened — Bank, Part-refunded, Refunded', 'ok' => true];
+                      'status' => '[ok] enum widened — Bank, Part-refunded, Refunded', 'ok' => true];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'orders', 'col' => 'payment_status', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'orders', 'col' => 'payment_status', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2g. Backfill the refund status on orders already refunded ──
@@ -1005,10 +1041,10 @@ try {
                  AND r.refunded > 0"
         );
         $results[] = ['table' => 'orders', 'col' => 'refund status backfill',
-                      'status' => $fixed > 0 ? "✅ {$fixed} order(s) corrected" : 'nothing to correct ✓', 'ok' => true];
+                      'status' => $fixed > 0 ? "[ok] {$fixed} order(s) corrected" : 'nothing to correct ✓', 'ok' => true];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'orders', 'col' => 'refund status backfill', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'orders', 'col' => 'refund status backfill', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 3. gallery: image/title -> filename/caption rename ──
@@ -1017,12 +1053,12 @@ try {
         $results[] = ['table' => 'gallery', 'col' => 'filename/caption', 'status' => 'already exists ✓', 'ok' => true];
     } elseif (cb_column_exists($pdo, 'gallery', 'image')) {
         $pdo->exec("ALTER TABLE `gallery` CHANGE `image` `filename` VARCHAR(255) NOT NULL, CHANGE `title` `caption` VARCHAR(150) NOT NULL DEFAULT ''");
-        $results[] = ['table' => 'gallery', 'col' => 'filename/caption', 'status' => '✅ columns renamed', 'ok' => true];
+        $results[] = ['table' => 'gallery', 'col' => 'filename/caption', 'status' => '[ok] columns renamed', 'ok' => true];
     } else {
-        $results[] = ['table' => 'gallery', 'col' => 'filename/caption', 'status' => '⚠️ neither image nor filename column found — check manually', 'ok' => false];
+        $results[] = ['table' => 'gallery', 'col' => 'filename/caption', 'status' => '[warn] neither image nor filename column found — check manually', 'ok' => false];
     }
 } catch (PDOException $e) {
-    $results[] = ['table' => 'gallery', 'col' => 'filename/caption', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'gallery', 'col' => 'filename/caption', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 4. Seed the one invoice_settings row if missing ──
@@ -1042,9 +1078,9 @@ try {
          'On Receipt',
          0.0000)
         ON DUPLICATE KEY UPDATE `id` = `id`");
-    $results[] = ['table' => 'invoice_settings', 'col' => '(seed row)', 'status' => '✅ present / seeded', 'ok' => true];
+    $results[] = ['table' => 'invoice_settings', 'col' => '(seed row)', 'status' => '[ok] present / seeded', 'ok' => true];
 } catch (PDOException $e) {
-    $results[] = ['table' => 'invoice_settings', 'col' => '(seed row)', 'status' => '❌ ' . $e->getMessage(), 'ok' => false];
+    $results[] = ['table' => 'invoice_settings', 'col' => '(seed row)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 $failures = array_values(array_filter($results, fn($r) => !$r['ok']));
@@ -1060,6 +1096,9 @@ $allOk    = ($failures === []);
     <meta charset="UTF-8">
     <title>Update DB – Schema Parity (v6&ndash;v12)</title>
     <?php require __DIR__ . '/../../includes/favicon.php'; ?>
+    <!-- Font Awesome: the status markers and the back button are icons, and
+         this page never linked it, so they rendered as empty boxes. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/setup.css">
     <link rel="stylesheet" href="../../assets/css/modal.css">
@@ -1068,7 +1107,7 @@ $allOk    = ($failures === []);
 <body class="admin-wrapper su-page-warm">
 <div class="su-wrap">
     <div class="glass-panel su-card">
-        <h1 class="su-h1">⚙️ Update DB – Bring Schema Up To Date</h1>
+        <h1 class="su-h1"><i class="fa-solid fa-gear" aria-hidden="true"></i> Update DB – Bring Schema Up To Date</h1>
         <p class="su-lead">Applies every table/column that is still missing. Safe to run again.</p>
 
         <?php
@@ -1097,7 +1136,9 @@ $allOk    = ($failures === []);
              against the wrong one and seeing all-green is indistinguishable
              from success unless the environment is impossible to overlook. -->
         <p class="su-env <?= IS_LOCAL ? 'su-env-local' : 'su-env-live' ?>">
-            <?= IS_LOCAL ? '💻 LOCAL database' : '🌍 LIVE database' ?>
+            <?= IS_LOCAL
+                ? '<i class="fa-solid fa-laptop" aria-hidden="true"></i> LOCAL database'
+                : '<i class="fa-solid fa-globe" aria-hidden="true"></i> LIVE database' ?>
             &mdash; <?= htmlspecialchars(DB_NAME) ?> on <?= htmlspecialchars(DB_HOST) ?>:<?= htmlspecialchars(DB_PORT) ?>
         </p>
 
@@ -1107,7 +1148,7 @@ $allOk    = ($failures === []);
             <ul class="su-failbox-list">
                 <?php foreach ($failures as $f): ?>
                 <li><strong><?= htmlspecialchars($f['table']) ?></strong>
-                    <?= htmlspecialchars($f['col']) ?>: <?= htmlspecialchars($f['status']) ?></li>
+                    <?= htmlspecialchars($f['col']) ?>: <?= cb_status_html($f['status']) ?></li>
                 <?php endforeach; ?>
             </ul>
         </div>
@@ -1118,12 +1159,14 @@ $allOk    = ($failures === []);
             <tr class="su-row">
                 <td class="su-cell-name"><?= htmlspecialchars($r['table']) ?></td>
                 <td class="su-cell-mono"><?= htmlspecialchars($r['col']) ?></td>
-                <td class="su-cell-state <?= $r['ok'] ? 'su-ok' : 'su-err' ?>"><?= htmlspecialchars($r['status']) ?></td>
+                <td class="su-cell-state <?= $r['ok'] ? 'su-ok' : 'su-err' ?>"><?= cb_status_html($r['status']) ?></td>
             </tr>
             <?php endforeach; ?>
         </table>
         <p class="su-result <?= $allOk ? 'su-ok' : 'su-err' ?>">
-            <?= $allOk ? '✅ Database schema is fully up to date.' : '❌ Some steps failed — check the messages above.' ?>
+            <?= $allOk
+                ? '<i class="fa-solid fa-circle-check su-mark su-mark-ok" aria-hidden="true"></i> Database schema is fully up to date.'
+                : '<i class="fa-solid fa-circle-xmark su-mark su-mark-err" aria-hidden="true"></i> Some steps failed &mdash; check the messages above.' ?>
         </p>
         <a href="../index.php" class="btn-primary su-btn-back">
             <i class="fa-solid fa-arrow-left"></i> Back to Admin Dashboard

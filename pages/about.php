@@ -177,7 +177,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                         <span class="story-highlight-text">Handcrafted Daily</span>
                     </div>
                     <div class="story-highlight">
-                        <span class="story-highlight-icon">🇬🇧</span>
+                        <?php // Font Awesome free has no country flags, so this is a generic
+                              // pennant rather than a Union Jack. The nationality is carried by
+                              // the label beside it, which is also the accessible name. ?>
+                        <span class="story-highlight-icon"><i class="fa-solid fa-flag" aria-hidden="true"></i></span>
                         <span class="story-highlight-text">Based in the UK</span>
                     </div>
                 </div>

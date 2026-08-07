@@ -9,6 +9,7 @@ if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }
 require_once __DIR__ . '/_permissions.php';
+require_once __DIR__ . '/../includes/product_icons.php';
 adminRequire('products');
 
 require_once __DIR__ . '/../includes/config.php';
@@ -265,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <header class="navbar">
     <div class="container nav-container">
-        <a href="../index.php" class="logo"><span class="logo-emoji">🍦</span> <?= SHOP_NAME ?></a>
+        <a href="../index.php" class="logo"><span class="logo-emoji"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i></span> <?= SHOP_NAME ?></a>
         <nav><ul class="nav-links">
             <li><a href="index.php?tab=orders">Orders</a></li>
             <li><a href="index.php?tab=products" class="active">Products</a></li>
@@ -285,7 +286,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="admin-page-header">
             <div>
-                <h1 class="admin-page-title"><?= $isEdit ? '✏️ Edit Product' : '➕ Add New Product' ?></h1>
+                <h1 class="admin-page-title"><?= $isEdit
+                    ? '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit Product'
+                    : '<i class="fa-solid fa-plus" aria-hidden="true"></i> Add New Product' ?></h1>
                 <p class="admin-page-subtitle"><?= $isEdit ? 'Update product details and image' : 'Add a new item to your menu' ?></p>
             </div>
             <a href="index.php?tab=products" class="btn-secondary cbpf-back-btn">
@@ -373,7 +376,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                   // menu but absent from the allergen sheet — or the reverse. ?>
                             <div class="form-group cbpf-check-group">
                                 <span class="cbpf-derived-note">
-                                    🥜 <strong>Contains Nuts</strong> badge is set automatically from
+                                    <?php // Food-safety signal: the icon only decorates it, the
+                                          // words "Contains Nuts" stay and carry the meaning. ?>
+                                    <i class="fa-solid fa-triangle-exclamation cbpf-warn-icon" aria-hidden="true"></i>
+                                    <strong>Contains Nuts</strong> badge is set automatically from
                                     the Allergens panel below.
                                 </span>
                             </div>
@@ -382,7 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <input type="checkbox" name="trade_only" value="1" class="cbpf-checkbox cbpf-checkbox-nudge"
                                         <?= !empty($product['trade_only']) ? 'checked' : '' ?>>
                                     <span>
-                                        🏪 Trade customers only
+                                        <i class="fa-solid fa-store" aria-hidden="true"></i> Trade customers only
                                         <small class="cbpf-trade-note">
                                             Hides this product from the public website and the home page. Only logged-in
                                             trade partners can see or order it.
@@ -398,11 +404,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label class="cbpf-check-label">
                                 <input type="checkbox" name="track_stock" value="1" id="trackStockCb" class="cbpf-checkbox"
                                     <?= !empty($product['track_stock']) ? 'checked' : '' ?>>
-                                📦 Track Stock
+                                <i class="fa-solid fa-box" aria-hidden="true"></i> Track Stock
                             </label>
                             <?php if ($displayInStock !== null): ?>
+                            <?php // "In Stock" stays in words — the pill's green is not the only cue. ?>
                             <span class="cbpf-stock-pill">
-                                🟢 In Stock: <?= $displayInStock ?>
+                                <i class="fa-solid fa-circle-check" aria-hidden="true"></i> In Stock: <?= $displayInStock ?>
                             </span>
                             <?php endif; ?>
                         </div>
@@ -427,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="image-upload-box" id="uploadBox">
                             <input type="file" name="product_image" accept="image/jpeg,image/png,image/webp,image/gif"
                                 id="productImageInput" onchange="previewUpload(this)">
-                            <div class="image-upload-icon">📷</div>
+                            <div class="image-upload-icon"><i class="fa-solid fa-camera" aria-hidden="true"></i></div>
                             <p class="image-upload-label">
                                 <strong>Click to upload</strong> or drag & drop<br>
                                 JPG, PNG, WebP, or GIF — max 8MB
@@ -436,11 +443,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <img src="" alt="New image preview" id="newImgPreview" class="cbpf-new-preview">
 
-                        <!-- Fallback emoji (shown if no image) -->
+                        <!-- Fallback icon (shown if no image) -->
+                        <?php // Still an emoji field: the emoji is what products.emoji stores and
+                              // what the public templates read. The shop draws the matching icon
+                              // instead, so the readout below says which one this will be. ?>
                         <div class="form-group cbpf-emoji-group">
-                            <label class="form-label cbpf-emoji-label">Emoji (shown if no image)</label>
+                            <label class="form-label cbpf-emoji-label" for="emojiInput">Fallback icon — type an emoji (shown if no image)</label>
                             <input type="text" name="emoji" id="emojiInput" class="form-control cbpf-emoji-input"
                                 value="<?= htmlspecialchars($product['emoji'] ?? '🍦') ?>">
+                            <span class="cbpf-emoji-resolved">
+                                Saved as typed; shown on the shop as
+                                <span class="cbpf-emoji-resolved-icon"><?= cbProductIcon($product['emoji'] ?? null) ?></span>
+                            </span>
                         </div>
                     </div>
 
@@ -598,7 +612,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php if (!empty($product['image'])): ?>
                             <img src="../assets/images/products/<?= htmlspecialchars($product['image']) ?>" alt="Preview" id="previewImg">
                             <?php else: ?>
-                            <span id="previewEmoji" class="cbpf-preview-emoji"><?= htmlspecialchars($product['emoji'] ?? '🍦') ?></span>
+                            <span id="previewEmoji" class="cbpf-preview-emoji"><?= cbProductIcon($product['emoji'] ?? null) ?></span>
                             <?php endif; ?>
                         </div>
                         <h3 id="previewName" class="cbpf-preview-name"><?= htmlspecialchars($product['name'] ?? 'Product Name') ?></h3>
@@ -699,7 +713,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <footer class="footer">
     <div class="container footer-inner">
-        <span class="footer-logo">🍦 <?= SHOP_NAME ?> Admin</span>
+        <span class="footer-logo"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i> <?= SHOP_NAME ?> Admin</span>
         <span class="footer-copy">© <?= date('Y') ?> <?= SHOP_NAME ?></span>
     </div>
 </footer>

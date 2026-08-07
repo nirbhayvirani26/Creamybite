@@ -4,6 +4,7 @@
 // ============================================================
 session_start();
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/db.php';
 
 $code = trim($_GET['code'] ?? '');
@@ -34,6 +35,7 @@ if (!$justPlaced && !$ownTrade && !$isAdmin) {
 }
 
 $items = json_decode($order['items_json'], true) ?? [];
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -134,7 +136,7 @@ $items = json_decode($order['items_json'], true) ?? [];
 
             <?php foreach ($items as $item): ?>
             <div class="conf-row">
-                <span class="conf-label"><?= htmlspecialchars($item['emoji']) ?> × <?= (int)$item['quantity'] ?></span>
+                <span class="conf-label"><?= cbProductIcon($item['emoji'] ?? null) ?> × <?= (int)$item['quantity'] ?></span>
                 <span class="conf-value">
                     <?= htmlspecialchars($item['name']) ?><?php if (!empty($item['variant_name'])): ?><span class="cboc-item-variant"> <?= htmlspecialchars($item['variant_name']) ?></span><?php endif; ?>
                     <span class="cboc-item-price">

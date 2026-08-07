@@ -130,6 +130,16 @@
             height: 40px;
             margin-top: 10px;
         }
+        /* Inline SVG marks (dnIcon() in delivery_note.php). Sized in em so each
+           one matches the text it sits in, and left in currentColor so it takes
+           that text's colour — including on the payment badges, whose green and
+           amber survive printing when the badge background does not. */
+        .cbdn-ico {
+            width: 1em;
+            height: 1em;
+            vertical-align: -0.125em;
+            flex: none;
+        }
         @media print {
             body { padding: 0; background: #fff; }
             .dn-container { border: none; box-shadow: none; padding: 0; }

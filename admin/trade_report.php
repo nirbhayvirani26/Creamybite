@@ -167,7 +167,7 @@ $customerNo = 'TC-' . str_pad((string)$tradeId, 5, '0', STR_PAD_LEFT);
                 <i class="fa-solid fa-arrow-left"></i> All trade accounts
             </a>
             <h1 class="cbtr-title">
-                <span>🏬</span> <?= htmlspecialchars($account['business_name']) ?>
+                <span><i class="fa-solid fa-shop" aria-hidden="true"></i></span> <?= htmlspecialchars($account['business_name']) ?>
             </h1>
             <div class="cbtr-subtitle">
                 <?= htmlspecialchars($customerNo) ?>
@@ -185,7 +185,7 @@ $customerNo = 'TC-' . str_pad((string)$tradeId, 5, '0', STR_PAD_LEFT);
 
     <?php if ($orderCount === 0): ?>
     <div class="cbtr-empty">
-        <div class="cbtr-empty-icon">📭</div>
+        <div class="cbtr-empty-icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></div>
         <h2 class="cbtr-empty-title">No orders yet</h2>
         <p class="cbtr-empty-text">
             This account was approved but has not placed an order, so there is

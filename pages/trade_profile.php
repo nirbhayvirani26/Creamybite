@@ -20,6 +20,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/db.php';
 
 if (empty($_SESSION['trade_user'])) {
@@ -164,30 +165,6 @@ foreach ($orders as $o) {
     }
 }
 
-/** Human-facing trade customer number, e.g. TC-00007. */
-function tradeCustomerNumber(int $id): string
-{
-    return 'TC-' . str_pad((string)$id, 5, '0', STR_PAD_LEFT);
-}
-
-$customerNo = tradeCustomerNumber($userId);
-
-/**
- * Small helper for the status pills, so the four tabs stay consistent.
- *
- * Returns a CSS class rather than three colours: the colours belong in the
- * stylesheet, and a class also means the pill can be restyled without
- * touching PHP.
- */
-function statusPill(string $status): array
-{
-    return match ($status) {
-        'Delivered'  => ['is-delivered',  'fa-circle-check', 'Delivered'],
-        'Processing' => ['is-processing', 'fa-spinner',      'Processing'],
-        'Cancelled'  => ['is-cancelled',  'fa-ban',          'Cancelled'],
-        default      => ['is-pending',    'fa-clock',        $status ?: 'Pending'],
-    };
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -239,7 +216,7 @@ function statusPill(string $status): array
         <div class="cbtp-account-card">
             <div>
                 <span class="cbtp-verified-badge">
-                    🏪 Verified B2B Trade Partner
+                    <i class="fa-solid fa-store cb-badge-icon" aria-hidden="true"></i>Verified B2B Trade Partner
                 </span>
                 <h1 class="cbtp-account-name">
                     <?= htmlspecialchars($account['business_name']) ?>
@@ -381,7 +358,7 @@ function statusPill(string $status): array
 
             <?php if (empty($orders)): ?>
             <div class="cbtp-empty cbtp-empty-tall">
-                <div class="cbtp-empty-icon">📦</div>
+                <div class="cbtp-empty-icon"><i class="fa-solid fa-box" aria-hidden="true"></i></div>
                 <h3 class="cbtp-empty-title">No orders yet</h3>
                 <a href="order.php" class="btn-primary cbtp-empty-cta">Browse Wholesale Menu</a>
             </div>
@@ -415,7 +392,7 @@ function statusPill(string $status): array
                             </td>
                             <td class="cbtp-cell-sm">
                                 <?php if ($first): ?>
-                                <strong><?= htmlspecialchars($first['emoji'] ?? '🍦') ?> <?= htmlspecialchars($first['name'] ?? '') ?><?php
+                                <strong><?= cbProductIcon($first['emoji'] ?? null) ?> <?= htmlspecialchars($first['name'] ?? '') ?><?php
                                     if (!empty($first['variant_name'])): ?> <span class="cbtp-variant-name"><?= htmlspecialchars($first['variant_name']) ?></span><?php
                                     endif; ?></strong> ×<?= (int)($first['quantity'] ?? 0) ?>
                                 <?php if (count($items) > 1): ?>

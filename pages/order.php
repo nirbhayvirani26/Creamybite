@@ -4,6 +4,7 @@
 // ============================================================
 session_start();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/config.php';
 
 require_once __DIR__ . '/../includes/trade_cart.php';
@@ -22,12 +23,16 @@ $products = [];
 try {
     $catCheck = (int)$pdo->query("SELECT COUNT(*) FROM categories")->fetchColumn();
     if ($catCheck === 0) {
+        // categories.icon and products.emoji below now seed bare Font Awesome
+        // names rather than emoji characters, so a fresh install starts on the
+        // brand icon set. cbProductIcon() still renders either, which is what
+        // keeps an existing catalogue working untouched.
         $cats = [
-            ['name' => 'Royal Flavours',   'icon' => '👑', 'sort_order' => 1],
-            ['name' => 'Nutty Delights',   'icon' => '🌰', 'sort_order' => 2],
-            ['name' => 'Fruit Delights',   'icon' => '🍈', 'sort_order' => 3],
-            ['name' => 'Classics',         'icon' => '🍦', 'sort_order' => 4],
-            ['name' => 'Exotic Speciality','icon' => '🍃', 'sort_order' => 5],
+            ['name' => 'Royal Flavours',   'icon' => 'crown',       'sort_order' => 1],
+            ['name' => 'Nutty Delights',   'icon' => 'jar-wheat',   'sort_order' => 2],
+            ['name' => 'Fruit Delights',   'icon' => 'apple-whole', 'sort_order' => 3],
+            ['name' => 'Classics',         'icon' => 'ice-cream',   'sort_order' => 4],
+            ['name' => 'Exotic Speciality','icon' => 'leaf',        'sort_order' => 5],
         ];
         foreach ($cats as $c) {
             $pdo->prepare("INSERT INTO categories (name, icon, sort_order) VALUES (:name, :icon, :sort_order)")->execute($c);
@@ -44,19 +49,19 @@ try {
     $productCount = (int)$pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
     if ($productCount === 0) {
         $flavorProducts = [
-            ['name' => 'Rajbhog Ice Cream Tub',         'emoji' => '👑', 'description' => 'Rich saffron ice cream loaded with almonds, cashews, pistachios & cardamom.', 'price' => 6.99, 'category' => 'Royal Flavours',    'image' => 'Rajbhog.jpg',             'available' => 1, 'track_stock' => 1, 'total_stock' => 40, 'stock_qty' => 40],
-            ['name' => 'Kesar Pista Ice Cream Tub',     'emoji' => '🌾', 'description' => 'Royal saffron and roasted pistachio blended into rich cream.',                'price' => 6.99, 'category' => 'Royal Flavours',    'image' => 'Kesar-Pista.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 45, 'stock_qty' => 45],
-            ['name' => 'Afghan Meva Ice Cream Tub',     'emoji' => '🇦🇫', 'description' => 'Exotic Afghan dry fruits, figs, raisins, and premium nuts.',                   'price' => 7.49, 'category' => 'Royal Flavours',    'image' => 'Afghan-Meva.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 30, 'stock_qty' => 30],
-            ['name' => 'Roasted Almond Ice Cream Tub',   'emoji' => '🌰', 'description' => 'Crunchy slow-roasted California almonds folded into rich cream.',             'price' => 6.49, 'category' => 'Nutty Delights',    'image' => 'Roasted-Almond.jpg',      'available' => 1, 'track_stock' => 1, 'total_stock' => 50, 'stock_qty' => 50],
-            ['name' => 'American Dry Fruits Tub',       'emoji' => '🥜', 'description' => 'Loaded with chopped almonds, cashews, raisins & tutti frutti morsels.',       'price' => 6.99, 'category' => 'Nutty Delights',    'image' => 'American-Dry-Fruits.jpg', 'available' => 1, 'track_stock' => 1, 'total_stock' => 35, 'stock_qty' => 35],
-            ['name' => 'Kaju Draksh Ice Cream Tub',     'emoji' => '🍇', 'description' => 'Premium cashew nuts and golden raisins folded into rich cream.',              'price' => 6.49, 'category' => 'Nutty Delights',    'image' => 'Kaju-Draksh.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 40, 'stock_qty' => 40],
-            ['name' => 'Fresh Sitafal (Custard Apple)', 'emoji' => '🍈', 'description' => 'Crafted with real fresh custard apple pulp for a sweet fruity sensation.',    'price' => 6.99, 'category' => 'Fruit Delights',    'image' => 'Fresh-Sitafal.jpg',       'available' => 1, 'track_stock' => 1, 'total_stock' => 25, 'stock_qty' => 25],
-            ['name' => 'Naked Coconut Ice Cream Tub',   'emoji' => '🥥', 'description' => 'Refreshing tender coconut flesh and pure coconut milk ice cream.',             'price' => 6.49, 'category' => 'Fruit Delights',    'image' => 'Naked-Coconut.jpg',       'available' => 1, 'track_stock' => 1, 'total_stock' => 30, 'stock_qty' => 30],
-            ['name' => 'Kaju Gulkand Ice Cream Tub',    'emoji' => '🌹', 'description' => 'Rich cashew nut ice cream infused with sweet damask rose petal preserves.',     'price' => 6.99, 'category' => 'Royal Flavours',    'image' => 'Kaju-Gulkand.jpg',        'available' => 1, 'track_stock' => 1, 'total_stock' => 30, 'stock_qty' => 30],
-            ['name' => 'Mava Malai Ice Cream Tub',      'emoji' => '🥛', 'description' => 'Traditional rich mawa and thickened malai cream with cardamom hint.',          'price' => 5.99, 'category' => 'Classics',          'image' => 'Mava-Malai.jpg',          'available' => 1, 'track_stock' => 1, 'total_stock' => 50, 'stock_qty' => 50],
-            ['name' => 'Cookies & Cream Tub',           'emoji' => '🍪', 'description' => 'Velvety vanilla ice cream swirled with crunchy chocolate cookie crumbles.',     'price' => 5.99, 'category' => 'Classics',          'image' => 'Cookies-&-Cream.jpg',     'available' => 1, 'track_stock' => 1, 'total_stock' => 45, 'stock_qty' => 45],
-            ['name' => 'Choco Chips Ice Cream Tub',     'emoji' => '🍫', 'description' => 'Creamy chocolate ice cream studded with rich dark chocolate chips.',            'price' => 5.99, 'category' => 'Classics',          'image' => 'Choco-Chips.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 40, 'stock_qty' => 40],
-            ['name' => 'Pan Masala Ice Cream Tub',      'emoji' => '🍃', 'description' => 'Authentic Meetha Paan infused ice cream with fennel seeds & sweet spices.',     'price' => 6.49, 'category' => 'Exotic Speciality', 'image' => 'Pan-Masala.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 30, 'stock_qty' => 30],
+            ['name' => 'Rajbhog Ice Cream Tub',         'emoji' => 'crown',        'description' => 'Rich saffron ice cream loaded with almonds, cashews, pistachios & cardamom.', 'price' => 6.99, 'category' => 'Royal Flavours',    'image' => 'Rajbhog.jpg',             'available' => 1, 'track_stock' => 1, 'total_stock' => 40, 'stock_qty' => 40],
+            ['name' => 'Kesar Pista Ice Cream Tub',     'emoji' => 'wheat-awn',    'description' => 'Royal saffron and roasted pistachio blended into rich cream.',                'price' => 6.99, 'category' => 'Royal Flavours',    'image' => 'Kesar-Pista.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 45, 'stock_qty' => 45],
+            ['name' => 'Afghan Meva Ice Cream Tub',     'emoji' => 'mountain-sun', 'description' => 'Exotic Afghan dry fruits, figs, raisins, and premium nuts.',                  'price' => 7.49, 'category' => 'Royal Flavours',    'image' => 'Afghan-Meva.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 30, 'stock_qty' => 30],
+            ['name' => 'Roasted Almond Ice Cream Tub',  'emoji' => 'jar-wheat',    'description' => 'Crunchy slow-roasted California almonds folded into rich cream.',             'price' => 6.49, 'category' => 'Nutty Delights',    'image' => 'Roasted-Almond.jpg',      'available' => 1, 'track_stock' => 1, 'total_stock' => 50, 'stock_qty' => 50],
+            ['name' => 'American Dry Fruits Tub',       'emoji' => 'bowl-food',    'description' => 'Loaded with chopped almonds, cashews, raisins & tutti frutti morsels.',       'price' => 6.99, 'category' => 'Nutty Delights',    'image' => 'American-Dry-Fruits.jpg', 'available' => 1, 'track_stock' => 1, 'total_stock' => 35, 'stock_qty' => 35],
+            ['name' => 'Kaju Draksh Ice Cream Tub',     'emoji' => 'holly-berry',  'description' => 'Premium cashew nuts and golden raisins folded into rich cream.',              'price' => 6.49, 'category' => 'Nutty Delights',    'image' => 'Kaju-Draksh.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 40, 'stock_qty' => 40],
+            ['name' => 'Fresh Sitafal (Custard Apple)', 'emoji' => 'apple-whole',  'description' => 'Crafted with real fresh custard apple pulp for a sweet fruity sensation.',    'price' => 6.99, 'category' => 'Fruit Delights',    'image' => 'Fresh-Sitafal.jpg',       'available' => 1, 'track_stock' => 1, 'total_stock' => 25, 'stock_qty' => 25],
+            ['name' => 'Naked Coconut Ice Cream Tub',   'emoji' => 'droplet',      'description' => 'Refreshing tender coconut flesh and pure coconut milk ice cream.',            'price' => 6.49, 'category' => 'Fruit Delights',    'image' => 'Naked-Coconut.jpg',       'available' => 1, 'track_stock' => 1, 'total_stock' => 30, 'stock_qty' => 30],
+            ['name' => 'Kaju Gulkand Ice Cream Tub',    'emoji' => 'spa',          'description' => 'Rich cashew nut ice cream infused with sweet damask rose petal preserves.',   'price' => 6.99, 'category' => 'Royal Flavours',    'image' => 'Kaju-Gulkand.jpg',        'available' => 1, 'track_stock' => 1, 'total_stock' => 30, 'stock_qty' => 30],
+            ['name' => 'Mava Malai Ice Cream Tub',      'emoji' => 'glass-water',  'description' => 'Traditional rich mawa and thickened malai cream with cardamom hint.',         'price' => 5.99, 'category' => 'Classics',          'image' => 'Mava-Malai.jpg',          'available' => 1, 'track_stock' => 1, 'total_stock' => 50, 'stock_qty' => 50],
+            ['name' => 'Cookies & Cream Tub',           'emoji' => 'cookie-bite',  'description' => 'Velvety vanilla ice cream swirled with crunchy chocolate cookie crumbles.',   'price' => 5.99, 'category' => 'Classics',          'image' => 'Cookies-&-Cream.jpg',     'available' => 1, 'track_stock' => 1, 'total_stock' => 45, 'stock_qty' => 45],
+            ['name' => 'Choco Chips Ice Cream Tub',     'emoji' => 'cubes',        'description' => 'Creamy chocolate ice cream studded with rich dark chocolate chips.',          'price' => 5.99, 'category' => 'Classics',          'image' => 'Choco-Chips.jpg',         'available' => 1, 'track_stock' => 1, 'total_stock' => 40, 'stock_qty' => 40],
+            ['name' => 'Pan Masala Ice Cream Tub',      'emoji' => 'leaf',         'description' => 'Authentic Meetha Paan infused ice cream with fennel seeds & sweet spices.',   'price' => 6.49, 'category' => 'Exotic Speciality', 'image' => 'Pan-Masala.jpg',          'available' => 1, 'track_stock' => 1, 'total_stock' => 30, 'stock_qty' => 30],
         ];
         $existsStmt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE name = :name");
         $insertStmt = $pdo->prepare("INSERT INTO products (name, emoji, description, price, category, image, available, track_stock, total_stock, stock_qty) VALUES (:name, :emoji, :description, :price, :category, :image, :available, :track_stock, :total_stock, :stock_qty)");
@@ -96,6 +101,7 @@ if (!empty($products)) {
         }
     } catch (PDOException $e) { }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -277,9 +283,9 @@ if (!empty($products)) {
                 <div class="product-image-wrap">
                     <?php if ($imgSrc): ?>
                     <img src="<?= $imgSrc ?>" alt="<?= htmlspecialchars($product['name']) ?>" loading="lazy" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
-                    <span class="product-image-placeholder cbor-hidden"><?= htmlspecialchars($product['emoji'] ?? '🍦') ?></span>
+                    <span class="product-image-placeholder cbor-hidden"><?= cbProductIcon($product['emoji'] ?? null) ?></span>
                     <?php else: ?>
-                    <span class="product-image-placeholder"><?= htmlspecialchars($product['emoji'] ?? '🍦') ?></span>
+                    <span class="product-image-placeholder"><?= cbProductIcon($product['emoji'] ?? null) ?></span>
                     <?php endif; ?>
                 </div>
 
@@ -341,7 +347,9 @@ if (!empty($products)) {
                             onclick="handleAddToCart(
                                 <?= $product['id'] ?>,
                                 '<?= addslashes($product['name']) ?>',
-                                '<?= addslashes($product['emoji'] ?? '🍦') ?>',
+                                <?php // The raw column value, not markup: cbIconHtml() turns it
+                                      // into an <i> at the point the picker renders it. ?>
+                                '<?= addslashes($product['emoji'] ?? 'ice-cream') ?>',
                                 '<?= addslashes($imgSrc) ?>',
                                 <?= $hasVariants ? 'true' : 'false' ?>,
                                 '<?= $variantsJson ?>',
@@ -401,7 +409,6 @@ if (!empty($products)) {
     </div>
 </div>
 
-
 <!-- ══ Footer ══════════════════════════════════════════════ -->
 <?php // One shared footer — it used to be copied into five pages, so adding a
       // link meant editing all five and hoping none were missed. ?>
@@ -440,7 +447,7 @@ function openVariantPicker(productId, name, emoji, imgSrc, variants, fromEl) {
     if (imgSrc) {
         imgEl.innerHTML = `<img class="variant-picker-img" src="${escHtml(imgSrc)}" alt="${escHtml(name)}">`;
     } else {
-        imgEl.innerHTML = `<span class="variant-picker-emoji">${escHtml(emoji)}</span>`;
+        imgEl.innerHTML = `<span class="variant-picker-emoji">${cbIconHtml(emoji)}</span>`;
     }
 
     document.getElementById('variantPickerTitle').textContent = name;
@@ -567,7 +574,6 @@ function renderCart() {
         return;
     }
 
-
     let html = '';
     cartState.items.forEach(item => {
         const subtotal  = (item.price * item.quantity).toFixed(2);
@@ -575,7 +581,7 @@ function renderCart() {
         const safeKey   = encodeURIComponent(cartKey);
         const imgHtml   = item.image
             ? `<img class="cart-item-img" src="../assets/images/products/${escHtml(item.image)}" alt="${escHtml(item.name)}">`
-            : `<div class="cart-item-img-placeholder">${escHtml(item.emoji)}</div>`;
+            : `<div class="cart-item-img-placeholder">${cbIconHtml(item.emoji)}</div>`;
         const variantLabel = item.variant_name ? `<span class="cbo-variant-label">${escHtml(item.variant_name)}</span>` : '';
 
         // Trade lines move a whole case per press. The step comes from the
@@ -705,6 +711,29 @@ document.querySelectorAll('.cat-tab').forEach(btn => {
 // ── Escape HTML helper ───────────────────────────────────────
 function escHtml(str) {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Product icon helper ──────────────────────────────────────
+// The JS twin of cbProductIcon() at the top of this file. products.emoji holds
+// either a bare Font Awesome name ('ice-cream') or, on a catalogue that has
+// not been migrated yet, the original emoji character — and the cart JSON
+// carries whichever it is straight through. Only a value that matches the
+// name pattern is allowed into the class attribute; anything else is escaped
+// and printed as text, exactly as it was before.
+const CB_ICON_MAP = <?= cbProductIconMapJson() ?>;
+function cbIconHtml(value) {
+    const raw = (value === null || value === undefined)
+        ? '' : String(value).replace(/\uFE0F/g, '').trim();
+    if (!raw) return '<i class="fa-solid fa-ice-cream" aria-hidden="true"></i>';
+    // Same order of precedence as cbProductIcon() in includes/product_icons.php:
+    // a known emoji, then an icon name in any stored form, then escaped text.
+    if (Object.prototype.hasOwnProperty.call(CB_ICON_MAP, raw)) {
+        return '<i class="' + CB_ICON_MAP[raw] + '" aria-hidden="true"></i>';
+    }
+    const m = raw.match(/^(?:fa-(?:solid|regular|brands)\s+)?(?:fa-)?([a-z][a-z0-9-]*)$/);
+    return m
+        ? '<i class="fa-solid fa-' + m[1] + '" aria-hidden="true"></i>'
+        : escHtml(raw);
 }
 
 // ── Mobile nav ──────────────────────────────────────────────

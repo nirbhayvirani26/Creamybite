@@ -274,11 +274,11 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
     <?php // Decorative scoops, cones and falling sprinkles. Purely cosmetic —
           // hidden for reduced-motion users via animations.css, and painted
           // behind the text (z-index 0) so they never cover content. ?>
-    <span class="cb-hero-float cb-hero-float--lg cb-hero-float--bob" aria-hidden="true" style="left:4%; top:16%;"><i class="fa-solid fa-ice-cream"></i></span>
-    <span class="cb-hero-float cb-hero-float--bob-2" aria-hidden="true" style="right:7%; top:20%;"><i class="fa-solid fa-bowl-food"></i></span>
-    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--bob" aria-hidden="true" style="right:16%; bottom:24%;"><i class="fa-solid fa-snowflake"></i></span>
-    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--drip" aria-hidden="true" style="left:12%; bottom:30%;"><i class="fa-solid fa-cookie-bite"></i></span>
-    <span class="cb-hero-float cb-hero-float--drip-2" aria-hidden="true" style="right:24%; top:8%;"><i class="fa-solid fa-mug-hot"></i></span>
+    <span class="cb-hero-float cb-hero-float--lg cb-hero-float--bob cb-hero-float--p1" aria-hidden="true"><i class="fa-solid fa-ice-cream"></i></span>
+    <span class="cb-hero-float cb-hero-float--bob-2 cb-hero-float--p2" aria-hidden="true"><i class="fa-solid fa-bowl-food"></i></span>
+    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--bob cb-hero-float--p3" aria-hidden="true"><i class="fa-solid fa-snowflake"></i></span>
+    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--drip cb-hero-float--p4" aria-hidden="true"><i class="fa-solid fa-cookie-bite"></i></span>
+    <span class="cb-hero-float cb-hero-float--drip-2 cb-hero-float--p5" aria-hidden="true"><i class="fa-solid fa-mug-hot"></i></span>
     <?php
     // Falling sprinkles — positions, colours, drift and timing vary per
     // dot so the loop reads as confetti rather than a metronome.
@@ -357,8 +357,17 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
                 <div class="flavour-card-img">
                     <?php if ($imgSrc): ?>
                     <img src="<?= $imgSrc ?>" alt="<?= htmlspecialchars($p['name']) ?>" loading="lazy">
-                    <?php else: ?>
-                    <?= htmlspecialchars($p['emoji'] ?? '🍦') ?>
+                    <?php else:
+                        // products.emoji is owner-entered data, so whatever is stored
+                        // still prints as-is. Only the built-in fallback becomes an
+                        // icon, matching the placeholder cards further down.
+                        $cbFlavourMark = trim((string)($p['emoji'] ?? ''));
+                    ?>
+                        <?php if ($cbFlavourMark !== ''): ?>
+                        <?= htmlspecialchars($cbFlavourMark) ?>
+                        <?php else: ?>
+                        <i class="fa-solid fa-ice-cream" aria-hidden="true"></i>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <div class="flavour-card-body">

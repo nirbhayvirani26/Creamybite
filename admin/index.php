@@ -4,6 +4,7 @@
 //  Tabs: Orders | Products | Gallery | Categories
 // ============================================================
 require_once __DIR__ . '/_guard.php';   // session, admin check, CSRF helpers
+require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/_permissions.php';   // which sections this session may use
 
 require_once __DIR__ . '/../includes/config.php';
@@ -45,7 +46,7 @@ if (isset($_GET['action']) && in_array($_GET['action'], ['approve_trade', 'rejec
     try {
         $stmt = $pdo->prepare("UPDATE trade_users SET status = :status WHERE id = :id");
         $stmt->execute(['status' => $newStatus, 'id' => $tradeId]);
-        $successMsg = "✅ Trade account #$tradeId status updated to " . strtoupper($newStatus) . "!";
+        $successMsg = "Trade account #$tradeId status updated to " . strtoupper($newStatus) . "!";
     } catch (PDOException $e) {
         $errorMsg = "Could not update trade account: " . $e->getMessage();
     }
@@ -60,7 +61,7 @@ if (isset($_GET['review_action'], $_GET['id'])) {
         switch ($_GET['review_action']) {
             case 'approve':
                 $pdo->prepare("UPDATE testimonials SET approved = 1 WHERE id = ?")->execute([$revId]);
-                $successMsg = '✅ Review published — it is now on the home page.';
+                $successMsg = 'Review published — it is now on the home page.';
                 break;
             case 'hide':
                 $pdo->prepare("UPDATE testimonials SET approved = 0 WHERE id = ?")->execute([$revId]);
@@ -110,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_review'])) {
                 's' => in_array($_POST['source'] ?? '', ['website','google','facebook','instagram','in_person'], true)
                         ? $_POST['source'] : 'in_person',
             ]);
-            $successMsg = '✅ Review added and published.';
+            $successMsg = 'Review added and published.';
         } catch (PDOException $e) {
             $errorMsg = 'Could not save that review: ' . $e->getMessage();
         }
@@ -118,11 +119,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_review'])) {
 }
 
 // ── URL success messages ────────────────────────────────
-if (isset($_GET['order_deleted'])) $successMsg = '✅ Order deleted successfully.';
+if (isset($_GET['order_deleted'])) $successMsg = 'Order deleted successfully.';
 
 // ── URL success messages ──────────────────────────────────
-if (isset($_GET['product_added']))   $successMsg = '✅ New product added successfully!';
-if (isset($_GET['product_updated'])) $successMsg = '✅ Product updated successfully!';
+if (isset($_GET['product_added']))   $successMsg = 'New product added successfully!';
+if (isset($_GET['product_updated'])) $successMsg = 'Product updated successfully!';
 
 // A staff session bounced back here after trying a section it hasn't been
 // granted (adminRequire() in admin/_permissions.php), or after clicking a
@@ -1024,7 +1025,7 @@ $pageTitles = [
 
             <?php if (empty($invoices)): ?>
             <div class="cbi-inv-empty">
-                <div class="cbi-inv-empty-icon">🧾</div>
+                <div class="cbi-inv-empty-icon"><i class="fa-solid fa-file-invoice" aria-hidden="true"></i></div>
                 <p class="cbi-inv-empty-text">No invoices yet. Create a blank one, or raise one from an order above.</p>
             </div>
             <?php else: ?>
@@ -1100,7 +1101,7 @@ $pageTitles = [
         <div class="glass-panel cbi-panel">
             <?php if (empty($orders)): ?>
             <div class="cbi-empty-state">
-                <div class="cbi-empty-icon">📋</div>
+                <div class="cbi-empty-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
                 <p class="cbi-empty-text">No orders yet. Share your shop and orders will appear here!</p>
                 <a href="../order.php" target="_blank" class="btn-primary cbi-empty-cta">
                     <i class="fa-solid fa-globe"></i> Open Shop
@@ -1188,7 +1189,7 @@ $pageTitles = [
                                 <?php endif; ?>
 
                                 <?php if (isset($repeatPhoneSet[$order['phone']])): ?>
-                                <span class="cbi-ord-repeat-chip">🔁</span>
+                                <span class="cbi-ord-repeat-chip" title="Repeat customer"><i class="fa-solid fa-repeat" aria-hidden="true"></i><span class="cbi-sr-only">Repeat customer</span></span>
                                 <?php endif; ?>
                             </td>
                             <td class="cbi-ord-items-cell">
@@ -1197,7 +1198,7 @@ $pageTitles = [
                                     $firstItem = $items[0] ?? null;
                                 ?>
                                 <?php if ($firstItem): ?>
-                                <span class="items-pill cbi-badge-sm"><?= htmlspecialchars($firstItem['emoji'] ?? '🍦') ?> ×<?= (int)$firstItem['quantity'] ?></span>
+                                <span class="items-pill cbi-badge-sm"><?= cbProductIcon($firstItem['emoji'] ?? null) ?> ×<?= (int)$firstItem['quantity'] ?></span>
                                 <?php if (count($items) > 1): ?>
                                 <span class="cbi-ord-more-items">+<?= count($items) - 1 ?> more</span>
                                 <?php endif; ?>
@@ -1340,11 +1341,11 @@ $pageTitles = [
                                     </div>
                                     <div class="order-detail-grid">
                                         <div class="order-detail-field">
-                                            <label>📍 Delivery Address</label>
+                                            <label><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Delivery Address</label>
                                             <p><?= nl2br(htmlspecialchars($order['address'])) ?></p>
                                         </div>
                                         <div class="order-detail-field">
-                                            <label>📝 Special Notes</label>
+                                            <label><i class="fa-solid fa-note-sticky" aria-hidden="true"></i> Special Notes</label>
                                             <p><?= !empty($order['notes']) ? nl2br(htmlspecialchars($order['notes'])) : '<span class="cbi-muted">None</span>' ?></p>
                                         </div>
                                     </div>
@@ -1362,7 +1363,7 @@ $pageTitles = [
                                         <tbody>
                                         <?php foreach ($items as $itemIdx => $it): ?>
                                         <tr>
-                                            <td class="cbi-ord-item-name"><?= htmlspecialchars($it['emoji'] ?? '🍦') ?> <?= htmlspecialchars($it['name']) ?><?= !empty($it['variant_name']) ? ' <span class="cbi-muted-xs">('.htmlspecialchars($it['variant_name']).')</span>' : '' ?></td>
+                                            <td class="cbi-ord-item-name"><?= cbProductIcon($it['emoji'] ?? null) ?> <?= htmlspecialchars($it['name']) ?><?= !empty($it['variant_name']) ? ' <span class="cbi-muted-xs">('.htmlspecialchars($it['variant_name']).')</span>' : '' ?></td>
                                             <td class="cbi-ord-item-qty">× <?= (int)$it['quantity'] ?></td>
                                             <td class="cbi-ord-item-price">£<?= number_format($it['price'], 2) ?></td>
                                             <td class="cbi-ord-item-subtotal">£<?= number_format($it['price'] * $it['quantity'], 2) ?></td>
@@ -1391,13 +1392,13 @@ $pageTitles = [
                                             </tr>
                                             <?php if (!empty($order['promo_code']) && $order['discount_amount'] > 0): ?>
                                             <tr>
-                                                <td colspan="3" class="cbi-ord-foot-label">🎟️ Promo: <strong><?= htmlspecialchars($order['promo_code']) ?></strong></td>
+                                                <td colspan="3" class="cbi-ord-foot-label"><i class="fa-solid fa-ticket" aria-hidden="true"></i> Promo: <strong><?= htmlspecialchars($order['promo_code']) ?></strong></td>
                                                 <td class="cbi-ord-discount-value">−£<?= number_format($order['discount_amount'], 2) ?></td>
                                             </tr>
                                             <?php endif; ?>
                                             <?php if ((float)($order['delivery_charge'] ?? 0) > 0): ?>
                                             <tr>
-                                                <td colspan="3" class="cbi-ord-foot-label">🚚 Delivery Charge</td>
+                                                <td colspan="3" class="cbi-ord-foot-label"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> Delivery Charge</td>
                                                 <td class="cbi-ord-delivery-value">+£<?= number_format($order['delivery_charge'], 2) ?></td>
                                             </tr>
                                             <?php endif; ?>
@@ -1491,7 +1492,7 @@ $pageTitles = [
             <div class="cbi-trade-header">
                 <div>
                     <h2 class="cbi-trade-title">
-                        <span>🏪</span> Trade Partner Applications & Wholesale Accounts
+                        <span><i class="fa-solid fa-store" aria-hidden="true"></i></span> Trade Partner Applications & Wholesale Accounts
                     </h2>
                     <p class="cbi-trade-subtitle">Review, approve, or reject retail store applications for wholesale access.</p>
                 </div>
@@ -1509,28 +1510,28 @@ $pageTitles = [
             <!-- Trade Quick Stats -->
             <div class="cbi-trade-stats-grid">
                 <div class="cbi-trade-stat">
-                    <div class="cbi-trade-stat-icon">🏪</div>
+                    <div class="cbi-trade-stat-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></div>
                     <div>
                         <div class="cbi-trade-stat-value"><?= count($tradeUsers) ?></div>
                         <div class="cbi-trade-stat-label">Total Applications</div>
                     </div>
                 </div>
                 <div class="cbi-trade-stat-pending">
-                    <div class="cbi-trade-stat-icon">⏳</div>
+                    <div class="cbi-trade-stat-icon"><i class="fa-solid fa-clock" aria-hidden="true"></i></div>
                     <div>
                         <div class="cbi-trade-stat-value-pending"><?= $tradePending ?></div>
                         <div class="cbi-trade-stat-label-pending">Pending Review</div>
                     </div>
                 </div>
                 <div class="cbi-trade-stat-approved">
-                    <div class="cbi-trade-stat-icon">✅</div>
+                    <div class="cbi-trade-stat-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
                     <div>
                         <div class="cbi-trade-stat-value-approved"><?= $tradeApproved ?></div>
                         <div class="cbi-trade-stat-label-approved">Approved Partners</div>
                     </div>
                 </div>
                 <div class="cbi-trade-stat-rejected">
-                    <div class="cbi-trade-stat-icon">❌</div>
+                    <div class="cbi-trade-stat-icon"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i></div>
                     <div>
                         <div class="cbi-trade-stat-value-rejected"><?= $tradeRejected ?></div>
                         <div class="cbi-trade-stat-label-rejected">Rejected</div>
@@ -1540,7 +1541,7 @@ $pageTitles = [
 
             <?php if (empty($tradeUsers)): ?>
             <div class="cbi-trade-empty">
-                <div class="cbi-trade-empty-icon">🏪</div>
+                <div class="cbi-trade-empty-icon"><i class="fa-solid fa-store" aria-hidden="true"></i></div>
                 <h3 class="cbi-trade-empty-title">No trade applications yet</h3>
                 <p class="cbi-trade-empty-text">
                     Store owners can apply for wholesale pricing at <br>
@@ -1575,7 +1576,7 @@ $pageTitles = [
                             <th>ID</th>
                             <th class="inv-sort" onclick="sortTrade(1,'text',this)">Store / Business <i class="fa-solid fa-sort"></i></th>
                             <th>Email & Phone</th>
-                            <th>🔑 Password</th>
+                            <th><i class="fa-solid fa-key" aria-hidden="true"></i> Password</th>
                             <th>Delivery Address</th>
                             <th>VAT / Reg No</th>
                             <th class="inv-sort" onclick="sortTrade(6,'number',this)">Status <i class="fa-solid fa-sort"></i></th>
@@ -1607,7 +1608,7 @@ $pageTitles = [
                             <td class="cbi-trade-id">#<?= $tu['id'] ?></td>
                             <td>
                                 <strong class="cbi-trade-business-name">
-                                    <span>🏬</span> <?= htmlspecialchars($tu['business_name']) ?>
+                                    <span><i class="fa-solid fa-shop" aria-hidden="true"></i></span> <?= htmlspecialchars($tu['business_name']) ?>
                                 </strong>
                                 <div class="cbi-trade-contact-person">
                                     <i class="fa-solid fa-user cbi-trade-contact-icon"></i>
@@ -1707,7 +1708,7 @@ $pageTitles = [
         <div class="glass-panel cbi-panel">
             <?php if (empty($products)): ?>
             <div class="cbi-empty-state">
-                <div class="cbi-empty-icon">🍦</div>
+                <div class="cbi-empty-icon"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i></div>
                 <p class="cbi-empty-text">No products yet.</p>
                 <a href="product_form.php" class="btn-primary cbi-empty-cta">
                     <i class="fa-solid fa-plus"></i> Add First Product
@@ -1767,7 +1768,7 @@ $pageTitles = [
                                      alt="<?= htmlspecialchars($p['name']) ?>"
                                      class="cbi-prod-thumb">
                                 <?php else: ?>
-                                <span class="cbi-prod-emoji"><?= htmlspecialchars($p['emoji'] ?? '🍦') ?></span>
+                                <span class="cbi-prod-emoji"><?= cbProductIcon($p['emoji'] ?? null) ?></span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -1804,9 +1805,9 @@ $pageTitles = [
                             </td>
                             <td>
                                 <?php if ($p['available']): ?>
-                                <span class="status-badge status-delivered cbi-badge-sm">✅ Yes</span>
+                                <span class="status-badge status-delivered cbi-badge-sm"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Yes</span>
                                 <?php else: ?>
-                                <span class="status-badge status-cancelled cbi-badge-sm">❌ No</span>
+                                <span class="status-badge status-cancelled cbi-badge-sm"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> No</span>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -1821,10 +1822,10 @@ $pageTitles = [
                             <?php if ($p['track_stock']): ?>
                                 <?php if ($pIns > 0): ?>
                                 <span class="cbi-prod-stock-in">
-                                    🟢 <?= $pIns ?> left
+                                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i> <?= $pIns ?> left
                                 </span>
                                 <?php else: ?>
-                                <span class="cbi-prod-stock-out">🔴 Out of Stock</span>
+                                <span class="cbi-prod-stock-out"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Out of Stock</span>
                                 <?php endif; ?>
                             <?php else: ?>
                                 <span class="cbi-muted-xs">∞ Unlimited</span>
@@ -1869,27 +1870,27 @@ $pageTitles = [
             ?>
             <div class="cbi-stock-summary-grid">
                 <div class="cbi-stock-card-total">
-                    <div class="cbi-stock-card-icon">📦</div>
+                    <div class="cbi-stock-card-icon cbi-text-violet"><i class="fa-solid fa-box" aria-hidden="true"></i></div>
                     <div class="cbi-stock-card-value-total"><?= $grandTotal ?></div>
                     <div class="cbi-stock-card-label">Grand Total</div>
                 </div>
                 <div class="cbi-stock-card-instock">
-                    <div class="cbi-stock-card-icon">🟢</div>
+                    <div class="cbi-stock-card-icon cbi-text-green"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></div>
                     <div class="cbi-stock-card-value-instock"><?= $totalInStock ?></div>
                     <div class="cbi-stock-card-label">In Stock</div>
                 </div>
                 <div class="cbi-stock-card-damage">
-                    <div class="cbi-stock-card-icon">⚠️</div>
+                    <div class="cbi-stock-card-icon cbi-text-red"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></div>
                     <div class="cbi-stock-card-value-damage"><?= $totalDamage ?></div>
                     <div class="cbi-stock-card-label">Damage</div>
                 </div>
                 <div class="cbi-stock-card-offline">
-                    <div class="cbi-stock-card-icon">🏪</div>
+                    <div class="cbi-stock-card-icon cbi-text-amber"><i class="fa-solid fa-cash-register" aria-hidden="true"></i></div>
                     <div class="cbi-stock-card-value-offline"><?= $totalOffline ?></div>
                     <div class="cbi-stock-card-label">Sold Offline</div>
                 </div>
                 <div class="cbi-stock-card-online">
-                    <div class="cbi-stock-card-icon">🛒</div>
+                    <div class="cbi-stock-card-icon cbi-text-blue"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i></div>
                     <div class="cbi-stock-card-value-online"><?= $totalOnline ?></div>
                     <div class="cbi-stock-card-label">Sold Online</div>
                 </div>
@@ -1897,7 +1898,7 @@ $pageTitles = [
 
             <?php if (empty($stockProducts)): ?>
             <div class="cbi-empty-state">
-                <div class="cbi-empty-icon">📦</div>
+                <div class="cbi-empty-icon"><i class="fa-solid fa-box" aria-hidden="true"></i></div>
                 <p class="cbi-empty-text">No products yet. <a href="product_form.php" class="btn-primary cbi-stock-empty-cta"><i class="fa-solid fa-plus"></i> Add Product</a></p>
             </div>
             <?php else: ?>
@@ -1929,11 +1930,11 @@ $pageTitles = [
                                       the detail lives in a tooltip now. */ ?>
                             <th>Product</th>
                             <th class="cbi-stock-col-center">Tracked</th>
-                            <th class="cbi-stock-th-total" title="Grand total — cumulative, updated when you save via Edit Stock">📦 Total</th>
-                            <th class="cbi-stock-th-instock" title="In stock — calculated as Total − Damage − Sold Offline − Sold Online">🟢 In Stock</th>
-                            <th class="cbi-stock-th-damage" title="Damaged / written off — cumulative">⚠️ Damage</th>
-                            <th class="cbi-stock-th-offline" title="Sold in person — cumulative">🏪 Offline</th>
-                            <th class="cbi-stock-th-online" title="Sold through the website — counts automatically when an order is placed">🛒 Online</th>
+                            <th class="cbi-stock-th-total" title="Grand total — cumulative, updated when you save via Edit Stock"><i class="fa-solid fa-box" aria-hidden="true"></i> Total</th>
+                            <th class="cbi-stock-th-instock" title="In stock — calculated as Total − Damage − Sold Offline − Sold Online"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> In Stock</th>
+                            <th class="cbi-stock-th-damage" title="Damaged / written off — cumulative"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Damage</th>
+                            <th class="cbi-stock-th-offline" title="Sold in person — cumulative"><i class="fa-solid fa-cash-register" aria-hidden="true"></i> Offline</th>
+                            <th class="cbi-stock-th-online" title="Sold through the website — counts automatically when an order is placed"><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i> Online</th>
                             <th class="cbi-stock-col-center">Actions</th>
                         </tr>
                     </thead>
@@ -1953,7 +1954,7 @@ $pageTitles = [
                                     <img src="../assets/images/products/<?= htmlspecialchars($sp['image']) ?>"
                                          class="cbi-stock-thumb">
                                     <?php else: ?>
-                                    <span class="cbi-stock-emoji"><?= htmlspecialchars($sp['emoji'] ?? '🍦') ?></span>
+                                    <span class="cbi-stock-emoji"><?= cbProductIcon($sp['emoji'] ?? null) ?></span>
                                     <?php endif; ?>
                                     <div>
                                         <div class="cbi-stock-product-name"><?= htmlspecialchars($sp['name']) ?></div>
@@ -2022,21 +2023,21 @@ $pageTitles = [
                 <p id="stockEditSubtitle" class="cbi-stock-modal-sub">All values are additive — enter 0 to skip a field.</p>
 
                 <div class="form-group cbi-gap-16">
-                    <label class="form-label cbi-text-violet">📦 Add New Stock</label>
+                    <label class="form-label cbi-text-violet"><i class="fa-solid fa-box" aria-hidden="true"></i> Add New Stock</label>
                     <input type="number" id="stockAddQty" class="form-control cbi-stock-qty-input" min="0" value="0"
                            placeholder="e.g. 50">
                     <small class="cbi-stock-field-hint">Adds to Grand Total &rarr; increases In Stock</small>
                 </div>
 
                 <div class="form-group cbi-gap-16">
-                    <label class="form-label cbi-text-red">⚠️ Add Damage Qty</label>
+                    <label class="form-label cbi-text-red"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Add Damage Qty</label>
                     <input type="number" id="stockDamageQty" class="form-control cbi-stock-qty-input" min="0" value="0"
                            placeholder="e.g. 5">
                     <small class="cbi-stock-field-hint">Adds to Damage &rarr; reduces In Stock</small>
                 </div>
 
                 <div class="form-group cbi-gap-20">
-                    <label class="form-label cbi-text-amber">🏪 Add Sold Offline Qty</label>
+                    <label class="form-label cbi-text-amber"><i class="fa-solid fa-cash-register" aria-hidden="true"></i> Add Sold Offline Qty</label>
                     <input type="number" id="stockOfflineQty" class="form-control cbi-stock-qty-input" min="0" value="0"
                            placeholder="e.g. 10">
                     <small class="cbi-stock-field-hint">Adds to Sold Offline &rarr; reduces In Stock</small>
@@ -2069,7 +2070,7 @@ $pageTitles = [
                 <div class="cbi-stat-subnote">orders + direct invoices</div>
             </div>
             <div class="stat-card glass-panel cbi-rev-card-retail">
-                <div class="stat-card-icon">🛍️</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-bag-shopping" aria-hidden="true"></i></div>
                 <div class="stat-label">Retail Customers</div>
                 <div class="stat-value cbi-rev-value-retail">£<?= number_format($revData['retail'] ?? 0, 2) ?></div>
                 <div class="cbi-stat-subnote"><?= (int)($revData['retail_count'] ?? 0) ?> paid order(s)</div>
@@ -2102,7 +2103,7 @@ $pageTitles = [
                 <div class="cbi-stat-subnote">paid orders only</div>
             </div>
             <div class="stat-card glass-panel cbi-rev-card-online">
-                <div class="stat-card-icon">💳</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-credit-card" aria-hidden="true"></i></div>
                 <div class="stat-label">Online (Card)</div>
                 <div class="stat-value cbi-rev-value-online">£<?= number_format($revData['online'] ?? 0, 2) ?></div>
             </div>
@@ -2112,7 +2113,7 @@ $pageTitles = [
                 <div class="stat-value cbi-rev-value-cash">£<?= number_format($revData['cash'] ?? 0, 2) ?></div>
             </div>
             <div class="stat-card glass-panel cbi-rev-card-bank">
-                <div class="stat-card-icon">🏦</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></div>
                 <div class="stat-label">Bank Transfer</div>
                 <div class="stat-value cbi-rev-value-bank">£<?= number_format($revData['bank'] ?? 0, 2) ?></div>
             </div>
@@ -2122,7 +2123,7 @@ $pageTitles = [
                 <div class="stat-value cbi-rev-value-unpaid">£<?= number_format($revData['unpaid_total'] ?? 0, 2) ?></div>
             </div>
             <div class="stat-card glass-panel cbi-rev-card-refunded">
-                <div class="stat-card-icon">↩️</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-arrow-rotate-left" aria-hidden="true"></i></div>
                 <div class="stat-label">Refunded (this period)</div>
                 <div class="stat-value cbi-rev-value-refunded">£<?= number_format($revData['refunded'] ?? 0, 2) ?></div>
                 <div class="cbi-stat-subnote">net revenue: £<?= number_format(($revData['total'] ?? 0) - ($revData['refunded'] ?? 0), 2) ?></div>
@@ -2574,7 +2575,7 @@ $pageTitles = [
                     <input type="file" name="gallery_image" id="galleryFileInput"
                            accept="image/jpeg,image/png,image/webp,image/gif"
                            onchange="triggerGalleryUpload(this)">
-                    <div class="cbi-gal-drop-icon">📸</div>
+                    <div class="cbi-gal-drop-icon"><i class="fa-solid fa-images" aria-hidden="true"></i></div>
                     <p class="cbi-gal-drop-text">
                         <strong class="cbi-icon-primary">Click to upload</strong> or drag & drop<br>
                         JPG, PNG, WebP, or GIF — max 8MB
@@ -2690,7 +2691,7 @@ $pageTitles = [
                             <?php if (trim((string)$rv['location']) !== ''): ?>
                             <span class="cbi-rev-loc"><?= htmlspecialchars($rv['location']) ?></span>
                             <?php endif; ?>
-                            <span class="cbi-rev-stars"><?= str_repeat('★', (int)$rv['rating']) ?><?= str_repeat('☆', 5 - (int)$rv['rating']) ?></span>
+                            <span class="cbi-rev-stars" aria-label="<?= (int)$rv['rating'] ?> out of 5 stars"><?= str_repeat('<i class="fa-solid fa-star" aria-hidden="true"></i>', (int)$rv['rating']) ?><?= str_repeat('<i class="fa-regular fa-star" aria-hidden="true"></i>', 5 - (int)$rv['rating']) ?></span>
                         </div>
                         <div class="cbi-rev-tags">
                             <span class="cbi-rev-source"><?= htmlspecialchars(str_replace('_', ' ', $rv['source'])) ?></span>
@@ -2800,7 +2801,7 @@ $pageTitles = [
         <div class="glass-panel cbi-panel-lg">
             <div class="admin-page-header cbi-gap-24">
                 <div>
-                    <h2 class="admin-page-title cbi-flush">🎟️ Promo Codes</h2>
+                    <h2 class="admin-page-title cbi-flush"><i class="fa-solid fa-ticket" aria-hidden="true"></i> Promo Codes</h2>
                     <p class="admin-page-subtitle cbi-subtitle-gap">Create and manage discount codes for your customers</p>
                 </div>
             </div>
@@ -2859,7 +2860,7 @@ $pageTitles = [
             <!-- Promo codes list -->
             <?php if (empty($promoCodes)): ?>
             <div class="cbi-promo-empty">
-                <div class="cbi-promo-empty-icon">🎟️</div>
+                <div class="cbi-promo-empty-icon"><i class="fa-solid fa-ticket" aria-hidden="true"></i></div>
                 <p>No promo codes yet. Create your first one above!</p>
             </div>
             <?php else: ?>
@@ -2930,7 +2931,7 @@ $pageTitles = [
         <div class="glass-panel cbi-panel-lg">
             <div class="admin-page-header cbi-gap-24">
                 <div>
-                    <h2 class="admin-page-title cbi-flush">📬 Customer Inquiries</h2>
+                    <h2 class="admin-page-title cbi-flush"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Customer Inquiries</h2>
                     <p class="admin-page-subtitle cbi-subtitle-gap">Messages submitted via the About / Contact page</p>
                 </div>
                 <div class="cbi-inq-header-actions">
@@ -2969,7 +2970,7 @@ $pageTitles = [
 
             <?php if (empty($inquiries)): ?>
             <div class="cbi-empty-state">
-                <div class="cbi-empty-icon">📭</div>
+                <div class="cbi-empty-icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></div>
                 <p class="cbi-empty-text">No inquiries yet. They'll appear here once customers submit the contact form.</p>
             </div>
             <?php else: ?>
@@ -3048,7 +3049,7 @@ $pageTitles = [
         <div class="glass-panel cbi-panel-lg">
             <div class="admin-page-header cbi-gap-24">
                 <div>
-                    <h2 class="admin-page-title cbi-flush">👑 Owner Account</h2>
+                    <h2 class="admin-page-title cbi-flush"><i class="fa-solid fa-crown" aria-hidden="true"></i> Owner Account</h2>
                     <p class="admin-page-subtitle cbi-subtitle-gap">The one shared login tied to this server's .env file — full access to every section, always.</p>
                 </div>
             </div>
@@ -3098,7 +3099,7 @@ $pageTitles = [
         <div class="glass-panel cbi-panel-lg">
             <div class="admin-page-header cbi-gap-24">
                 <div>
-                    <h2 class="admin-page-title cbi-flush">🔐 Staff Logins</h2>
+                    <h2 class="admin-page-title cbi-flush"><i class="fa-solid fa-user-lock" aria-hidden="true"></i> Staff Logins</h2>
                     <p class="admin-page-subtitle cbi-subtitle-gap">Create staff accounts and choose which sections each one can see and edit</p>
                 </div>
             </div>
@@ -3150,7 +3151,7 @@ $pageTitles = [
 
             <?php if (empty($staffMembers)): ?>
             <div class="cbi-empty-state">
-                <div class="cbi-empty-icon">🔐</div>
+                <div class="cbi-empty-icon"><i class="fa-solid fa-user-lock" aria-hidden="true"></i></div>
                 <p class="cbi-empty-text">No staff accounts yet. Add one above.</p>
             </div>
             <?php else: ?>
@@ -3215,7 +3216,7 @@ $pageTitles = [
 <!-- The footer belongs INSIDE .admin-shell. Left outside it, it started at
      left:0 and ran the full window width, sliding underneath the sidebar. -->
 <footer class="admin-foot">
-    <span>🍦 <?= SHOP_NAME ?> Admin</span>
+    <span><i class="fa-solid fa-ice-cream" aria-hidden="true"></i> <?= SHOP_NAME ?> Admin</span>
     <span>© <?= date('Y') ?> <?= SHOP_NAME ?>. All rights reserved.</span>
 </footer>
 </div><!-- /admin-shell -->
@@ -3253,7 +3254,7 @@ function updateStatus(orderId, orderCode, repId) {
             return;
         }
         if (data.success) {
-            msgEl.textContent = '✅ Saved!';
+            msgEl.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Saved!';
             const badgeMap = { 'Pending':'status-pending','Processing':'status-processing','Delivered':'status-delivered','Cancelled':'status-cancelled' };
             const mainRow = document.getElementById('row-' + orderId);
             const badge = mainRow.querySelector('.status-badge');
@@ -3284,11 +3285,12 @@ function updateStatus(orderId, orderCode, repId) {
             }
             setTimeout(() => msgEl.textContent = '', 3000);
         } else {
-            msgEl.textContent = '❌ ' + (data.message || 'Failed to save.');
+            msgEl.innerHTML = '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> ';
+            msgEl.appendChild(document.createTextNode(data.message || 'Failed to save.'));
             msgEl.style.color = 'var(--color-danger)';
         }
     })
-    .catch(() => { msgEl.textContent = '❌ Network error.'; msgEl.style.color = 'var(--color-danger)'; });
+    .catch(() => { msgEl.innerHTML = '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Network error.'; msgEl.style.color = 'var(--color-danger)'; });
 }
 
 // "Who delivered this order?" — a picker, plus a box to add someone who is
@@ -3597,7 +3599,7 @@ async function updatePaymentStatus(orderId) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            msgEl.textContent = '✅ Payment updated!';
+            msgEl.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Payment updated!';
 
             // Update the payment badge in the main row
             const badge = document.getElementById('pay-badge-' + orderId);
@@ -3626,10 +3628,10 @@ async function updatePaymentStatus(orderId) {
 
             setTimeout(() => msgEl.textContent = '', 3000);
         } else {
-            msgEl.textContent = '❌ Failed.'; msgEl.style.color = 'var(--color-danger)';
+            msgEl.innerHTML = '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Failed.'; msgEl.style.color = 'var(--color-danger)';
         }
     })
-    .catch(() => { msgEl.textContent = '❌ Network error.'; msgEl.style.color = 'var(--color-danger)'; });
+    .catch(() => { msgEl.innerHTML = '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Network error.'; msgEl.style.color = 'var(--color-danger)'; });
 }
 
 // ── Gallery ─────────────────────────────────────────────────
@@ -3680,7 +3682,7 @@ function triggerGalleryUpload(input) {
     });
 }
 
-async // ── Home banners ──────────────────────────────────────────
+// ── Home banners ──────────────────────────────────────────
 const bnForm = document.getElementById('bannerAddForm');
 if (bnForm) {
     bnForm.addEventListener('submit', function (e) {
@@ -3782,7 +3784,7 @@ function addCategory() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            showCatMsg('✅ Category added!', 'success');
+            showCatMsg('<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Category added!', 'success');
             document.getElementById('newCatName').value = '';
             const container = document.getElementById('catListContainer');
             const div = document.createElement('div');
@@ -3825,7 +3827,7 @@ async function startRename(id, currentName) {
     .then(data => {
         if (data.success) {
             document.getElementById('catname-' + id).textContent = newName.trim();
-            showCatMsg('✅ Renamed!', 'success');
+            showCatMsg('<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Renamed!', 'success');
         } else {
             cbAlert(data.message, {title:'Could not rename', tone:'danger'});
         }
@@ -4282,7 +4284,9 @@ let stockEditProductId = null;
 
 function openStockEdit(productId, productName, curTotal, curDamage, curOffline) {
     stockEditProductId = productId;
-    document.getElementById('stockEditTitle').textContent = '✏️ Edit Stock — ' + productName;
+    const stockTitleEl = document.getElementById('stockEditTitle');
+    stockTitleEl.innerHTML = '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit Stock — ';
+    stockTitleEl.appendChild(document.createTextNode(productName));
     document.getElementById('stockAddQty').value    = 0;
     document.getElementById('stockDamageQty').value = 0;
     document.getElementById('stockOfflineQty').value = 0;
@@ -4304,7 +4308,7 @@ function saveStockEdit() {
     const msgEl = document.getElementById('stockEditMsg');
 
     if (addQty === 0 && damageQty === 0 && offlineQty === 0) {
-        msgEl.textContent = '⚠️ Enter at least one quantity greater than 0.';
+        msgEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Enter at least one quantity greater than 0.';
         msgEl.style.color = '#f59e0b';
         return;
     }
@@ -4330,11 +4334,12 @@ function saveStockEdit() {
             if (offEl) offEl.textContent = data.sold_offline;
             closeStockEdit();
         } else {
-            msgEl.textContent = '❌ ' + (data.message || 'Failed to save.');
+            msgEl.innerHTML = '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> ';
+            msgEl.appendChild(document.createTextNode(data.message || 'Failed to save.'));
             msgEl.style.color = '#ef4444';
         }
     })
-    .catch(() => { msgEl.textContent = '❌ Network error.'; msgEl.style.color = '#ef4444'; });
+    .catch(() => { msgEl.innerHTML = '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> Network error.'; msgEl.style.color = '#ef4444'; });
 }
 
 document.getElementById('stockEditModal')?.addEventListener('click', function(e) {

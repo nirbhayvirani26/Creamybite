@@ -89,6 +89,34 @@
 .lg-pwd-toggle.is-showing { color: var(--color-primary); }
 .lg-footer-inner { text-align: center; }
 
+/* ── Status markers on the migration results ──────────────────────
+   Each step's message is prefixed with an icon instead of an emoji.
+   The colours are stated here rather than inherited so a marker reads
+   the same in the results table and again in the red failure box.
+
+   Warning keeps its own amber: a table created without its foreign key
+   is not the same thing as a step that failed, and the row it sits on
+   is red either way. */
+.su-mark      { font-style: normal; }
+.su-mark-ok   { color: #10b981; }
+.su-mark-warn { color: #b45309; }
+.su-mark-err  { color: #ef4444; }
+
+/* The word behind the marker — "Done", "Warning", "Failed" — for anyone
+   who cannot see the icon's shape or colour. Visually hidden, still read
+   aloud and still found by in-page search. */
+.su-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* Which copy of the updater is running. Answers "I uploaded it but nothing
    changed" without anyone having to count rows. */
 .su-build      { font-size: 12.5px; color: var(--text-muted, #6b7280); margin: -8px 0 18px; line-height: 1.6; }

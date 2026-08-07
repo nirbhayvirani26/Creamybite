@@ -4,6 +4,7 @@
 // ============================================================
 session_start();
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/pricing.php';
 require_once __DIR__ . '/../includes/trade_cart.php';
@@ -47,6 +48,7 @@ $vatApplies     = $totals['vat_applies'];
 $vatRate        = $totals['vat_rate'];
 $vatAmount      = $totals['vat'];
 $grandTotal     = $totals['total'];
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -119,7 +121,7 @@ $grandTotal     = $totals['total'];
         <!-- Page Title -->
         <div class="cbco-page-head">
             <span class="section-label">Almost There!</span>
-            <h1 class="cbco-page-title">Complete Your Order 🍦</h1>
+            <h1 class="cbco-page-title">Complete Your Order <i class="fa-solid fa-ice-cream cb-title-icon" aria-hidden="true"></i></h1>
             <p class="cbco-page-subtitle">Fill in your delivery details and we'll bring the sweetness to you.</p>
         </div>
 
@@ -151,7 +153,7 @@ $grandTotal     = $totals['total'];
                     <?php if ($isTradeUser): ?>
                     <!-- ── B2B TRADE CUSTOMER CHECKOUT ────────────────────────── -->
                     <div class="cbco-trade-banner">
-                        <div class="cbco-trade-banner-eyebrow">🏪 B2B Trade Wholesale Checkout</div>
+                        <div class="cbco-trade-banner-eyebrow"><i class="fa-solid fa-store cb-badge-icon" aria-hidden="true"></i>B2B Trade Wholesale Checkout</div>
                         <h2 class="cbco-trade-banner-title"><?= htmlspecialchars($tradeUser['business_name']) ?></h2>
                         <p class="cbco-trade-banner-address">
                             Registered Delivery Address: <strong><?= htmlspecialchars($tradeUser['address']) ?>, <?= htmlspecialchars($tradeUser['postcode']) ?></strong>
@@ -445,7 +447,7 @@ $grandTotal     = $totals['total'];
                             <?php if ($imgSrc): ?>
                             <img class="cart-item-img" src="<?= $imgSrc ?>" alt="<?= htmlspecialchars($item['name']) ?>">
                             <?php else: ?>
-                            <div class="osi-emoji"><?= htmlspecialchars($item['emoji'] ?? '🍦') ?></div>
+                            <div class="osi-emoji"><?= cbProductIcon($item['emoji'] ?? null) ?></div>
                             <?php endif; ?>
                             <div class="osi-info">
                                 <div class="osi-name">
@@ -683,10 +685,21 @@ function removePromo() {
     fetch('../promo_handler.php?action=remove').then(() => location.reload());
 }
 
-function showPromoMsg(msg, type) {
+function showPromoMsg(msg, type, iconClass) {
     const el = document.getElementById('promoMsg');
     if (!el) return;
-    el.textContent = msg;
+    // Most of these messages are composed by promo_handler.php, so the text
+    // goes in as a text node rather than as markup. Only the icon is real
+    // HTML, and it is always chosen here — never sent by the server.
+    el.textContent = '';
+    if (iconClass) {
+        const ico = document.createElement('i');
+        ico.className = iconClass;
+        ico.setAttribute('aria-hidden', 'true');
+        el.appendChild(ico);
+        el.appendChild(document.createTextNode(' '));
+    }
+    el.appendChild(document.createTextNode(msg));
     el.style.color = type === 'success' ? '#10b981' : 'var(--color-danger, #ef4444)';
 }
 
@@ -724,8 +737,9 @@ function reEvaluateCharges() {
             if (appliedBanner) appliedBanner.style.display = 'none';
             if (promoInput)    promoInput.value           = promoCode;
             showPromoMsg(
-                '⚠️ Promo removed — minimum order £' + minOrder.toFixed(2) + ' not met.',
-                'error'
+                'Promo removed — minimum order £' + minOrder.toFixed(2) + ' not met.',
+                'error',
+                'fa-solid fa-triangle-exclamation'
             );
 
             // Hide discount row
@@ -741,7 +755,7 @@ function reEvaluateCharges() {
 
         if (lastCalculatedMiles <= FREE_MILES) {
             if (chargeInput) chargeInput.value = '0';
-            if (statusEl) statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> 🎉 Free delivery! You are within ' + lastCalculatedMiles.toFixed(1) + ' miles.</span>';
+            if (statusEl) statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> Free delivery! You are within ' + lastCalculatedMiles.toFixed(1) + ' miles.</span>';
             updateDeliveryDisplay(0);
         } else {
             if (chargeInput) chargeInput.value = DELIVERY_CHARGE.toFixed(2);
@@ -1320,7 +1334,7 @@ function onPostcodeInput() {
 
                 if (miles <= FREE_MILES) {
                     chargeInput.value = '0';
-                    statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> 🎉 Free delivery! You are within ' + miles.toFixed(1) + ' miles.</span>';
+                    statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> Free delivery! You are within ' + miles.toFixed(1) + ' miles.</span>';
                     updateDeliveryDisplay(0);
                 } else {
                     chargeInput.value = DELIVERY_CHARGE.toFixed(2);

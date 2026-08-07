@@ -331,13 +331,13 @@ if ($paymentMethod === 'online') {
 // The order is accepted, but nobody should discover at the van that it was
 // forty miles away. This is a note, not a rejection.
 if ($distanceUnverified) {
-    $notes = "[📍 DISTANCE NOT VERIFIED — check this is within " . rtrim(rtrim(number_format(DELIVERY_RADIUS_MILES, 1), '0'), '.') . " miles before dispatch]\n" . $notes;
+    $notes = "[DISTANCE NOT VERIFIED — check this is within " . rtrim(rtrim(number_format(DELIVERY_RADIUS_MILES, 1), '0'), '.') . " miles before dispatch]\n" . $notes;
 }
 
 // ── Anything unresolved becomes a review flag on the order ──
 $needsReview = !empty($errors);
 if ($needsReview) {
-    $notes = "[⚠️ NEEDS REVIEW]\n- " . implode("\n- ", $errors)
+    $notes = "[NEEDS REVIEW]\n- " . implode("\n- ", $errors)
            . ($capturedPence !== null
                 ? "\n- Card payment captured: £" . number_format($capturedPence / 100, 2)
                 : '')
@@ -355,7 +355,7 @@ if (!empty($_SESSION['trade_user'])) {
     $tradeUserId       = (int)($_SESSION['trade_user']['id'] ?? 0);
     $tradeBusinessName = trim($_SESSION['trade_user']['business_name'] ?? '');
     if (!empty($tradeBusinessName) && strpos($notes, 'TRADE B2B ORDER') === false) {
-        $notes = '[🏪 TRADE B2B ORDER - Store: ' . $tradeBusinessName . ']' . "\n" . $notes;
+        $notes = '[TRADE B2B ORDER - Store: ' . $tradeBusinessName . ']' . "\n" . $notes;
     }
 }
 

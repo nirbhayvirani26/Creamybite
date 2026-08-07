@@ -19,6 +19,7 @@ if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }
 require_once __DIR__ . '/_permissions.php';
+require_once __DIR__ . '/../includes/product_icons.php';
 adminRequire('products');
 
 require_once __DIR__ . '/../includes/config.php';
@@ -188,7 +189,7 @@ foreach ($products as $p) { if (cbAllergenReviewed($p)) { $confirmed++; } }
                 <?php endif; ?>
                     <tr class="<?= cbAllergenReviewed($p) ? 'is-confirmed' : 'is-unconfirmed' ?>">
                         <td class="cbab-col-product">
-                            <span class="cbab-emoji"><?= htmlspecialchars($p['emoji'] ?? '🍦') ?></span>
+                            <span class="cbab-emoji"><?= cbProductIcon($p['emoji'] ?? null) ?></span>
                             <?= htmlspecialchars($p['name']) ?>
                         </td>
                         <?php foreach ($allergens as $slug => $label): ?>

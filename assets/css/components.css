@@ -1161,6 +1161,9 @@ a.btn-primary.cboc-directions-btn {
 /* ── Admin: product specification panel ──────────────────── */
 .cbpf-derived-note   { display: block; font-size: 13.5px; color: var(--text-secondary);
                        line-height: 1.5; padding: 9px 0; }
+/* Allergen warning mark. Amber matches .cbpf-check-label-nuts so the two read
+   as the same signal; the words "Contains Nuts" stay next to it either way. */
+.cbpf-warn-icon      { color: #b45309; margin-right: 2px; }
 .cbpf-spec-intro     { font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;
                        margin: 0 0 18px; }
 .cbpf-spec-heading   { font-size: 15px; margin: 26px 0 4px; padding-top: 20px;
@@ -1387,31 +1390,16 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
     .cbrev-form-row  { grid-template-columns: 1fr; }
 }
 
-/* ============================================================
-   VISIBILITY UTILITIES — THESE MUST STAY LAST IN THIS FILE
-   ============================================================
-   Add nothing below this block.
 
-   These have the same weight as any other single class name, so when two
-   rules both set `display`, the one written LAST in the file wins. While
-   .cbco-hidden sat near the top, every later rule that set a display beat
-   it, and the element it was meant to hide stayed on screen:
+/* Hero float positions — these live here rather than as style="" attributes,
+   because inline CSS is banned project-wide. One class per decorative glyph. */
+.cb-hero-float--p1 { left: 4%;  top: 16%; }
+.cb-hero-float--p2 { right: 7%; top: 20%; }
+.cb-hero-float--p3 { right: 16%; bottom: 24%; }
+.cb-hero-float--p4 { left: 12%; bottom: 30%; }
+.cb-hero-float--p5 { right: 24%; top: 8%; }
 
-     - #minOrderNotice  (.cbco-min-notice, display:flex) showed an empty
-       amber bar with a basket icon and no text on every checkout where the
-       basket was already over the minimum — the notice "coming blank".
-     - #discountRow     (.cbco-summary-row, display:flex) painted
-       "Discount −£0.00" on load whenever no promo code was applied.
 
-   Deliberately NOT `!important`. An !important rule outranks an inline
-   style, and several places re-show these elements with
-   `el.style.display = 'flex'` while leaving the class in place
-   (#promoApplied, #discountRow, #cartFooter). Marking these important
-   would hide those permanently — trading a visible bug for an invisible
-   one. Last position gives the same protection and keeps inline shows
-   working. */
-.cbco-hidden { display: none; }
-.cbor-hidden { display: none; }
 
 /* ============================================================
    Home page banner slider
@@ -1498,3 +1486,54 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
 /* The confirmation tick was 🎉 + 🍦; one green tick says "done" more clearly
    than two competing symbols. */
 .confirmation-icon > i    { font-size: 54px; color: var(--color-success); }
+
+/* ── Emoji replaced by icons: order, checkout and trade pages ──
+   Same principle as above — the markup around each icon is unchanged, these
+   rules only give back the size, colour and spacing the emoji had.
+
+   Three shared classes, because the same three shapes recur: an icon
+   trailing a page heading, one leading a small uppercase badge, and one
+   leading a sentence in an alert.
+
+   The margins are small because they are not the whole gap. The headings
+   keep the literal space the emoji sat after, and .alert is display:flex
+   with gap:12px, so .cb-alert-icon only tops that up — 6px, the same total
+   as .cbtr-alert-icon on the registration page. */
+.cb-title-icon { color: var(--color-primary); font-size: 0.78em; margin-left: 2px; }
+.cb-badge-icon { margin-right: 6px; }
+.cb-alert-icon { margin-right: 6px; }
+
+/* The product placeholders stand in for a photograph, so they take the brand
+   colour rather than the body text colour. Font size is inherited from each
+   container, which already sets the size the emoji used. */
+.product-image-placeholder > i    { color: var(--color-primary); }
+.variant-picker-emoji > i         { color: var(--color-primary); }
+.cart-item-img-placeholder > i    { color: var(--color-primary); }
+.osi-emoji > i                    { color: var(--color-primary); }
+.trade-page .cbtp-empty-icon > i  { color: var(--text-muted); }
+
+/* ============================================================
+   VISIBILITY UTILITIES — THESE MUST STAY LAST IN THIS FILE
+   ============================================================
+   Add nothing below this block.
+
+   These have the same weight as any other single class name, so when two
+   rules both set `display`, the one written LAST in the file wins. While
+   .cbco-hidden sat near the top, every later rule that set a display beat
+   it, and the element it was meant to hide stayed on screen:
+
+     - #minOrderNotice  (.cbco-min-notice, display:flex) showed an empty
+       amber bar with a basket icon and no text on every checkout where the
+       basket was already over the minimum — the notice "coming blank".
+     - #discountRow     (.cbco-summary-row, display:flex) painted
+       "Discount −£0.00" on load whenever no promo code was applied.
+
+   Deliberately NOT `!important`. An !important rule outranks an inline
+   style, and several places re-show these elements with
+   `el.style.display = 'flex'` while leaving the class in place
+   (#promoApplied, #discountRow, #cartFooter). Marking these important
+   would hide those permanently — trading a visible bug for an invisible
+   one. Last position gives the same protection and keeps inline shows
+   working. */
+.cbco-hidden { display: none; }
+.cbor-hidden { display: none; }

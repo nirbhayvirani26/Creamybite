@@ -72,7 +72,7 @@ $cbBase = defined('SITE_BASE') ? SITE_BASE : '';
         <div class="footer-bottom-bar">
             <a href="<?= $cbBase ?>/index.php"><img src="<?= $cbBase ?>/assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cbhm-footer-logo-sm"></a>
             <span class="footer-copy-text">
-                &copy; <?= date('Y') ?> <?= SHOP_NAME ?> &mdash; Made with ❤️
+                &copy; <?= date('Y') ?> <?= SHOP_NAME ?> &mdash; Made with <i class="fa-solid fa-heart cb-footer-heart" role="img" aria-label="love"></i>
             </span>
         </div>
     </div>

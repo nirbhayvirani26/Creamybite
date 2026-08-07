@@ -24,6 +24,47 @@ if ($isAdmin) {
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
+/**
+ * Small inline SVG marks for this document.
+ *
+ * Deliberately not Font Awesome. This page is printed and PDF'd, and an icon
+ * font is the one thing that reliably does not survive that — the webfont has
+ * to download before the print dialog opens, and a PDF generator that misses
+ * it prints an empty box where a payment status used to be. These are plain
+ * vector shapes in the flow of the document, drawn in currentColor so they
+ * take the colour of the text they sit in, and every one of them sits next to
+ * a word that already says the same thing.
+ */
+function dnIcon(string $name): string
+{
+    $shapes = [
+        'print' =>
+            '<path d="M4.5 1.5h7v3h-7z"/>'
+          . '<path d="M2 5.5h12a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-1.5V9h-9v2.5H2a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"/>'
+          . '<path d="M4.5 10h7v4.5h-7z"/>',
+        'check' =>
+            '<circle cx="8" cy="8" r="6.9" fill="none" stroke="currentColor" stroke-width="1.5"/>'
+          . '<path d="M4.7 8.2 6.9 10.4 11.3 5.9" fill="none" stroke="currentColor" stroke-width="1.7"'
+          . ' stroke-linecap="round" stroke-linejoin="round"/>',
+        'cash' =>
+            '<rect x="1" y="3.5" width="14" height="9" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.5"/>'
+          . '<circle cx="8" cy="8" r="2.1"/>',
+        'clock' =>
+              '<circle cx="8" cy="8" r="6.9" fill="none" stroke="currentColor" stroke-width="1.5"/>'
+            . '<path d="M8 4.2V8l2.6 1.9" fill="none" stroke="currentColor" stroke-width="1.6"'
+            . ' stroke-linecap="round" stroke-linejoin="round"/>',
+        'shop' =>
+            '<path d="M1.5 2.2h13l1 3.3H0.5z"/>'
+          . '<path d="M2.3 6.5v7.3h11.4V6.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>'
+          . '<path d="M5.8 13.8V9.3h3.2v4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
+    ];
+    if (!isset($shapes[$name])) {
+        return '';
+    }
+    return '<svg class="cbdn-ico" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">'
+         . $shapes[$name] . '</svg>';
+}
+
 $code = trim($_GET['code'] ?? '');
 if (empty($code)) {
     die('Order code required.');
@@ -107,7 +148,7 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
 
 <div class="no-print cbdn-print-bar">
     <button onclick="window.print()" class="cbdn-print-btn">
-        🖨️ Print Delivery Note / Invoice
+        <?= dnIcon('print') ?> Print Delivery Note / Invoice
     </button>
 </div>
 
@@ -143,7 +184,7 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
         <div class="dn-card">
             <h3>DELIVER TO (RETAIL STORE)</h3>
             <strong class="cbdn-store-name">
-                🏬 <?= htmlspecialchars($tradeStoreName) ?>
+                <?= dnIcon('shop') ?> <?= htmlspecialchars($tradeStoreName) ?>
             </strong>
             <div class="cbdn-contact-line">Contact Person: <?= htmlspecialchars($order['customer_name']) ?></div>
             <div class="cbdn-contact-phone">Phone: <?= htmlspecialchars($order['phone']) ?></div>
@@ -162,15 +203,15 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
             <div class="cbdn-field">
                 <span class="cbdn-field-label">Payment Status:</span><br>
                 <?php if ($order['payment_status'] === 'Paid'): ?>
-                <strong class="cbdn-pay-badge cbdn-pay-badge-paid">✅ PAID ONLINE</strong>
+                <strong class="cbdn-pay-badge cbdn-pay-badge-paid"><?= dnIcon('check') ?> PAID ONLINE</strong>
                 <?php elseif ($order['payment_status'] === 'Cash'): ?>
-                <strong class="cbdn-pay-badge cbdn-pay-badge-pending">💵 CASH ON DELIVERY</strong>
+                <strong class="cbdn-pay-badge cbdn-pay-badge-pending"><?= dnIcon('cash') ?> CASH ON DELIVERY</strong>
                 <?php else: ?>
-                <strong class="cbdn-pay-badge cbdn-pay-badge-pending">⏳ INVOICE PENDING (PAY ON DELIVERY)</strong>
+                <strong class="cbdn-pay-badge cbdn-pay-badge-pending"><?= dnIcon('clock') ?> INVOICE PENDING (PAY ON DELIVERY)</strong>
                 <?php endif; ?>
             </div>
             <div class="cbdn-notes-block">
-                <strong class="cbdn-notes-label">⏱️ Opening Times & Instructions:</strong>
+                <strong class="cbdn-notes-label"><?= dnIcon('clock') ?> Opening Times & Instructions:</strong>
                 <div class="cbdn-notes-box">
                     <?= !empty($order['notes']) ? htmlspecialchars($order['notes']) : 'Standard store delivery' ?>
                 </div>
@@ -198,6 +239,11 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
             <tr>
                 <td><?= $i++ ?></td>
                 <td>
+                    <?php // Still an emoji, on purpose. This is the glyph snapshotted into
+                          // items_json at order time, so the fallback beside it has to render
+                          // the same way — and drawing all thirteen catalogue flavours as
+                          // print-safe SVG is a bigger job than this document. It goes when
+                          // products grows a real icon column. ?>
                     <strong class="cbdn-item-name"><?= htmlspecialchars($item['emoji'] ?? '🍦') ?> <?= htmlspecialchars($item['name']) ?></strong>
                     <?php if (!empty($item['variant_name'])): ?>
                     <div class="cbdn-muted-note"><?= htmlspecialchars($item['variant_name']) ?></div>

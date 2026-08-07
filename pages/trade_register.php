@@ -72,7 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'vat'      => $vatNumber,
                     ]);
                 }
-                $successMsg = '🎉 Thank you! Your Trade Account application for <strong>' . htmlspecialchars($businessName) . '</strong> has been submitted. Our team will review and activate your account shortly.';
+                // The success alert already opens with a fa-circle-check, which is
+                // what 🎉 maps to. Adding a second one would print the same mark
+                // twice, so the message keeps the words only.
+                $successMsg = 'Thank you! Your Trade Account application for <strong>' . htmlspecialchars($businessName) . '</strong> has been submitted. Our team will review and activate your account shortly.';
             }
         } catch (PDOException $e) {
             $errorMsg = 'Registration failed: ' . $e->getMessage();
@@ -124,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="glass-panel cbtr-panel">
             <div class="cbtr-panel-head">
                 <span class="section-label">B2B Wholesale</span>
-                <h1 class="cbtr-title">Apply for a Trade Account 🏪</h1>
+                <h1 class="cbtr-title">Apply for a Trade Account <i class="fa-solid fa-store cb-title-icon" aria-hidden="true"></i></h1>
                 <p class="cbtr-subtitle">
                     Get wholesale pricing, bulk tubs, and direct trade ordering for your shop, cafe, or venue.
                 </p>

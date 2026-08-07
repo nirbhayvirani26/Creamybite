@@ -429,14 +429,17 @@ if ($format === 'csv') {
 <title><?= ucfirst($type) ?> report – <?= SHOP_NAME ?></title>
 <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="assets/css/reports-print.css">
+<?php // The toolbar icons below need Font Awesome; this page never loaded it.
+      // The toolbar is display:none in print, so this only costs a screen load. ?>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
 <div class="bar">
     <a href="index.php?tab=revenue" class="btn btn-s">&larr; Back to Revenue</a>
-    <button class="btn btn-p" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <button class="btn btn-p" onclick="window.print()"><i class="fa-solid fa-print" aria-hidden="true"></i> Print / Save as PDF</button>
     <a class="btn btn-s" href="?<?= htmlspecialchars(http_build_query(
-        ['period'=>$period,'from'=>$from,'to'=>$to,'type'=>$type,'format'=>'csv'])) ?>">⬇️ Download for Excel (CSV)</a>
+        ['period'=>$period,'from'=>$from,'to'=>$to,'type'=>$type,'format'=>'csv'])) ?>"><i class="fa-solid fa-download" aria-hidden="true"></i> Download for Excel (CSV)</a>
 </div>
 
 <div class="sheet">

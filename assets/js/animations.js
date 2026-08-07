@@ -193,15 +193,23 @@
     }
 
     /* ── Fly-to-cart ─────────────────────────────────────── */
-    // Call from an add-to-cart handler: cbFlyToCart(buttonEl, '🍦')
-    window.cbFlyToCart = function (fromEl, emoji) {
+    // Call from an add-to-cart handler: cbFlyToCart(buttonEl, 'fa-ice-cream')
+    // The second argument is a Font Awesome free *solid* icon name and is
+    // optional — it falls back to the house ice cream mark.
+    window.cbFlyToCart = function (fromEl, iconName) {
         if (reduced || !fromEl || !badge) return;
         var a = fromEl.getBoundingClientRect();
         var b = badge.getBoundingClientRect();
 
         var ghost = document.createElement('div');
         ghost.className = 'cb-fly';
-        ghost.textContent = emoji || '🍦';
+        // Built as a DOM node rather than innerHTML, and the name is
+        // whitelisted, so a caller passing a database value can never inject
+        // markup or a stray class.
+        var icon = document.createElement('i');
+        icon.className = 'fa-solid ' + (/^fa-[a-z0-9-]+$/.test(iconName || '') ? iconName : 'fa-ice-cream');
+        icon.setAttribute('aria-hidden', 'true');
+        ghost.appendChild(icon);
         ghost.style.left = a.left + a.width / 2 - 13 + 'px';
         ghost.style.top  = a.top  + a.height / 2 - 13 + 'px';
         document.body.appendChild(ghost);

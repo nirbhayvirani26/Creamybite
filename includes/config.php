@@ -58,7 +58,7 @@ $DB_LIVE = [
 // ════════════════════════════════════════════════════════════
 
 define('SHOP_NAME',      'Creamy Bite');
-define('SHOP_TAGLINE',   'Every Bite Tells a Story 🍦');
+define('SHOP_TAGLINE',   'Every Bite Tells a Story');
 define('SHOP_PHONE',     '+44 7497 779997');
 define('SHOP_INSTAGRAM', 'https://www.instagram.com/creamybiteicecream');
 define('SHOP_FACEBOOK',  'https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr');

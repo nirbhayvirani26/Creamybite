@@ -72,7 +72,7 @@ function acctPageStart(string $current, string $title, string $subtitle = ''): v
             <a href="../index.php" class="cbac-back">
                 <i class="fa-solid fa-arrow-left"></i> Admin
             </a>
-            <h1 class="cbac-title">📊 <?= htmlspecialchars($title) ?></h1>
+            <h1 class="cbac-title"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> <?= htmlspecialchars($title) ?></h1>
             <?php if ($subtitle !== ''): ?>
             <p class="cbac-sub"><?= htmlspecialchars($subtitle) ?></p>
             <?php endif; ?>

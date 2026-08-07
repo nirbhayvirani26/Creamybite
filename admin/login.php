@@ -190,7 +190,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
 
 <div class="login-page">
     <div class="glass-panel login-card">
-        <div class="login-icon">🛡️</div>
+        <?php // Decorative — "Admin Panel" below is the accessible label. ?>
+        <div class="login-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
         <h1 class="login-title">Admin Panel</h1>
         <p class="login-subtitle">Sign in to manage orders and products</p>
 

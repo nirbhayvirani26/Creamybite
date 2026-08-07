@@ -131,7 +131,7 @@ function sendOrderEmail(array $order): bool
       <div style='margin-top:12px;'>
         <a href='https://maps.app.goo.gl/hrMSnTRqFvorzF7HA?g_st=iw'
            style='display:inline-block; background:#f59e0b; color:#fff; font-size:12px; font-weight:700; padding:8px 18px; border-radius:20px; text-decoration:none; letter-spacing:0.5px;'>
-          &#x1F5FA; Get Directions
+          &#x1F5FA;&#xFE0F; Get Directions
         </a>
       </div>
     </div>
@@ -256,6 +256,9 @@ function sendOrderEmail(array $order): bool
         $mail->Password   = SMTP_PASS;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = SMTP_PORT;
+        // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
+        // so every emoji and every £ arrives as mojibake. See cbSendMail().
+        $mail->CharSet    = 'UTF-8';
         $mail->setFrom(SMTP_USER, $shopName);
         $mail->addAddress($adminEmail);
         $mail->isHTML(true);
@@ -288,6 +291,9 @@ function sendGenericEmail(string $toEmail, string $subject, string $htmlBody): b
         $mail->Password   = SMTP_PASS;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = SMTP_PORT;
+        // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
+        // so every emoji and every £ arrives as mojibake. See cbSendMail().
+        $mail->CharSet    = 'UTF-8';
 
         $mail->setFrom(SMTP_USER, $shopName);
         $mail->addAddress($toEmail);
@@ -414,7 +420,7 @@ function sendCustomerConfirmationEmail(array $order, string $customerEmail): boo
                     </div>
                     <a href='https://maps.app.goo.gl/hrMSnTRqFvorzF7HA?g_st=iw'
                        style='display:inline-block; background:#f59e0b; color:#ffffff; font-size:13px; font-weight:700; padding:11px 26px; border-radius:30px; text-decoration:none; letter-spacing:0.5px;'>
-                       &#x1F5FA;&nbsp; Get Directions on Google Maps
+                       &#x1F5FA;&#xFE0F;&nbsp; Get Directions on Google Maps
                     </a>
                 </div>
             </td>
@@ -564,6 +570,9 @@ function sendCustomerConfirmationEmail(array $order, string $customerEmail): boo
         $mail->Password   = SMTP_PASS;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = SMTP_PORT;
+        // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
+        // so every emoji and every £ arrives as mojibake. See cbSendMail().
+        $mail->CharSet    = 'UTF-8';
 
         $mail->setFrom(SMTP_USER, $shopName);
         $mail->addAddress($customerEmail, $order['customer_name']);

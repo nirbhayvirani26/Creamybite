@@ -40,7 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($user['status'] === 'pending') {
                     $errorMsg = '⏳ Your trade application for <strong>' . htmlspecialchars($user['business_name']) . '</strong> is currently pending approval by our admin team.';
                 } elseif ($user['status'] === 'rejected') {
-                    $errorMsg = '❌ Your trade account application was not approved. Please contact us for support.';
+                    // The alert below prints $errorMsg unescaped, so the icon is
+                    // real markup. The sentence still states the outcome on its
+                    // own — the icon only decorates it.
+                    $errorMsg = '<i class="fa-solid fa-circle-xmark cb-alert-icon" aria-hidden="true"></i>Your trade account application was not approved. Please contact us for support.';
                 } elseif ($user['status'] === 'approved') {
                     $_SESSION['trade_user'] = [
                         'id'            => $user['id'],
@@ -117,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="glass-panel cbtl-login-card">
             <div class="cbtl-login-header">
                 <span class="section-label">B2B Portal</span>
-                <h1 class="cbtl-login-title">Trade Partner Login 🏪</h1>
+                <h1 class="cbtl-login-title">Trade Partner Login <i class="fa-solid fa-store cb-title-icon" aria-hidden="true"></i></h1>
                 <p class="cbtl-login-subtitle">
                     Log in with your approved trade email to access wholesale pricing.
                 </p>

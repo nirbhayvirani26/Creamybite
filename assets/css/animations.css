@@ -87,31 +87,191 @@ body { animation: cbFadeIn .32s ease-out both; }
    moving. The card's own reveal carries it in. */
 .cb-motion .reveal.is-visible > .product-image-wrap { animation: none; }
 
-/* ── Cards & products ────────────────────────────────────── */
-.product-card,
+/* ── Cards & panels ──────────────────────────────────────── */
+/* Product cards used to be in this rule too. They now have their own
+   section below — see "Product cards: the hover system". */
 .glass-panel,
 .gallery-item {
     transition: transform .3s cubic-bezier(.4,0,.2,1),
                 box-shadow .3s cubic-bezier(.4,0,.2,1),
                 border-color .3s ease;
 }
-.product-card:hover,
 .gallery-item:hover {
     transform: translateY(-6px);
     box-shadow: 0 18px 40px rgba(92, 29, 36, .14);
 }
-.product-card:hover .product-img,
-.product-card:hover img { transform: scale(1.06); }
-.product-card img,
-.product-img { transition: transform .5s cubic-bezier(.4,0,.2,1); }
+.gallery-item img       { transition: transform .5s cubic-bezier(.4,0,.2,1); }
+.gallery-item:hover img { transform: scale(1.06); }
 
-/* Keep the image zoom inside the card's rounded corners. */
-.product-card .product-image,
-.product-card .product-img-wrap,
+/* Keep the image zoom inside the rounded corners. */
 .gallery-item { overflow: hidden; }
 
-/* Out-of-stock cards should not invite interaction. */
+
+/* ── Product cards: the hover system ─────────────────────────
+   EVERY hover / pointer state for .product-card is in this section and
+   nowhere else. It was previously spread over four blocks in two files:
+   two lifts, two image zooms (scale(1.06) here and scale(1.07) in
+   style.css) and a jelly wobble, all resolved by source order rather
+   than by intent — so which zoom you got depended on which rule happened
+   to be more specific that day.
+
+   The effect, composed as one gesture:
+     · the card lifts 8px and its border warms
+     · a shadow layer fades in underneath, deepening the card
+     · the photo zooms slowly to 1.06 — one canonical value now
+     · a soft sheen sweeps once across the photo
+     · the top accent line thickens, the title takes the brand colour
+     · the add-to-cart button steps forward
+
+   Only transform and opacity are animated, so every frame is composited.
+   Timing is deliberately restrained: a long, decelerating ease-out
+   (cubic-bezier(.16,1,.3,1)) rather than anything that overshoots.
+
+   Markup this styles (pages/order.php):
+     article.product-card > .product-image-wrap > img|.product-image-placeholder
+                          > .product-body > .product-name, .product-footer > .btn-add-cart
+   ------------------------------------------------------------ */
+
+/* Resting transitions.
+   The .reveal variant is not optional: animations.js auto-tags every
+   .product-card with .reveal, and `.cb-motion .reveal` (0,2,0) declares its
+   own transition list, which would otherwise hand the hover its entrance
+   timing. The opacity entry is repeated so the scroll-reveal fade survives.
+   This block sits after .glass-panel above on purpose — a product card is
+   also a .glass-panel, and `transition` is one property: last rule wins. */
+.product-card {
+    transition: transform .5s cubic-bezier(.16, 1, .3, 1),
+                border-color .32s ease;
+}
+.cb-motion .product-card.reveal {
+    transition: opacity .52s cubic-bezier(.16, 1, .3, 1),
+                transform .5s cubic-bezier(.16, 1, .3, 1),
+                border-color .32s ease;
+}
+
+/* The lift shadow, as its own layer.
+   Transitioning box-shadow on the card itself repaints the card on every
+   frame; cross-fading a pre-rendered layer is one composited opacity
+   change. This is why .product-card dropped `overflow: hidden` (style.css)
+   — an outer shadow drawn inside a clipping box is invisible.
+   No z-index is needed: the layer has no background of its own and an
+   outer box-shadow only paints OUTSIDE its box, so it can never sit over
+   the card's content. */
+.product-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    box-shadow: 0 22px 44px -18px rgba(92, 29, 36, .38),
+                0 8px 18px -10px rgba(92, 29, 36, .22);
+    transition: opacity .5s cubic-bezier(.16, 1, .3, 1);
+}
+
+/* Slower than the card's own move, so the photo settles last. */
+.product-card .product-image-wrap img   { transition: transform .7s cubic-bezier(.16, 1, .3, 1); }
+.product-card .product-image-placeholder { transition: transform .55s cubic-bezier(.16, 1, .3, 1); }
+.product-card .product-image-wrap::before { transition: transform .4s cubic-bezier(.16, 1, .3, 1); }
+.product-card .product-name             { transition: color .3s ease; }
+
+/* The sheen: a narrow diagonal highlight parked off the left edge of the
+   photo, swept across once on hover. .product-image-wrap clips it. */
+.product-card .product-image-wrap::after {
+    content: '';
+    position: absolute;
+    z-index: 3;              /* over both the photo and the accent line */
+    top: -20%; bottom: -20%;
+    left: -75%;
+    width: 60%;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(100deg,
+                rgba(255, 255, 255, 0)   0%,
+                rgba(255, 255, 255, .55) 50%,
+                rgba(255, 255, 255, 0)   100%);
+    transform: skewX(-14deg);
+}
+@keyframes cbCardSheen {
+    from { transform: translate3d(0, 0, 0) skewX(-14deg);    opacity: 0; }
+    22%  { opacity: 1; }
+    to   { transform: translate3d(330%, 0, 0) skewX(-14deg); opacity: 0; }
+}
+
+/* Everything below is pointer-only. A touch device matches none of it, so
+   the card is complete without hover and can never be left stuck in a
+   hover state after a tap. */
+@media (hover: hover) and (pointer: fine) {
+
+    /* The lift.
+       `:not(.out-of-stock)` states the intent AND buys the specificity
+       (0,3,0) this rule needs to outrank `.cb-motion .reveal.is-visible {
+       transform: none }` near the top of this file. Without it the lift
+       silently did nothing the moment a card had been revealed on scroll,
+       which is most of them.
+       box-shadow is pinned to the resting value so .glass-panel:hover
+       cannot swap a second shadow in underneath the ::after layer. */
+    .product-card:not(.out-of-stock):hover {
+        transform: translate3d(0, -8px, 0);
+        border-color: var(--border-color);
+        box-shadow: var(--shadow-sm);
+        will-change: transform;
+    }
+    .product-card:not(.out-of-stock):hover::after { opacity: 1; }
+
+    .product-card:not(.out-of-stock):hover .product-image-wrap img {
+        transform: scale(1.06);
+    }
+    /* Cards with no photo lift their icon instead — the old jelly wobble
+       was the one genuinely cartoonish thing on the card. */
+    .product-card:not(.out-of-stock):hover .product-image-placeholder {
+        transform: scale(1.06) translateY(-3px);
+    }
+    .product-card:not(.out-of-stock):hover .product-image-wrap::before {
+        transform: scaleY(1.75);
+    }
+    .product-card:not(.out-of-stock):hover .product-image-wrap::after {
+        animation: cbCardSheen .85s cubic-bezier(.33, .1, .25, 1);
+    }
+    .product-card:not(.out-of-stock):hover .product-name {
+        color: var(--color-primary);
+    }
+    /* The button keeps its own, stronger :hover. `:not(:hover)` stops this
+       weaker card-level cue from overriding it when the pointer is
+       actually on the button. */
+    .product-card:not(.out-of-stock):hover .btn-add-cart:not(:hover):not(:disabled) {
+        transform: translateY(-2px);
+    }
+}
+
+/* Sold out: no lift, no depth, no invitation. */
 .product-card.out-of-stock:hover { transform: none; box-shadow: none; }
+
+/* Reduced motion: nothing moves. Depth, border and colour stay, because
+   they are not motion and the card should still answer the pointer.
+   Must come after the (hover: hover) block — same specificity, later wins. */
+@media (prefers-reduced-motion: reduce) {
+    .product-card,
+    .cb-motion .product-card.reveal,
+    .product-card::after,
+    .product-card .product-image-wrap img,
+    .product-card .product-image-placeholder,
+    .product-card .product-image-wrap::before { transition: none; }
+
+    .product-card:not(.out-of-stock):hover,
+    .product-card:not(.out-of-stock):hover .product-image-wrap img,
+    .product-card:not(.out-of-stock):hover .product-image-placeholder,
+    .product-card:not(.out-of-stock):hover .product-image-wrap::before,
+    .product-card:not(.out-of-stock):hover .btn-add-cart:not(:hover):not(:disabled) {
+        transform: none;
+        will-change: auto;
+    }
+    .product-card:not(.out-of-stock):hover .product-image-wrap::after {
+        animation: none;
+        opacity: 0;
+    }
+    .product-card:not(.out-of-stock):hover::after { opacity: 1; }
+}
 
 /* ── Buttons ─────────────────────────────────────────────── */
 .btn-primary, .btn-secondary, .btn-view-cart, .btn-sm, .btn-danger {
@@ -150,6 +310,9 @@ body { animation: cbFadeIn .32s ease-out both; }
     font-size: 26px; line-height: 1;
     transition: transform .72s cubic-bezier(.4,0,.35,1), opacity .72s ease;
 }
+/* The ghost is an icon rather than an emoji, so it needs a colour of its own —
+   it would otherwise inherit whatever body text colour it flew over. */
+.cb-fly > i { color: var(--color-primary, #c78829); }
 
 /* ── Forms ───────────────────────────────────────────────── */
 .form-control {
@@ -338,11 +501,10 @@ img.cb-img-loading {
     50%      { transform: scale(.94, 1.08) rotate(2deg); }
     75%      { transform: scale(1.06, .96) rotate(-1deg); }
 }
-/* Targets the elements that actually carry the emoji in the
-   shipped markup: the placeholder span under the product image
-   on order.php, and the flavour-card image block on the home
-   page. (The old .product-emoji / em hooks matched nothing.) */
-.product-card:hover .product-image-placeholder,
+/* Home-page flavour cards only. The product card used to wobble here too,
+   but the jelly squash read as cartoonish next to the rest of the card;
+   its placeholder now gets the restrained lift defined in the product
+   card hover system above. */
 .flavour-card:hover .flavour-card-img {
     animation: cbWobble .55s cubic-bezier(.4, 0, .2, 1);
 }
@@ -434,7 +596,6 @@ img.cb-img-loading {
     .cb-drip-line,
     .cb-conf-emoji { display: none !important; }
     .cb-scoop-pop { animation: none; }
-    .product-card:hover .product-image-placeholder,
     .flavour-card:hover .flavour-card-img { animation: none; }
 }
 
@@ -523,9 +684,20 @@ img.cb-img-loading {
     display the grid gives it when it comes back.                     */
 .product-card.cb-filtered-out { display: none !important; }
 
+/*  The `to` frame deliberately does NOT name `transform`.
+    A CSS animation outranks every normal author declaration, and this one
+    is filled `both` — the class is never removed once a tab is clicked. So
+    a `to { transform: none }` here did not just end the entrance, it pinned
+    the card's transform to none for the rest of the page's life and the
+    hover lift stopped working on every card in the filtered set.
+    Omitting the property makes the 100% frame implicit, which resolves to
+    the underlying cascade value — i.e. the hover transform when hovered —
+    so the entrance still lands exactly where it did and hover survives it.
+    `opacity` stays explicit: its forwards fill is what keeps a card that
+    the scroll observer never reached from fading back out. */
 @keyframes cbFilterIn {
     from { opacity: 0; transform: translate3d(0, 12px, 0); }
-    to   { opacity: 1; transform: none; }
+    to   { opacity: 1; }
 }
 /*  Applied to every card in the filtered set (see order.php).
     "both" holds the end state so nothing snaps when the run finishes. */
