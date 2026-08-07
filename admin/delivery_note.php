@@ -141,8 +141,8 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <!-- Shared .cbdn-* classes come from admin.css; this page's own print rules
          follow in delivery-note.css, so they win any equal-specificity tie. -->
-    <link rel="stylesheet" href="assets/css/admin.css">
-    <link rel="stylesheet" href="assets/css/delivery-note.css">
+    <link rel="stylesheet" href="<?= cbAsset('assets/css/admin.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('assets/css/delivery-note.css') ?>">
 </head>
 <body>
 

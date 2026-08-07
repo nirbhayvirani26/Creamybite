@@ -33,9 +33,9 @@ $policyUpdated = $policyUpdated ?? date('F Y');
     <?php $seoDescription = $policyIntro !== '' ? $policyIntro : $policyTitle . ' for ' . SHOP_NAME; ?>
     <?php $cbSeoTitle = $policyTitle . ' – ' . SHOP_NAME; ?>
     <?php require __DIR__ . '/seo_head.php'; ?>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>

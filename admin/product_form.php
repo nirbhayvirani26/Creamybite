@@ -253,14 +253,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $isEdit ? 'Edit Product' : 'Add Product' ?> – <?= SHOP_NAME ?></title>
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
     <!-- This page's own cbpf-* layout classes live in admin.css. -->
-    <link rel="stylesheet" href="assets/css/admin.css">
+    <link rel="stylesheet" href="<?= cbAsset('assets/css/admin.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <?php include __DIR__ . '/_csrf_js.php'; ?>
-<link rel="stylesheet" href="../assets/css/modal.css">
-<script src="../assets/js/modal.js" defer></script>
+<link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
+<script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
 </head>
 <body>
 

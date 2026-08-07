@@ -90,11 +90,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trade Account Application – <?= SHOP_NAME ?></title>
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
-    <link rel="stylesheet" href="../assets/css/modal.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/animations.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="trade-page">
@@ -212,8 +212,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         &copy; <?= date('Y') ?> CreamyBite.com — Wholesale Trade Portal
     </div>
 </footer>
-<script src="../assets/js/modal.js" defer></script>
-<script src="../assets/js/animations.js" defer></script>
+<script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
+<script src="<?= cbAsset('../assets/js/animations.js') ?>" defer></script>
 
 </body>
 </html>

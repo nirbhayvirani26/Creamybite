@@ -49,10 +49,10 @@ $docBase     = defined('SITE_BASE') ? SITE_BASE : '';
         $seoDescription = $docSubtitle !== '' ? $docSubtitle : $docTitle . ' for ' . SHOP_NAME;
         require __DIR__ . '/seo_head.php';
     ?>
-    <link rel="stylesheet" href="<?= $docBase ?>/assets/css/style.css">
-    <link rel="stylesheet" href="<?= $docBase ?>/assets/css/responsive.css">
-    <link rel="stylesheet" href="<?= $docBase ?>/assets/css/components.css">
-    <link rel="stylesheet" href="<?= $docBase ?>/assets/css/print-doc.css">
+    <link rel="stylesheet" href="<?= cbAsset($docBase . '/assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset($docBase . '/assets/css/responsive.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset($docBase . '/assets/css/components.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset($docBase . '/assets/css/print-doc.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="cbdoc-body">

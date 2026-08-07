@@ -110,7 +110,7 @@ $shortcutTarget = '"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" 
 <meta name="robots" content="noindex, nofollow">
 <title>Print station &ndash; <?= $h($shopName) ?></title>
 <?php require __DIR__ . '/../../includes/favicon.php'; ?>
-<link rel="stylesheet" href="../../assets/css/print-station.css">
+<link rel="stylesheet" href="<?= cbAsset('../../assets/css/print-station.css') ?>">
 <?php // Wraps window.fetch and puts the CSRF token on every same-origin call,
       // which is what queue.php and mark_printed.php check. Do not hand-roll it. ?>
 <?php include __DIR__ . '/../_csrf_js.php'; ?>

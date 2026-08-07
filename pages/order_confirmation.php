@@ -48,11 +48,11 @@ $items = json_decode($order['items_json'], true) ?? [];
           // so it must never be indexed or followed by search engines. ?>
     <meta name="robots" content="noindex, nofollow">
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
-    <link rel="stylesheet" href="../assets/css/modal.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/animations.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -197,8 +197,8 @@ $items = json_decode($order['items_json'], true) ?? [];
         <span class="footer-copy">© <?= date('Y') ?> <?= SHOP_NAME ?>. Thank you for your order!</span>
     </div>
 </footer>
-<script src="../assets/js/modal.js" defer></script>
-<script src="../assets/js/animations.js" defer></script>
+<script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
+<script src="<?= cbAsset('../assets/js/animations.js') ?>" defer></script>
 
 </body>
 </html>

@@ -78,11 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     <title>About Us – <?= SHOP_NAME ?></title>
 <?php require __DIR__ . '/../includes/seo_head.php'; ?>
     <meta name="description" content="Learn the story behind <?= SHOP_NAME ?> — our passion for handcrafted ice cream and cocoa drinks. Contact us, find us on the map, and follow us on social media.">
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
-    <link rel="stylesheet" href="../assets/css/modal.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/animations.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="about-page">
@@ -341,7 +341,7 @@ drawerClose.addEventListener('click', closeMobileMenu);
 drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMobileMenu(); });
 </script>
-<script src="../assets/js/modal.js" defer></script>
-<script src="../assets/js/animations.js" defer></script>
+<script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
+<script src="<?= cbAsset('../assets/js/animations.js') ?>" defer></script>
 </body>
 </html>

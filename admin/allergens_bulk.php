@@ -92,15 +92,15 @@ foreach ($products as $p) { if (cbAllergenReviewed($p)) { $confirmed++; } }
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Allergens – <?= SHOP_NAME ?> Admin</title>
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <?php // admin.css lives under admin/assets/, not the site-wide assets/ —
           // so it is NOT "../assets/css/admin.css" like the others. Getting
           // that wrong loads no admin styling at all, and the page renders as
           // an unstyled table that still works, which is exactly the kind of
           // break nobody reports as an error. ?>
-    <link rel="stylesheet" href="assets/css/admin.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
-    <link rel="stylesheet" href="../assets/css/modal.css">
+    <link rel="stylesheet" href="<?= cbAsset('assets/css/admin.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="cbab-body">

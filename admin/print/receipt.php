@@ -132,7 +132,7 @@ if ($data === null) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Receipt not found</title>
-<link rel="stylesheet" href="../../assets/css/receipt.css">
+<link rel="stylesheet" href="<?= cbAsset('../../assets/css/receipt.css') ?>">
 </head>
 <body class="cbr-body">
 <div class="cbr-stage">
@@ -247,7 +247,7 @@ $placed = strtotime((string)($order['created_at'] ?? '')) ?: time();
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Receipt <?= $h($order['order_code']) ?></title>
 <?php require __DIR__ . '/../../includes/favicon.php'; ?>
-<link rel="stylesheet" href="../../assets/css/receipt.css">
+<link rel="stylesheet" href="<?= cbAsset('../../assets/css/receipt.css') ?>">
 </head>
 <body class="cbr-body">
 <div class="cbr-stage">

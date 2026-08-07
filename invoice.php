@@ -45,8 +45,8 @@ if (!$inv) {
         <?php // Token-gated page — must never be indexed. ?>
         <meta name="robots" content="noindex, nofollow">
         <title>Invoice not found – <?= SHOP_NAME ?></title>
-        <link rel="stylesheet" href="assets/css/style.css">
-        <link rel="stylesheet" href="assets/css/components.css">
+        <link rel="stylesheet" href="<?= cbAsset('assets/css/style.css') ?>">
+        <link rel="stylesheet" href="<?= cbAsset('assets/css/components.css') ?>">
     </head>
     <body>
         <div class="cbinv-missing">
@@ -92,7 +92,7 @@ function invLines(string $text): string
 <?php // Token-gated page — must never be indexed. ?>
 <meta name="robots" content="noindex, nofollow">
 <title>Invoice <?= htmlspecialchars($inv['invoice_number']) ?> – <?= SHOP_NAME ?></title>
-<link rel="stylesheet" href="admin/assets/css/invoice-print.css">
+<link rel="stylesheet" href="<?= cbAsset('admin/assets/css/invoice-print.css') ?>">
 </head>
 <body>
 

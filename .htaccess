@@ -51,3 +51,50 @@ Options -Indexes
 <FilesMatch "^\.env">
     Require all denied
 </FilesMatch>
+
+# ── Caching ──────────────────────────────────────────────────
+#  Stylesheets and scripts are requested with a ?v=<file mtime> on the end
+#  (see includes/asset.php), so the URL itself changes the moment a file is
+#  edited and re-uploaded. A browser therefore cannot be holding a stale copy
+#  under the same URL, which is what made every upload need several hard
+#  refreshes before the new design appeared.
+#
+#  Because the URL carries the version, these can be cached hard: a returning
+#  customer re-uses the files instead of re-downloading them, and still sees an
+#  update the instant it goes live.
+#
+#  Images are cached for a day rather than a year. They are NOT versioned, so a
+#  logo replaced under the same filename has to be able to come through without
+#  waiting a year for the cache to lapse.
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css                  "access plus 1 year"
+    ExpiresByType application/javascript    "access plus 1 year"
+    ExpiresByType text/javascript           "access plus 1 year"
+    ExpiresByType image/png                 "access plus 1 day"
+    ExpiresByType image/jpeg                "access plus 1 day"
+    ExpiresByType image/webp                "access plus 1 day"
+    ExpiresByType image/svg+xml             "access plus 1 day"
+    ExpiresByType image/x-icon              "access plus 1 week"
+    ExpiresByType font/woff2                "access plus 1 year"
+</IfModule>
+
+#  Same rule again through mod_headers, for servers where mod_expires is not
+#  enabled — MAMP here does not have it, and shared hosting is inconsistent.
+#  Whichever module is present sets the header; if both are, they agree.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|woff2)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    <FilesMatch "\.(png|jpe?g|webp|svg)$">
+        Header set Cache-Control "public, max-age=86400"
+    </FilesMatch>
+</IfModule>
+
+#  The pages themselves must never be cached — an order list or a basket that
+#  came out of a cache would show yesterday's data.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(php|html)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </FilesMatch>
+</IfModule>

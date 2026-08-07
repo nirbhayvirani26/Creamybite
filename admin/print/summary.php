@@ -108,7 +108,7 @@ $m = static fn($n): string => '£' . number_format((float)$n, 2);
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Daily summary <?= htmlspecialchars($day, ENT_QUOTES, 'UTF-8') ?></title>
 <?php require __DIR__ . '/../../includes/favicon.php'; ?>
-<link rel="stylesheet" href="../../assets/css/receipt.css">
+<link rel="stylesheet" href="<?= cbAsset('../../assets/css/receipt.css') ?>">
 </head>
 <body class="cbr-body">
 <div class="cbr-stage">

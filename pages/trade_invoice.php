@@ -66,7 +66,7 @@ $customerNo = 'TC-' . str_pad((string)$userId, 5, '0', STR_PAD_LEFT);
     <meta name="robots" content="noindex, nofollow">
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../assets/css/trade-invoice.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/trade-invoice.css') ?>">
 </head>
 <body>
 

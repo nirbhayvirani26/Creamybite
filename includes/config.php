@@ -27,6 +27,11 @@
 define('CB_TIMEZONE', 'Europe/London');
 date_default_timezone_set(CB_TIMEZONE);
 
+// cbAsset(): adds ?v=<file mtime> to stylesheet and script URLs so a browser
+// cannot serve a stale copy after an upload. Loaded here because every page
+// reaches config.php, so the helper is always defined wherever it is used.
+require_once __DIR__ . '/asset.php';
+
 // Be safe to include more than once.
 //
 // require_once de-duplicates by resolved PATH STRING. macOS is

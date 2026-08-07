@@ -19,11 +19,11 @@ try {
     <title>Gallery – <?= SHOP_NAME ?></title>
 <?php require __DIR__ . '/../includes/seo_head.php'; ?>
     <meta name="description" content="Browse our gallery of handcrafted ice cream and cocoa drinks at <?= SHOP_NAME ?>.">
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
-    <link rel="stylesheet" href="../assets/css/modal.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/animations.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -158,7 +158,7 @@ ham.addEventListener('click', openMobileMenu);
 drawerClose.addEventListener('click', closeMobileMenu);
 drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
 </script>
-<script src="../assets/js/modal.js" defer></script>
-<script src="../assets/js/animations.js" defer></script>
+<script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
+<script src="<?= cbAsset('../assets/js/animations.js') ?>" defer></script>
 </body>
 </html>

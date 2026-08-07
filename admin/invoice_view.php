@@ -61,7 +61,7 @@ function invLines(string $text): string
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Invoice <?= htmlspecialchars($inv['invoice_number']) ?> – <?= SHOP_NAME ?></title>
 <?php require __DIR__ . '/../includes/favicon.php'; ?>
-<link rel="stylesheet" href="assets/css/invoice-print.css">
+<link rel="stylesheet" href="<?= cbAsset('assets/css/invoice-print.css') ?>">
 </head>
 <body>
 

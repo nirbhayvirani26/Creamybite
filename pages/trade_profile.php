@@ -175,11 +175,11 @@ foreach ($orders as $o) {
     <?php // Private, login-gated account area — must never be indexed. ?>
     <meta name="robots" content="noindex, nofollow">
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="../assets/css/components.css">
-    <link rel="stylesheet" href="../assets/css/modal.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/animations.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="trade-page">
@@ -585,8 +585,8 @@ foreach ($orders as $o) {
         </div>
     </div>
 </main>
-<script src="../assets/js/modal.js" defer></script>
-<script src="../assets/js/animations.js" defer></script>
+<script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
+<script src="<?= cbAsset('../assets/js/animations.js') ?>" defer></script>
 
 </body>
 </html>

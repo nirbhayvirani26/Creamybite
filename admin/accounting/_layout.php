@@ -55,12 +55,12 @@ function acctPageStart(string $current, string $title, string $subtitle = ''): v
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($title) ?> – VAT &amp; Accounting</title>
     <?php require __DIR__ . '/../../includes/favicon.php'; ?>
-    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="<?= cbAsset('../../assets/css/style.css') ?>">
     <?php // admin.css lives under admin/assets/, one level up from here. ?>
-    <link rel="stylesheet" href="../assets/css/admin.css">
-    <link rel="stylesheet" href="../../assets/css/components.css">
-    <link rel="stylesheet" href="../../assets/css/accounting.css">
-    <link rel="stylesheet" href="../../assets/css/modal.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/admin.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../../assets/css/components.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../../assets/css/accounting.css') ?>">
+    <link rel="stylesheet" href="<?= cbAsset('../../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="cbac-body">
@@ -117,7 +117,7 @@ function acctPageEnd(): void
 {
     ?>
 </div>
-<script src="../../assets/js/modal.js" defer></script>
+<script src="<?= cbAsset('../../assets/js/modal.js') ?>" defer></script>
 </body>
 </html>
 <?php
