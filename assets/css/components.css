@@ -1472,3 +1472,25 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
                     padding-bottom: 46px; }
     .cbbn-headline { max-width: none; }
 }
+
+/* ── Emoji replaced by icons ──────────────────────────────────
+   The decorative hero marks, the empty-cart symbol and the confirmation tick
+   were emoji. Emoji render in whatever font the visitor's device ships, so
+   the same page looked different on Windows, Android and iOS — and none of
+   those variants were the brand. Font Awesome is one shape everywhere, takes
+   the brand colour, and stays sharp at any size.
+
+   These rules only restore the SIZE the emoji had: the markup around them is
+   unchanged, so nothing moved. */
+.cb-hero-float > i        { font-size: 0.86em; opacity: 0.92; }
+.cb-eyebrow-icon          { margin-right: 6px; }
+.flavour-card-img > i     { font-size: 42px; color: var(--color-primary); }
+.cart-empty-icon > i      { font-size: 40px; color: var(--text-muted); }
+.toast-icon > i           { font-size: 18px; color: var(--color-primary); }
+.story-highlight-icon > i { font-size: 20px; color: var(--color-secondary); }
+.gallery-empty-icon > i   { font-size: 44px; color: var(--text-muted); }
+.cboc-collect-emoji > i   { font-size: 34px; color: var(--color-primary); }
+.cbor-delivery-popup-emoji > i { font-size: 38px; color: var(--color-primary); }
+/* The confirmation tick was 🎉 + 🍦; one green tick says "done" more clearly
+   than two competing symbols. */
+.confirmation-icon > i    { font-size: 54px; color: var(--color-success); }

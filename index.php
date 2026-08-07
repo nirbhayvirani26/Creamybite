@@ -274,11 +274,11 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
     <?php // Decorative scoops, cones and falling sprinkles. Purely cosmetic —
           // hidden for reduced-motion users via animations.css, and painted
           // behind the text (z-index 0) so they never cover content. ?>
-    <span class="cb-hero-float cb-hero-float--lg cb-hero-float--bob" aria-hidden="true" style="left:4%; top:16%;">🍦</span>
-    <span class="cb-hero-float cb-hero-float--bob-2" aria-hidden="true" style="right:7%; top:20%;">🍨</span>
-    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--bob" aria-hidden="true" style="right:16%; bottom:24%;">🍧</span>
-    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--drip" aria-hidden="true" style="left:12%; bottom:30%;">🍫</span>
-    <span class="cb-hero-float cb-hero-float--drip-2" aria-hidden="true" style="right:24%; top:8%;">🥛</span>
+    <span class="cb-hero-float cb-hero-float--lg cb-hero-float--bob" aria-hidden="true" style="left:4%; top:16%;"><i class="fa-solid fa-ice-cream"></i></span>
+    <span class="cb-hero-float cb-hero-float--bob-2" aria-hidden="true" style="right:7%; top:20%;"><i class="fa-solid fa-bowl-food"></i></span>
+    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--bob" aria-hidden="true" style="right:16%; bottom:24%;"><i class="fa-solid fa-snowflake"></i></span>
+    <span class="cb-hero-float cb-hero-float--sm cb-hero-float--drip" aria-hidden="true" style="left:12%; bottom:30%;"><i class="fa-solid fa-cookie-bite"></i></span>
+    <span class="cb-hero-float cb-hero-float--drip-2" aria-hidden="true" style="right:24%; top:8%;"><i class="fa-solid fa-mug-hot"></i></span>
     <?php
     // Falling sprinkles — positions, colours, drift and timing vary per
     // dot so the loop reads as confetti rather than a metronome.
@@ -300,15 +300,15 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
           style="left: <?= $s['left'] ?>; --cb-drift: <?= $s['drift'] ?>; --cb-fall: <?= $s['fall'] ?>; --cb-delay: <?= $s['delay'] ?>"></span>
     <?php endforeach; ?>
     <div class="container landing-hero-inner">
-        <div class="landing-eyebrow">✨ Freshly Made Every Day</div>
+        <div class="landing-eyebrow"><i class="fa-solid fa-wand-magic-sparkles cb-eyebrow-icon"></i> Freshly Made Every Day</div>
         <h1 class="landing-title">Every Scoop is a<br>Sweet Adventure!</h1>
         <p class="landing-subtitle">
             At Creamy Bite, we handcraft every flavour with the finest ingredients.
-            From classic vanilla scoops to rich Belgian cocoa drinks — pure joy in every bite. 🍦
+            From classic vanilla scoops to rich Belgian cocoa drinks — pure joy in every bite.
         </p>
         <div class="landing-cta-group">
             <a href="pages/order.php" class="btn-hero-primary">
-                🍦 Explore Our Menu
+                <i class="fa-solid fa-ice-cream"></i> Explore Our Menu
             </a>
             <a href="pages/about.php" class="btn-hero-secondary">
                 Our Story
@@ -345,7 +345,7 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
     <div class="container">
         <div class="section-header">
             <span class="section-label">Our Flavours</span>
-            <h2 class="section-title">A Taste for Every Mood 🍨</h2>
+            <h2 class="section-title">A Taste for Every Mood</h2>
             <div class="cb-drip-line" aria-hidden="true"><span></span><span></span><span></span></div>
             <p class="section-subtitle">From indulgent chocolate to refreshing sorbets — handcrafted with love for every craving.</p>
         </div>
@@ -372,16 +372,16 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
             <!-- Placeholder flavour cards if no products yet -->
             <?php
             $placeholders = [
-                ['🍦','Classic Vanilla','Rich, creamy vanilla made with real vanilla beans and fresh dairy.'],
-                ['🍫','Dark Chocolate','Indulgent Belgian dark chocolate with a velvety smooth texture.'],
-                ['🍓','Strawberry Dream','Fresh-picked strawberries blended into a light fruity ice cream.'],
-                ['🥭','Mango Sorbet','Dairy-free tropical mango sorbet made with 100% real Alphonso mangoes.'],
-                ['🌈','Rainbow Sherbet','A vibrant swirl of raspberry, lime, and orange sherbet.'],
-                ['☕','Cocoa Classic','Rich Belgian cocoa blended to perfection — smooth and creamy.'],
+                ['fa-ice-cream','Classic Vanilla','Rich, creamy vanilla made with real vanilla beans and fresh dairy.'],
+                ['fa-cookie-bite','Dark Chocolate','Indulgent Belgian dark chocolate with a velvety smooth texture.'],
+                ['fa-apple-whole','Strawberry Dream','Fresh-picked strawberries blended into a light fruity ice cream.'],
+                ['fa-lemon','Mango Sorbet','Dairy-free tropical mango sorbet made with 100% real Alphonso mangoes.'],
+                ['fa-rainbow','Rainbow Sherbet','A vibrant swirl of raspberry, lime, and orange sherbet.'],
+                ['fa-mug-hot','Cocoa Classic','Rich Belgian cocoa blended to perfection — smooth and creamy.'],
             ];
             foreach ($placeholders as $ph): ?>
             <div class="flavour-card">
-                <div class="flavour-card-img"><?= $ph[0] ?></div>
+                <div class="flavour-card-img"><i class="fa-solid <?= $ph[0] ?>"></i></div>
                 <div class="flavour-card-body">
                     <div class="flavour-card-name"><?= $ph[1] ?></div>
                     <p class="flavour-card-desc"><?= $ph[2] ?></p>
@@ -425,14 +425,14 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
                 </p>
                 <div class="story-highlights">
                     <div class="story-highlight">
-                        <span class="story-highlight-icon">🌱</span>
+                        <span class="story-highlight-icon"><i class="fa-solid fa-seedling"></i></span>
                         <div>
                             <strong>100% Natural</strong>
                             <div class="cbhm-highlight-sub">Real ingredients only</div>
                         </div>
                     </div>
                     <div class="story-highlight">
-                        <span class="story-highlight-icon">🥛</span>
+                        <span class="story-highlight-icon"><i class="fa-solid fa-mug-hot"></i></span>
                         <div>
                             <strong>Fresh Daily</strong>
                             <div class="cbhm-highlight-sub">Handcrafted in-house</div>
@@ -454,7 +454,7 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
     <div class="container">
         <div class="cbrev-head">
             <span class="section-label">Kind Words</span>
-            <h2 class="section-title">What Our Customers Say 💬</h2>
+            <h2 class="section-title">What Our Customers Say</h2>
             <?php if (!empty($testimonials)): ?>
             <div class="cbrev-summary">
                 <div class="cbrev-stars" aria-label="<?= number_format($cbAvg, 1) ?> out of 5">
@@ -717,7 +717,7 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
 <section class="cbhm-trade-band">
     <div class="container cbhm-trade-band-inner">
         <div>
-            <span class="cbhm-trade-pill">🏪 B2B Wholesale</span>
+            <span class="cbhm-trade-pill"><i class="fa-solid fa-store"></i> B2B Wholesale</span>
             <h3 class="cbhm-trade-heading">Are you a Retailer, Shop, or Cafe Owner?</h3>
             <p class="cbhm-trade-copy">
                 Sell Creamy Bite in your store! Get discounted wholesale pricing, bulk ice cream tubs, and dedicated trade support.

@@ -69,7 +69,7 @@ $items = json_decode($order['items_json'], true) ?? [];
 
 <main class="confirmation-page">
     <div class="container">
-        <div class="confirmation-icon cb-scoop-pop">🎉<span class="cb-conf-emoji" aria-hidden="true">🍦</span></div>
+        <div class="confirmation-icon cb-scoop-pop"><i class="fa-solid fa-circle-check"></i></div>
         <h1 class="confirmation-title">Order <span class="gradient-text-warm">Placed!</span></h1>
         <?php
         $isCollection = (strpos($order['address'], 'Collection') !== false);
@@ -90,7 +90,7 @@ $items = json_decode($order['items_json'], true) ?? [];
 
         <?php if ($isCollection): ?>
         <div class="glass-panel cboc-collect-panel">
-            <div class="cboc-collect-emoji">🏪</div>
+            <div class="cboc-collect-emoji"><i class="fa-solid fa-store"></i></div>
             <h3 class="cboc-collect-title">Collection Information</h3>
             <p class="cboc-collect-address">
                 <strong>Creamy Bite Warehouse</strong><br>
@@ -108,22 +108,22 @@ $items = json_decode($order['items_json'], true) ?? [];
         <div class="glass-panel confirmation-details">
 
             <div class="conf-row">
-                <span class="conf-label">📋 Status</span>
+                <span class="conf-label"><i class="fa-solid fa-clipboard-list"></i> Status</span>
                 <span class="conf-value">
                     <span class="status-badge status-pending"><?= htmlspecialchars($order['status']) ?></span>
                 </span>
             </div>
             <div class="conf-row">
-                <span class="conf-label">📞 Phone</span>
+                <span class="conf-label"><i class="fa-solid fa-phone"></i> Phone</span>
                 <span class="conf-value"><?= htmlspecialchars($order['phone']) ?></span>
             </div>
             <div class="conf-row">
-                <span class="conf-label"><?= $isCollection ? '📍 Collection Address' : '📍 Address' ?></span>
+                <span class="conf-label"><?= $isCollection ? '<i class="fa-solid fa-location-dot"></i> Collection Address' : '<i class="fa-solid fa-location-dot"></i> Address' ?></span>
                 <span class="conf-value"><?= nl2br(htmlspecialchars($order['address'])) ?></span>
             </div>
             <?php if (!empty($order['notes'])): ?>
             <div class="conf-row">
-                <span class="conf-label">📝 Notes</span>
+                <span class="conf-label"><i class="fa-solid fa-note-sticky"></i> Notes</span>
                 <span class="conf-value"><?= nl2br(htmlspecialchars($order['notes'])) ?></span>
             </div>
             <?php endif; ?>
@@ -158,19 +158,19 @@ $items = json_decode($order['items_json'], true) ?? [];
             </div>
             <?php if (!empty($order['promo_code']) && $order['discount_amount'] > 0): ?>
             <div class="conf-row cboc-summary-row cboc-summary-row-promo">
-                <span class="conf-label">🎟️ Promo (<?= htmlspecialchars($order['promo_code']) ?>)</span>
+                <span class="conf-label"><i class="fa-solid fa-ticket"></i> Promo (<?= htmlspecialchars($order['promo_code']) ?>)</span>
                 <span class="conf-value">−£<?= number_format($order['discount_amount'], 2) ?></span>
             </div>
             <?php endif; ?>
             <?php if ((float)$order['delivery_charge'] > 0): ?>
             <div class="conf-row cboc-summary-row cboc-summary-row-delivery">
-                <span class="conf-label">🚚 Delivery Charge</span>
+                <span class="conf-label"><i class="fa-solid fa-truck-fast"></i> Delivery Charge</span>
                 <span class="conf-value">+£<?= number_format($order['delivery_charge'], 2) ?></span>
             </div>
             <?php endif; ?>
 
             <div class="conf-row cboc-total-row">
-                <span class="conf-label cboc-text-strong">💰 Total</span>
+                <span class="conf-label cboc-text-strong"><i class="fa-solid fa-sterling-sign"></i> Total</span>
                 <span class="conf-value cboc-total-value">
                     £<?= number_format($order['total_price'], 2) ?>
                 </span>

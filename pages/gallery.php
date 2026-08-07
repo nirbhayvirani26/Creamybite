@@ -77,8 +77,8 @@ try {
 <!-- ══ Gallery Hero ════════════════════════════════════════ -->
 <section class="about-hero">
     <div class="container cb-gal-layer" >
-        <div class="about-hero-eyebrow">📸 Our Gallery</div>
-        <h1>A Feast for the Eyes 🍦</h1>
+        <div class="about-hero-eyebrow"><i class="fa-solid fa-camera"></i> Our Gallery</div>
+        <h1>A Feast for the Eyes</h1>
         <p>A glimpse into our world of handcrafted ice cream and cocoa drinks, captured beautifully.</p>
     </div>
 </section>
@@ -89,7 +89,7 @@ try {
 
         <?php if (empty($gallery)): ?>
         <div class="gallery-empty">
-            <div class="gallery-empty-icon">📷</div>
+            <div class="gallery-empty-icon"><i class="fa-solid fa-camera-retro"></i></div>
             <p class="cb-gal-lead">No photos yet — check back soon!</p>
             <a href="order.php" class="btn-primary">
                 <i class="fa-solid fa-arrow-right"></i> Browse Our Menu

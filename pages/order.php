@@ -224,14 +224,14 @@ if (!empty($products)) {
 
         <div class="section-header">
             <span class="section-label">Our Menu</span>
-            <h1 class="section-title">Pick Your Favourite 🍨</h1>
+            <h1 class="section-title">Pick Your Favourite</h1>
             <div class="cb-drip-line" aria-hidden="true"><span></span><span></span><span></span></div>
             <p class="section-subtitle">Every product is handcrafted fresh daily with premium ingredients. No preservatives, just pure deliciousness.</p>
         </div>
 
         <!-- Category filter tabs -->
         <div class="category-tabs" id="catTabs">
-            <button class="cat-tab active" data-cat="all">🍦 All</button>
+            <button class="cat-tab active" data-cat="all"><i class="fa-solid fa-ice-cream"></i> All</button>
             <?php foreach ($categories as $cat): ?>
             <button class="cat-tab" data-cat="<?= htmlspecialchars($cat['name']) ?>"><?= htmlspecialchars($cat['name']) ?></button>
             <?php endforeach; ?>
@@ -325,7 +325,7 @@ if (!empty($products)) {
                             <div class="product-price">£<?= number_format($product['price'], 2) ?></div>
                             <?php endif; ?>
                             <?php if ($stockLow && !$isOutOfStock): ?>
-                            <div class="cbor-stock-low">⚠️ Only <?= (int)$product['stock_qty'] ?> left!</div>
+                            <div class="cbor-stock-low"><i class="fa-solid fa-triangle-exclamation"></i> Only <?= (int)$product['stock_qty'] ?> left!</div>
                             <?php endif; ?>
                             <!-- In-cart indicator -->
                             <div class="in-cart-indicator" id="incart-<?= $product['id'] ?>">
@@ -373,7 +373,7 @@ if (!empty($products)) {
 
     <div class="cart-items" id="cartItems">
         <div class="cart-empty">
-            <div class="cart-empty-icon">🛒</div>
+            <div class="cart-empty-icon"><i class="fa-solid fa-basket-shopping"></i></div>
             <p>Your cart is empty.<br>Add something delicious!</p>
         </div>
     </div>
@@ -394,7 +394,7 @@ if (!empty($products)) {
 
 <!-- ══ Toast ════════════════════════════════════════════════ -->
 <div class="toast" id="toast">
-    <span class="toast-icon">🍦</span>
+    <span class="toast-icon"><i class="fa-solid fa-ice-cream"></i></span>
     <div>
         <div class="toast-text" id="toastText">Added to cart!</div>
         <div class="toast-sub" id="toastSub"></div>
@@ -522,7 +522,7 @@ function addToCart(productId, variantId, name, emoji, variantName, variantPrice,
             showToast('Cannot add this item', data.message || 'That item is not available right now.');
         }
     })
-    .catch(() => showToast('⚠️ Error', 'Could not add item, please try again.'));
+    .catch(() => showToast('Error', 'Could not add item, please try again.'));
 }
 
 // ── Remove item ──────────────────────────────────────────────
@@ -562,7 +562,7 @@ function renderCart() {
     const totalEl  = document.getElementById('cartTotal');
 
     if (!cartState.items || cartState.items.length === 0) {
-        itemsEl.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛒</div><p>Your cart is empty.<br>Add something delicious!</p></div>`;
+        itemsEl.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon"><i class="fa-solid fa-basket-shopping"></i></div><p>Your cart is empty.<br>Add something delicious!</p></div>`;
         footerEl.style.display = 'none';
         return;
     }
@@ -735,14 +735,14 @@ function closeDeliveryPopup() {
 <!-- ── Delivery 6-Mile Radius Notification Pop-up ────────────── -->
 <div id="deliveryRadiusPopup" class="cbor-delivery-popup">
     <div class="cbor-delivery-popup-row">
-        <div class="cbor-delivery-popup-emoji">🚚</div>
+        <div class="cbor-delivery-popup-emoji"><i class="fa-solid fa-truck-fast"></i></div>
         <div class="cbor-delivery-popup-body">
             <strong class="cbor-delivery-popup-title">
-                📍 Harrow Delivery Area Notice
+                <i class="fa-solid fa-location-dot"></i> Harrow Delivery Area Notice
             </strong>
             <p class="cbor-delivery-popup-text">
                 We deliver fresh handcrafted ice cream within a <strong>6-mile radius of Harrow (HA1 4EX / HA1 2SP)</strong>.<br>
-                <span class="cbor-delivery-popup-highlight">🎉 Free delivery under 3 miles!</span>
+                <span class="cbor-delivery-popup-highlight"><i class="fa-solid fa-gift"></i> Free delivery under 3 miles!</span>
             </p>
             <div class="cbor-delivery-popup-foot">
                 <i class="fa-solid fa-store cbor-delivery-popup-foot-icon"></i> Warehouse collection is also available!

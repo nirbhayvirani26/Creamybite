@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
 <!-- ══ About Hero ══════════════════════════════════════════ -->
 <section class="about-hero">
     <div class="container cbab-hero-inner">
-        <div class="about-hero-eyebrow">🍦 Who We Are</div>
+        <div class="about-hero-eyebrow"><i class="fa-solid fa-ice-cream"></i> Who We Are</div>
         <h1>About Creamy Bite</h1>
         <p>Passionate about flavour, obsessed with quality, and devoted to making every bite a moment worth remembering.</p>
     </div>
@@ -169,11 +169,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                 </p>
                 <div class="story-highlights cbab-story-highlights">
                     <div class="story-highlight">
-                        <span class="story-highlight-icon">🌿</span>
+                        <span class="story-highlight-icon"><i class="fa-solid fa-leaf"></i></span>
                         <span class="story-highlight-text">Natural Ingredients</span>
                     </div>
                     <div class="story-highlight">
-                        <span class="story-highlight-icon">🤍</span>
+                        <span class="story-highlight-icon"><i class="fa-solid fa-heart"></i></span>
                         <span class="story-highlight-text">Handcrafted Daily</span>
                     </div>
                     <div class="story-highlight">
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                     <i class="fa-solid fa-circle-check"></i>
                     <div>
                         <strong>Message sent!</strong><br>
-                        Thank you for getting in touch. We'll get back to you as soon as possible. 🍦
+                        Thank you for getting in touch. We'll get back to you as soon as possible.
                     </div>
                 </div>
                 <?php endif; ?>
