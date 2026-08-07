@@ -293,7 +293,6 @@ $placed = strtotime((string)($order['created_at'] ?? '')) ?: time();
 
         <!-- ── Order code ─────────────────────────────────── -->
         <div class="cbr-code-block">
-            <div class="cbr-doc-label">Order</div>
             <div class="cbr-code"><?= $h($order['order_code']) ?></div>
             <div class="cbr-when"><?= date('D j M Y', $placed) ?> at <?= date('H:i', $placed) ?></div>
             <?php if ($status !== '' && !$isCancelled): ?>
