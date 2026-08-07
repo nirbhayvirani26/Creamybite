@@ -135,9 +135,12 @@
            that text's colour — including on the payment badges, whose green and
            amber survive printing when the badge background does not. */
         .cbdn-ico {
-            width: 1em;
-            height: 1em;
-            vertical-align: -0.125em;
+            /* 0.8em, not 1em. A drawn glyph fills its whole em box while the
+               text beside it does not, so a 1em icon prints visibly larger
+               than the words it sits with. 0.8em matches their weight. */
+            width: 0.8em;
+            height: 0.8em;
+            vertical-align: -0.06em;
             flex: none;
         }
         @media print {

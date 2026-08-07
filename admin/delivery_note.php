@@ -239,12 +239,11 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
             <tr>
                 <td><?= $i++ ?></td>
                 <td>
-                    <?php // Still an emoji, on purpose. This is the glyph snapshotted into
-                          // items_json at order time, so the fallback beside it has to render
-                          // the same way — and drawing all thirteen catalogue flavours as
-                          // print-safe SVG is a bigger job than this document. It goes when
-                          // products grows a real icon column. ?>
-                    <strong class="cbdn-item-name"><?= htmlspecialchars($item['emoji'] ?? '🍦') ?> <?= htmlspecialchars($item['name']) ?></strong>
+                    <?php // No glyph here at all. This document does not load Font Awesome,
+                          // so an icon would print as an empty box, and the emoji it replaced
+                          // printed at a different weight to the text beside it. The product
+                          // name is what anyone packing the order actually reads. ?>
+                    <strong class="cbdn-item-name"><?= htmlspecialchars($item['name']) ?></strong>
                     <?php if (!empty($item['variant_name'])): ?>
                     <div class="cbdn-muted-note"><?= htmlspecialchars($item['variant_name']) ?></div>
                     <?php endif; ?>

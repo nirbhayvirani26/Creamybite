@@ -159,8 +159,7 @@
 .cbco-pay-option-active { border-color: var(--color-primary); background: var(--color-primary-bg); }
 .cbco-pay-radio { width: 16px; height: 16px; }
 .cbco-pay-title { display: block; font-size: 14px; margin-top: 2px; }
-.cbco-pay-sub   { font-size: 11px; color: var(--text-muted); }
-
+.cbco-pay-sub { color: var(--text-muted); }
 /* stripe / pay-later panels */
 .cbco-stripe-panel   { margin-top: 16px; }
 .cbco-stripe-element { padding: 16px; background: var(--bg-main); border: 1px solid var(--border-light); border-radius: var(--radius-sm); min-height: 60px; }
@@ -886,8 +885,7 @@ a.btn-primary.cboc-directions-btn {
 .cbhm-flavours-cta { text-align: center; margin-top: 40px; }
 
 /* Story highlight sub-labels */
-.cbhm-highlight-sub { font-size: 12px; color: var(--text-muted); }
-
+.cbhm-highlight-sub { color: var(--text-muted); }
 /* Landing CTA banner */
 .cbhm-cta-inner { text-align: center; }
 .section-label.cbhm-label-on-dark { background: rgba(255,255,255,0.2); color: white; }
@@ -1476,17 +1474,16 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
    unchanged, so nothing moved. */
 .cb-hero-float > i        { font-size: 0.86em; opacity: 0.92; }
 .cb-eyebrow-icon          { margin-right: 6px; }
-.flavour-card-img > i     { font-size: 42px; color: var(--color-primary); }
-.cart-empty-icon > i      { font-size: 40px; color: var(--text-muted); }
-.toast-icon > i           { font-size: 18px; color: var(--color-primary); }
-.story-highlight-icon > i { font-size: 20px; color: var(--color-secondary); }
-.gallery-empty-icon > i   { font-size: 44px; color: var(--text-muted); }
-.cboc-collect-emoji > i   { font-size: 34px; color: var(--color-primary); }
-.cbor-delivery-popup-emoji > i { font-size: 38px; color: var(--color-primary); }
+.flavour-card-img > i { color: var(--color-primary); }
+.cart-empty-icon > i { color: var(--text-muted); }
+.toast-icon > i { color: var(--color-primary); }
+.story-highlight-icon > i { color: var(--color-secondary); }
+.gallery-empty-icon > i { color: var(--text-muted); }
+.cboc-collect-emoji > i { color: var(--color-primary); }
+.cbor-delivery-popup-emoji > i { color: var(--color-primary); }
 /* The confirmation tick was 🎉 + 🍦; one green tick says "done" more clearly
    than two competing symbols. */
-.confirmation-icon > i    { font-size: 54px; color: var(--color-success); }
-
+.confirmation-icon > i { color: var(--color-success); }
 /* ── Emoji replaced by icons: order, checkout and trade pages ──
    Same principle as above — the markup around each icon is unchanged, these
    rules only give back the size, colour and spacing the emoji had.
@@ -1511,6 +1508,34 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
 .cart-item-img-placeholder > i    { color: var(--color-primary); }
 .osi-emoji > i                    { color: var(--color-primary); }
 .trade-page .cbtp-empty-icon > i  { color: var(--text-muted); }
+
+
+/* ── Icon scale inside the old emoji slots ──────────────────────────────
+   These boxes were sized for emoji, which sit inside their em box with
+   space around them. A Font Awesome glyph fills that box completely, so a
+   like-for-like swap made every one of them look oversized — a 72px
+   product placeholder became a 72px solid shape.
+
+   0.5em is relative to each box's own font-size, so one rule keeps every
+   slot proportional: half of 72px, half of 26px, and so on. Anything that
+   sits inline next to text is handled separately at 0.8em, because half
+   the text size would be too small to read on paper. */
+.cbco-order-type-icon > i,
+.cbco-order-type-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.trade-page .cbtp-empty-icon > i,
+.trade-page .cbtp-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbor-trade-banner-icon > i,
+.cbor-trade-banner-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbor-delivery-popup-emoji > i,
+.cbor-delivery-popup-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.trade-page .cbtr-alert-icon > i,
+.trade-page .cbtr-alert-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+body.about-page .cbab-social-icon > i,
+body.about-page .cbab-social-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cboc-collect-emoji > i,
+.cboc-collect-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.flavour-card-img > i,
+.flavour-card-img > svg { font-size: 0.5em; width: 1em; height: 1em; }
 
 /* ============================================================
    VISIBILITY UTILITIES — THESE MUST STAY LAST IN THIS FILE

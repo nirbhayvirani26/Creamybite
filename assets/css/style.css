@@ -1800,3 +1800,48 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
     .trade-nav-text { display: none; }
     .trade-nav-btn  { padding: 5px; }
 }
+
+/* ── Icon scale inside the old emoji slots ──────────────────────────────
+   These boxes were sized for emoji, which sit inside their em box with
+   space around them. A Font Awesome glyph fills that box completely, so a
+   like-for-like swap made every one of them look oversized — a 72px
+   product placeholder became a 72px solid shape.
+
+   0.5em is relative to each box's own font-size, so one rule keeps every
+   slot proportional: half of 72px, half of 26px, and so on. Anything that
+   sits inline next to text is handled separately at 0.8em, because half
+   the text size would be too small to read on paper. */
+.logo-emoji > i,
+.logo-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.hero-card-emoji > i,
+.hero-card-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.product-emoji > i,
+.product-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cart-empty-icon > i,
+.cart-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cart-item-emoji > i,
+.cart-item-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.toast-icon > i,
+.toast-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.osi-emoji > i,
+.osi-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.confirmation-icon > i,
+.confirmation-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.stat-card-icon > i,
+.stat-card-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.login-icon > i,
+.login-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.emoji-btn > i,
+.emoji-btn > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.product-image-placeholder > i,
+.product-image-placeholder > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.image-upload-icon > i,
+.image-upload-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.gallery-empty-icon > i,
+.gallery-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.story-highlight-icon > i,
+.story-highlight-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cart-item-img-placeholder > i,
+.cart-item-img-placeholder > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.variant-picker-emoji > i,
+.variant-picker-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }

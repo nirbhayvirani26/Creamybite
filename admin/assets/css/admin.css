@@ -1570,3 +1570,40 @@ th.inv-sort i.is-sorted   { opacity: 1; }
                                           border-top:1px dashed var(--border-color); }
 .admin-wrapper.has-sidebar .cbi-bn-edit-actions { display:flex; gap:8px; }
 .admin-wrapper.has-sidebar .cbi-bn-hint-inline  { font-weight:400; color:var(--text-muted); font-size:11.5px; }
+
+/* ── Icon scale inside the old emoji slots ──────────────────────────────
+   These boxes were sized for emoji, which sit inside their em box with
+   space around them. A Font Awesome glyph fills that box completely, so a
+   like-for-like swap made every one of them look oversized — a 72px
+   product placeholder became a 72px solid shape.
+
+   0.5em is relative to each box's own font-size, so one rule keeps every
+   slot proportional: half of 72px, half of 26px, and so on. Anything that
+   sits inline next to text is handled separately at 0.8em, because half
+   the text size would be too small to read on paper. */
+.cbi-empty-icon > i,
+.cbi-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbi-inv-empty-icon > i,
+.cbi-inv-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbi-trade-empty-icon > i,
+.cbi-trade-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbi-trade-stat-icon > i,
+.cbi-trade-stat-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbi-prod-emoji > i,
+.cbi-prod-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbi-stock-card-icon > i,
+.cbi-stock-card-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbi-stock-emoji > i,
+.cbi-stock-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbi-gal-drop-icon > i,
+.cbi-gal-drop-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbi-promo-empty-icon > i,
+.cbi-promo-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbpf-preview-emoji > i,
+.cbpf-preview-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbpf-emoji-resolved-icon > i,
+.cbpf-emoji-resolved-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbpf-variant-add-icon > i,
+.cbpf-variant-add-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbtr-empty-icon > i,
+.cbtr-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
