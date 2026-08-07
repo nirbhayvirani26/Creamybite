@@ -1,0 +1,605 @@
+/* ============================================================
+   Creamy Bite – Thermal receipt stylesheet
+   Oxhoo TP85, 80mm roll, 72mm printable.
+
+   Used by admin/print/receipt.php (one order) and
+   admin/print/summary.php (end of day). Both pages are the same
+   piece of paper with different content, so they share every
+   class in here — a receipt and a summary that disagreed about
+   what the shop's own name looks like would be worse than either.
+
+   ── Why this file looks the way it does ──────────────────────
+
+   A thermal head is ONE BIT. It burns a dot or it does not.
+   There is no grey and no colour, so:
+
+     * no background-color anywhere on the paper. A #eee fill
+       that looks like a subtle section header on screen comes
+       out of the printer as a dithered grid or, on a hot head,
+       as a solid black bar with the text lost inside it.
+     * no opacity, no rgba, no box-shadow, no gradients. Same
+       reason — they are all greys once rasterised.
+     * emphasis is done with WEIGHT, SIZE, UPPERCASE and
+       BORDERS. A 2px black rule prints cleanly at any speed.
+
+   Widths are in mm, not px, because the constraint is physical.
+   Anything wider than 72mm is not clipped politely — the head
+   simply stops, and the right-hand column of every line
+   (which is where the money is) disappears off the edge of the
+   roll. Every horizontal box in here is bounded by the paper
+   width and every long string is allowed to wrap.
+
+   Type is monospace throughout. It is what a receipt is
+   expected to look like, it keeps the amount column lined up
+   without a table, and — the practical reason — every price
+   ends up the same width, so £5.00 and £45.95 stack.
+
+   NO ICON FONTS. Font Awesome is not loaded on these pages and
+   must not be: the webfont has to arrive before the print
+   dialog opens, and Chrome in --kiosk-printing mode does not
+   wait. A receipt that prints an empty box where the payment
+   status should be is a receipt that costs the shop money.
+   ============================================================ */
+
+/* 72mm of paper, and a 1.5mm gutter each side so nothing sits
+   in the ragged first column the cutter leaves. */
+@page {
+    size: 72mm auto;
+    margin: 0;
+}
+
+:root {
+    --cbr-paper: 72mm;
+    --cbr-gutter: 1.5mm;
+}
+
+/* ── Page frame ──────────────────────────────────────────── */
+
+.cbr-body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    color: #000000;
+    font-family: "Menlo", "Consolas", "DejaVu Sans Mono", "Courier New", monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+}
+
+.cbr-paper {
+    width: var(--cbr-paper);
+    max-width: var(--cbr-paper);
+    box-sizing: border-box;
+    padding: 3mm var(--cbr-gutter) 6mm;
+    margin: 0;
+    background: #ffffff;
+    color: #000000;
+}
+
+/* Nothing inside the paper may push past 72mm. A long product
+   name, an email address or a postcode with no space in it will
+   all try. */
+.cbr-paper * {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+/* ── Rules and separators ────────────────────────────────── */
+/*
+   Dashed for a soft break between sections, solid double for the
+   hard breaks (under the shop header, around the total). Both
+   are borders on an empty element: a row of hyphens as text
+   would wrap unpredictably at different font sizes and leave a
+   stray dash on its own line.
+*/
+.cbr-rule {
+    border: 0;
+    border-top: 1px dashed #000000;
+    margin: 2.2mm 0;
+    height: 0;
+}
+
+.cbr-rule-solid {
+    border: 0;
+    border-top: 2px solid #000000;
+    margin: 2.2mm 0;
+    height: 0;
+}
+
+.cbr-rule-double {
+    border: 0;
+    border-top: 2px solid #000000;
+    border-bottom: 1px solid #000000;
+    height: 1.4mm;
+    margin: 2.2mm 0;
+}
+
+/* ── Shop header ─────────────────────────────────────────── */
+
+.cbr-head {
+    text-align: center;
+}
+
+.cbr-shop-name {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    line-height: 1.2;
+    margin: 0 0 1mm;
+}
+
+.cbr-tagline {
+    font-size: 11px;
+    margin: 0 0 1.5mm;
+}
+
+.cbr-head-line {
+    font-size: 11.5px;
+    line-height: 1.35;
+}
+
+/* ── The order code: the thing staff scan for ────────────── */
+
+.cbr-code-block {
+    text-align: center;
+    margin: 1mm 0 0;
+}
+
+.cbr-doc-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 0.5mm;
+}
+
+.cbr-code {
+    font-size: 23px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1.15;
+    margin: 0;
+}
+
+.cbr-when {
+    font-size: 12.5px;
+    margin-top: 0.8mm;
+}
+
+/* ── Banner boxes (COLLECTION / DELIVERY / CANCELLED) ─────── */
+/*
+   Bordered, never filled. On screen a solid black bar with white
+   text would read as louder; on paper it prints as a black
+   rectangle with the letters half-burned into it.
+*/
+.cbr-banner {
+    border: 2px solid #000000;
+    padding: 1.6mm 1.6mm;
+    margin: 2mm 0;
+    text-align: center;
+}
+
+.cbr-banner-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    line-height: 1.25;
+}
+
+.cbr-banner-body {
+    font-size: 13px;
+    line-height: 1.45;
+    margin-top: 1mm;
+    text-align: left;
+}
+
+.cbr-banner-note {
+    font-size: 11.5px;
+    margin-top: 0.8mm;
+}
+
+/* The postcode is what the driver actually navigates by. */
+.cbr-postcode {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    display: block;
+    margin-top: 0.8mm;
+}
+
+/* ── Sections ────────────────────────────────────────────── */
+
+.cbr-sec {
+    margin: 0;
+}
+
+.cbr-sec-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0 0 1mm;
+}
+
+.cbr-line {
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.cbr-line-big {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+/* A phone number gets read off the paper and typed into a
+   handset, usually in a hurry. */
+.cbr-phone {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+}
+
+/* Label left, value right, on one row. */
+.cbr-kv {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 2mm;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.cbr-kv-k {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.cbr-kv-v {
+    flex: 0 0 auto;
+    text-align: right;
+    white-space: nowrap;
+}
+
+/* ── Item lines ──────────────────────────────────────────── */
+/*
+   Two rows per item:
+     row 1   qty + product name .................... line total
+     row 2   variant / unit price (indented under the name)
+
+   The name gets the full width rather than sharing a column with
+   the quantity, because "Pan Masala Ice Cream Tub" is 25
+   characters and 72mm of monospace is about 34.
+*/
+.cbr-items {
+    margin: 0;
+}
+
+.cbr-item {
+    margin: 0 0 1.8mm;
+    padding: 0;
+}
+
+.cbr-item-top {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5mm;
+}
+
+.cbr-item-qty {
+    flex: 0 0 auto;
+    font-size: 15px;
+    font-weight: 700;
+    min-width: 7mm;
+}
+
+.cbr-item-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+.cbr-item-amt {
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.cbr-item-sub {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    font-size: 11.5px;
+    padding-left: 8.5mm;
+    line-height: 1.4;
+}
+
+.cbr-item-variant {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cbr-item-unit {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.cbr-item-count {
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 1.5mm;
+}
+
+/* ── Totals ──────────────────────────────────────────────── */
+
+.cbr-tot {
+    margin: 0;
+}
+
+.cbr-tot-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 2mm;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.cbr-tot-k {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.cbr-tot-v {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.cbr-tot-grand {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
+    padding: 1.2mm 0;
+}
+
+/* ── Payment: the most important line after the items ─────── */
+
+.cbr-pay {
+    border: 2px solid #000000;
+    padding: 1.8mm 1.6mm;
+    margin: 2mm 0;
+    text-align: center;
+}
+
+.cbr-pay-big {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    line-height: 1.25;
+}
+
+.cbr-pay-sub {
+    font-size: 12px;
+    margin-top: 0.9mm;
+    line-height: 1.4;
+}
+
+/* ── Notes, warnings, flagged rows ───────────────────────── */
+
+.cbr-note {
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    margin: 0;
+}
+
+.cbr-warn {
+    border: 1px solid #000000;
+    padding: 1.4mm;
+    margin: 1.5mm 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+}
+
+.cbr-warn-title {
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin-bottom: 0.6mm;
+}
+
+.cbr-flag {
+    margin: 0 0 1.5mm;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.cbr-flag-mark {
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* A reprint has to announce itself, or the same order gets
+   picked and packed twice on a busy counter. */
+.cbr-reprint {
+    border: 2px solid #000000;
+    padding: 1.4mm;
+    margin: 0 0 2mm;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.cbr-reprint-sub {
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    margin-top: 0.5mm;
+}
+
+/* ── Foot ────────────────────────────────────────────────── */
+
+.cbr-foot {
+    text-align: center;
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+.cbr-foot-big {
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* The roll is cut a few mm past the last dot burned. Without
+   trailing space the cut lands through the final line. */
+.cbr-tail {
+    height: 12mm;
+}
+
+.cbr-center {
+    text-align: center;
+}
+
+.cbr-strong {
+    font-weight: 700;
+}
+
+.cbr-upper {
+    text-transform: uppercase;
+}
+
+.cbr-spacer {
+    height: 1.5mm;
+}
+
+/* ── Screen only ─────────────────────────────────────────── */
+/*
+   The owner opens these pages to LOOK at a receipt as often as
+   to print one, so on screen the paper gets a dashed edge (that
+   is the 72mm boundary — anything poking out of it will clip on
+   the roll) and a small toolbar. Every bit of this is inside
+   @media screen and .cbr-noprint, so none of it can reach the
+   printer.
+*/
+@media screen {
+    .cbr-body {
+        background: #f4f4f4;
+        padding: 0 0 28px;
+    }
+
+    .cbr-paper {
+        margin: 0 auto;
+        border: 1px dashed #999999;
+    }
+
+    .cbr-stage {
+        padding-top: 14px;
+    }
+}
+
+.cbr-toolbar {
+    max-width: 320px;
+    margin: 0 auto;
+    padding: 12px 10px;
+    text-align: center;
+    font-family: "Menlo", "Consolas", "DejaVu Sans Mono", "Courier New", monospace;
+    font-size: 12px;
+    color: #000000;
+}
+
+.cbr-btn {
+    display: inline-block;
+    border: 2px solid #000000;
+    background: #ffffff;
+    color: #000000;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 7px 12px;
+    margin: 3px 2px;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.cbr-btn:hover {
+    background: #000000;
+    color: #ffffff;
+}
+
+.cbr-toolbar-form {
+    margin: 6px 0 0;
+}
+
+.cbr-date-input {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 6px;
+    border: 2px solid #000000;
+    background: #ffffff;
+    color: #000000;
+    border-radius: 0;
+}
+
+.cbr-toolbar-hint {
+    margin-top: 8px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #333333;
+}
+
+/* The one rule the whole screen layer hangs off. */
+@media print {
+    .cbr-noprint {
+        display: none !important;
+    }
+
+    .cbr-body {
+        background: #ffffff;
+        padding: 0;
+    }
+
+    .cbr-paper {
+        border: 0;
+        margin: 0;
+        width: var(--cbr-paper);
+    }
+
+    .cbr-stage {
+        padding-top: 0;
+    }
+
+    /* Never break a line item or a total across two pieces of
+       paper — on a continuous roll a "page break" is a cut. */
+    .cbr-item,
+    .cbr-banner,
+    .cbr-pay,
+    .cbr-tot-row,
+    .cbr-flag,
+    .cbr-warn {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

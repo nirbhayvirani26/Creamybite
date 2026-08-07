@@ -180,6 +180,12 @@ $repeatCustomerCount = count($repeatPhones);
 // LEFT JOIN so an order with no delivery person recorded still appears —
 // every order placed before this feature existed has sales_rep_id 0, and
 // dropping those from the list would hide real orders.
+//
+// The thermal-receipt columns (printed_at, print_count) come down inside
+// `o.*` — they are ordinary columns on `orders`, so the "printed" indicator
+// on each row costs no extra query. Do NOT add a per-row lookup for them.
+// On a server that has not run the migration yet the two keys are simply
+// absent from the row, which the row markup below handles with `?? null`.
 $orders = $pdo->query(
     "SELECT o.*, r.name AS delivered_by
        FROM orders o
@@ -1099,6 +1105,27 @@ $pageTitles = [
         <!-- ═══════════════════ ORDERS TAB ═══════════════════ -->
         <?php if ($activeTab === 'orders'): ?>
         <div class="glass-panel cbi-panel">
+
+            <!-- Till printing.
+                 Sits above the empty-state check on purpose: on a brand new
+                 shop with no orders yet, the station is exactly the page the
+                 owner needs to open first so the very next order prints.
+                 Plain wording — the person reading this is not technical. -->
+            <div class="cbi-ord-filter-bar">
+                <i class="fa-solid fa-print cbi-muted-lg" aria-hidden="true"></i>
+                <span class="cbi-muted-xs">Receipts print by themselves while the print station page is left open on the shop computer.</span>
+                <a href="print/station.php" target="_blank" rel="noopener"
+                   class="btn-sm btn-sm-outline cbi-ord-print-btn"
+                   title="Open the page that watches for new orders and prints them">
+                    <i class="fa-solid fa-cash-register" aria-hidden="true"></i> Open print station
+                </a>
+                <a href="print/summary.php?date=<?= date('Y-m-d') ?>" target="_blank" rel="noopener"
+                   class="btn-sm btn-sm-outline cbi-ord-print-btn"
+                   title="Print today's takings summary">
+                    <i class="fa-solid fa-receipt" aria-hidden="true"></i> Today's summary
+                </a>
+            </div>
+
             <?php if (empty($orders)): ?>
             <div class="cbi-empty-state">
                 <div class="cbi-empty-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
@@ -1176,6 +1203,27 @@ $pageTitles = [
                                 <span class="cbi-ord-code">
                                     <?= htmlspecialchars($order['order_code']) ?>
                                 </span>
+                                <?php
+                                    // Read defensively — these two ride in `o.*` and are
+                                    // missing entirely until the migration has run, which
+                                    // must not take the whole Orders tab down.
+                                    $printedAtRaw = trim((string)($order['printed_at'] ?? ''));
+                                    $printCount   = (int)($order['print_count'] ?? 0);
+                                    $hasPrinted   = $printedAtRaw !== '' && strncmp($printedAtRaw, '0000-00-00', 10) !== 0;
+                                    $printedTs    = $hasPrinted ? strtotime($printedAtRaw) : false;
+                                    // A receipt printed twice is worth saying out loud: it
+                                    // usually means the first one jammed or was thrown away.
+                                    $printedTitle = $printedTs
+                                        ? 'Receipt printed ' . date('d M y \a\t H:i', $printedTs)
+                                        : 'Receipt printed';
+                                    if ($printCount > 1) $printedTitle .= ' — printed ' . $printCount . ' times in total';
+                                ?>
+                                <?php if ($hasPrinted): ?>
+                                <div class="cbi-muted-xs" title="<?= htmlspecialchars($printedTitle) ?>">
+                                    <i class="fa-solid fa-check" aria-hidden="true"></i>
+                                    Printed<?php if ($printCount > 1): ?> &times;<?= $printCount ?><?php endif; ?>
+                                </div>
+                                <?php endif; ?>
                             </td>
                             <td class="cbi-ord-customer-cell">
                                 <?php if ($isTradeOrder): ?>
@@ -1294,6 +1342,11 @@ $pageTitles = [
                                         <i class="fa-solid fa-rotate-left"></i>
                                     </button>
                                     <?php endif; ?>
+                                    <button class="btn-sm btn-sm-outline cbi-ord-action-btn"
+                                            onclick="reprintReceipt(<?= (int)$order['id'] ?>, '<?= htmlspecialchars($order['order_code'], ENT_QUOTES) ?>')"
+                                            title="Reprint the till receipt<?= $hasPrinted ? ' (already printed' . ($printCount > 1 ? ' ' . $printCount . ' times' : '') . ')' : '' ?>">
+                                        <i class="fa-solid fa-receipt"></i>
+                                    </button>
                                     <a href="delivery_note.php?code=<?= urlencode($order['order_code']) ?>" target="_blank" class="btn-sm btn-sm-outline cbi-ord-action-btn" title="Print Delivery Note & Invoice">
                                         <i class="fa-solid fa-print"></i>
                                     </a>
@@ -4345,6 +4398,29 @@ function saveStockEdit() {
 document.getElementById('stockEditModal')?.addEventListener('click', function(e) {
     if (e.target === this) closeStockEdit();
 });
+
+// ── Reprint a till receipt ────────────────────────────────────
+// Opens the 80mm receipt page, which prints itself on load because of &auto=1.
+//
+// It deliberately does NOT mark the order as printed. The shop's print station
+// only auto-prints orders whose printed_at is still NULL, so marking it from
+// here — a browser that may be a laptop miles from the counter printer — would
+// stop the counter ever printing it. A duplicate receipt costs a few
+// centimetres of till roll; a missed one costs an order.
+function reprintReceipt(orderId, orderCode) {
+    var win = window.open(
+        'print/receipt.php?id=' + encodeURIComponent(orderId) + '&auto=1',
+        'cbReceipt' + orderId,
+        'width=420,height=760,menubar=no,toolbar=no,location=no'
+    );
+    if (!win) {
+        cbAlert('Your browser blocked the receipt window for ' + orderCode +
+                '. Allow pop-ups for this site, then press the receipt button again.',
+                {title: 'Could not open the receipt', tone: 'danger'});
+        return;
+    }
+    win.focus();
+}
 
 // ── Delete Order ──────────────────────────────────────────────
 async function deleteOrder(orderId, orderCode) {

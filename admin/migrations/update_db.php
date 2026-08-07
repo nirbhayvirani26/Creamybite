@@ -624,6 +624,24 @@ $columns = [
     // the customer ordered.
     ['orders', 'sales_rep_id',  "ALTER TABLE `orders` ADD COLUMN `sales_rep_id` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `status`"],
     ['orders', 'delivered_at',  "ALTER TABLE `orders` ADD COLUMN `delivered_at` DATETIME NULL DEFAULT NULL AFTER `sales_rep_id`"],
+
+    // ── Thermal receipt printing ───────────────────────────────
+    //
+    // The counter PC keeps an admin page open, asks the site every few
+    // seconds which orders still need a receipt, and prints them. These two
+    // columns are the whole record of that.
+    //
+    // printed_at NULL is the queue: "no receipt has ever come out for this
+    // order". It is the ONLY thing standing between a dropped network
+    // connection and a lost order, so it must default to NULL for every
+    // existing row — an order the shop never printed has to look unprinted.
+    //
+    // print_count is separate because it counts reprints, and a reprint must
+    // not disturb printed_at. The owner needs to be able to tell a receipt
+    // that was handed over once from one that has been run off four times
+    // because the printer was jamming.
+    ['orders', 'printed_at',  "ALTER TABLE `orders` ADD COLUMN `printed_at` DATETIME NULL DEFAULT NULL AFTER `stock_deducted`"],
+    ['orders', 'print_count', "ALTER TABLE `orders` ADD COLUMN `print_count` INT NOT NULL DEFAULT 0 AFTER `printed_at`"],
     ['promo_codes', 'description',     "ALTER TABLE `promo_codes` ADD COLUMN `description` VARCHAR(255) NOT NULL DEFAULT '' AFTER `code`"],
 
     // Who sold it, and what they earn on it. commission_percent is stored on

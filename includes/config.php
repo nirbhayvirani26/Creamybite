@@ -60,6 +60,17 @@ $DB_LIVE = [
 define('SHOP_NAME',      'Creamy Bite');
 define('SHOP_TAGLINE',   'Every Bite Tells a Story');
 define('SHOP_PHONE',     '+44 7497 779997');
+
+// The shop's own address, one line per line, as it should appear on a printed
+// receipt. Taken from the same address already on every invoice
+// (invoice_settings.from_address) so the two cannot say different things.
+//
+// It lives here rather than being read from the database because a till
+// receipt has to print even when the counter PC can barely reach the site,
+// and because the receipt header is fixed shop identity, not per-document
+// data. Keep the lines short — a 72mm thermal receipt fits about 32
+// monospaced characters, and anything longer is clipped, not wrapped.
+define('SHOP_ADDRESS',   "Unit E5 Phoenix House\nRosslyn Cres, Harrow\nHA1 2SP, London, UK");
 define('SHOP_INSTAGRAM', 'https://www.instagram.com/creamybiteicecream');
 define('SHOP_FACEBOOK',  'https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr');
 // Where order alerts and staff notifications are sent. Internal — this is a

@@ -1,0 +1,581 @@
+/* ============================================================
+   Creamy Bite – Print station
+   Used only by admin/print/station.php.
+
+   This is the page that sits open on the counter PC all day, so it is
+   designed to be read from a few feet away by someone who is not looking
+   for detail: one huge status line, three big numbers, and a colour that
+   says at a glance whether receipts are printing.
+
+   Deliberately self-contained — it does not load style.css. The admin
+   stylesheet is 70KB of dashboard chrome this page has no use for, and
+   the station must still be legible if the rest of the site is mid-deploy.
+
+   Every colour here is a literal rather than a var(): the same reason.
+   They match the brand palette in style.css :root — keep them in step.
+       --color-primary   #5C1D24   --bg-main    #FFF7EF
+       --color-success   #10B981   --color-danger #D93838
+   ============================================================ */
+
+/* ── Page shell ────────────────────────────────────────────── */
+
+.cbps-body {
+    margin: 0;
+    padding: 0;
+    background: #FFF7EF;
+    color: #2C0D11;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+.cbps-wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 24px 20px 64px;
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+
+.cbps-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+    border-bottom: 2px solid #F0E0D2;
+}
+
+.cbps-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.cbps-brand-name {
+    font-size: clamp(22px, 3vw, 30px);
+    font-weight: 800;
+    color: #5C1D24;
+    letter-spacing: -0.5px;
+}
+
+.cbps-brand-page {
+    font-size: clamp(15px, 2vw, 19px);
+    font-weight: 600;
+    color: #8C6A55;
+}
+
+.cbps-header-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.cbps-link {
+    display: inline-block;
+    padding: 9px 16px;
+    border-radius: 10px;
+    background: #FFFFFF;
+    border: 2px solid #E8D5C4;
+    color: #5C1D24;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.cbps-link:hover,
+.cbps-link:focus-visible {
+    background: #5C1D24;
+    border-color: #5C1D24;
+    color: #FFFFFF;
+}
+
+/* ── The big status card ───────────────────────────────────── */
+
+.cbps-status {
+    border-radius: 20px;
+    padding: clamp(22px, 4vw, 38px);
+    border: 4px solid #CBB9A6;
+    background: #FFFFFF;
+    margin-bottom: 22px;
+}
+
+.cbps-status-top {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+/* The lamp. Colour is the whole message, so it is large and solid —
+   no gradients, no subtle tints. */
+.cbps-lamp {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #9C8A79;
+    flex: 0 0 auto;
+    box-shadow: 0 0 0 6px rgba(156, 138, 121, 0.18);
+}
+
+.cbps-headline {
+    font-size: clamp(28px, 5vw, 46px);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -1px;
+    margin: 0;
+    color: #2C0D11;
+}
+
+.cbps-subline {
+    margin: 14px 0 0;
+    font-size: clamp(17px, 2.3vw, 22px);
+    line-height: 1.5;
+    color: #5E3D42;
+    font-weight: 500;
+}
+
+/* Working normally. */
+.cbps-status.cbps-ok {
+    border-color: #10B981;
+    background: #F2FDF9;
+}
+
+.cbps-status.cbps-ok .cbps-lamp {
+    background: #10B981;
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.2);
+}
+
+/* Mid-print. */
+.cbps-status.cbps-busy {
+    border-color: #C78829;
+    background: #FFFBF2;
+}
+
+.cbps-status.cbps-busy .cbps-lamp {
+    background: #C78829;
+    box-shadow: 0 0 0 6px rgba(199, 136, 41, 0.22);
+    animation: cbps-pulse 1s ease-in-out infinite;
+}
+
+@keyframes cbps-pulse {
+    0%, 100% { transform: scale(1);    opacity: 1;   }
+    50%      { transform: scale(0.72); opacity: 0.55; }
+}
+
+/* Something is wrong. Red, thick, and worded so the owner knows what to do. */
+.cbps-status.cbps-bad {
+    border-color: #D93838;
+    background: #FFF4F4;
+}
+
+.cbps-status.cbps-bad .cbps-lamp {
+    background: #D93838;
+    box-shadow: 0 0 0 6px rgba(217, 56, 56, 0.2);
+}
+
+.cbps-status.cbps-bad .cbps-headline {
+    color: #A31B1B;
+}
+
+.cbps-status.cbps-bad .cbps-subline {
+    color: #7C1D1D;
+    font-weight: 600;
+}
+
+/* The way out of a red state. Hidden unless there is something to press. */
+.cbps-fix {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* Reduced motion: keep the colour, drop the blink. */
+@media (prefers-reduced-motion: reduce) {
+    .cbps-status.cbps-busy .cbps-lamp { animation: none; }
+}
+
+/* ── Three big numbers ─────────────────────────────────────── */
+
+.cbps-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.cbps-tile {
+    background: #FFFFFF;
+    border: 2px solid #EFDECE;
+    border-radius: 16px;
+    padding: 20px 22px;
+}
+
+.cbps-tile-label {
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8C6A55;
+    margin-bottom: 6px;
+}
+
+.cbps-tile-value {
+    font-size: clamp(26px, 3.4vw, 38px);
+    font-weight: 800;
+    line-height: 1.15;
+    color: #5C1D24;
+    word-break: break-word;
+}
+
+.cbps-tile-note {
+    margin-top: 6px;
+    font-size: 15px;
+    color: #6B5148;
+    line-height: 1.45;
+}
+
+/* ── Sound prompt ──────────────────────────────────────────── */
+
+.cbps-sound {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 22px;
+    border-radius: 16px;
+    margin-bottom: 22px;
+    background: #FFF8E8;
+    border: 2px solid #D49A37;
+}
+
+.cbps-sound-text {
+    flex: 1 1 320px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #5C3B0E;
+    margin: 0;
+}
+
+/* Once the browser has actually let the sound through. */
+.cbps-sound.cbps-sound-on {
+    background: #F2FDF9;
+    border-color: #10B981;
+}
+
+.cbps-sound.cbps-sound-on .cbps-sound-text {
+    color: #0A6B4C;
+}
+
+.cbps-hidden {
+    display: none;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+
+.cbps-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 26px;
+}
+
+.cbps-btn {
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 15px 26px;
+    border-radius: 12px;
+    border: 2px solid #5C1D24;
+    background: #5C1D24;
+    color: #FFFFFF;
+    cursor: pointer;
+    line-height: 1.2;
+}
+
+.cbps-btn:hover,
+.cbps-btn:focus-visible {
+    background: #431318;
+    border-color: #431318;
+}
+
+.cbps-btn[disabled] {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.cbps-btn-quiet {
+    background: #FFFFFF;
+    color: #5C1D24;
+    border-color: #C9A88F;
+}
+
+.cbps-btn-quiet:hover,
+.cbps-btn-quiet:focus-visible {
+    background: #F8ECE9;
+    color: #5C1D24;
+    border-color: #5C1D24;
+}
+
+.cbps-btn-small {
+    font-size: 15px;
+    padding: 10px 16px;
+    border-radius: 10px;
+}
+
+.cbps-btn-warn {
+    border-color: #D93838;
+    color: #A31B1B;
+    background: #FFFFFF;
+}
+
+.cbps-btn-warn:hover,
+.cbps-btn-warn:focus-visible {
+    background: #D93838;
+    border-color: #D93838;
+    color: #FFFFFF;
+}
+
+/* ── Activity list ─────────────────────────────────────────── */
+
+.cbps-panel {
+    background: #FFFFFF;
+    border: 2px solid #EFDECE;
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 22px;
+}
+
+.cbps-panel-title {
+    margin: 0 0 14px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #5C1D24;
+}
+
+.cbps-log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.cbps-log-row {
+    display: flex;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid #F4E7DA;
+    font-size: 17px;
+    align-items: baseline;
+}
+
+.cbps-log-row:last-child {
+    border-bottom: 0;
+}
+
+.cbps-log-time {
+    flex: 0 0 78px;
+    font-variant-numeric: tabular-nums;
+    color: #8C6A55;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.cbps-log-text {
+    flex: 1 1 auto;
+    color: #3A2529;
+}
+
+.cbps-log-row.cbps-log-good .cbps-log-text {
+    color: #0A6B4C;
+    font-weight: 600;
+}
+
+.cbps-log-row.cbps-log-bad .cbps-log-text {
+    color: #A31B1B;
+    font-weight: 700;
+}
+
+/* ── Setup instructions ────────────────────────────────────── */
+
+.cbps-setup {
+    background: #FFFFFF;
+    border: 2px solid #EFDECE;
+    border-radius: 16px;
+    padding: 8px 24px;
+    margin-bottom: 22px;
+}
+
+.cbps-setup-summary {
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: 800;
+    color: #5C1D24;
+    padding: 16px 0;
+    list-style: none;
+}
+
+.cbps-setup-summary::-webkit-details-marker {
+    display: none;
+}
+
+.cbps-setup-summary::before {
+    content: "\25B8\00a0\00a0";
+    display: inline-block;
+    color: #C78829;
+}
+
+.cbps-setup[open] .cbps-setup-summary::before {
+    content: "\25BE\00a0\00a0";
+}
+
+.cbps-setup-body {
+    padding-bottom: 18px;
+    max-width: 78ch;
+}
+
+.cbps-setup-body h3 {
+    font-size: 19px;
+    font-weight: 800;
+    color: #5C1D24;
+    margin: 26px 0 8px;
+}
+
+.cbps-setup-body p {
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.65;
+    color: #3A2529;
+}
+
+.cbps-steps {
+    margin: 0 0 14px;
+    padding-left: 26px;
+}
+
+.cbps-steps li {
+    margin-bottom: 10px;
+    font-size: 17px;
+    line-height: 1.65;
+    color: #3A2529;
+}
+
+.cbps-kbd {
+    display: inline-block;
+    background: #FDF1E3;
+    border: 1px solid #E0C9B2;
+    border-radius: 6px;
+    padding: 1px 8px;
+    font-weight: 700;
+    font-size: 0.95em;
+    color: #5C1D24;
+}
+
+.cbps-copybox {
+    background: #2C0D11;
+    color: #FFF7EF;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin: 10px 0 12px;
+    font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+    font-size: 15px;
+    line-height: 1.6;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.cbps-copy-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.cbps-copy-said {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0A6B4C;
+}
+
+.cbps-note {
+    background: #FFF8E8;
+    border-left: 5px solid #D49A37;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    margin: 0 0 16px;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #5C3B0E;
+}
+
+/* ── The print frames ──────────────────────────────────────── */
+
+/*
+   The receipt is loaded into one of these and printed from it.
+
+   NOT display:none. A hidden iframe has no layout box in Chrome, and
+   printing one gives a blank page or nothing at all. So it is a real,
+   fully laid-out 80mm-ish frame parked off the side of the screen where
+   nobody sees it. position:fixed keeps it out of the document flow so it
+   cannot add a scrollbar or push the page around.
+*/
+.cbps-frames {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+.cbps-frame {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    width: 320px;
+    height: 800px;
+    border: 0;
+    opacity: 0;
+}
+
+/* ── If anyone prints THIS page ────────────────────────────── */
+
+/*
+   Only the receipt in the iframe is ever meant to reach the roll. Someone
+   pressing Ctrl+P on the station itself would otherwise spool a metre of
+   till roll, so the whole screen is dropped and one short line is printed
+   instead.
+*/
+@media print {
+    .cbps-wrap,
+    .cbps-frames {
+        display: none !important;
+    }
+
+    .cbps-body::after {
+        content: "Creamy Bite print station - this screen is not a receipt.";
+        display: block;
+        font-family: monospace;
+        font-size: 12px;
+        padding: 6px;
+    }
+}
+
+/* The "orders are waiting" prompt. Deliberately loud — it only appears when
+   receipts are owed and would otherwise be skipped without anyone noticing. */
+.cbps-pending-offer { margin: 16px 0 12px; }
+.cbps-btn-warn {
+    background: #8a3d00;
+    border-color: #8a3d00;
+    color: #fff;
+    font-weight: 700;
+}
+.cbps-btn-warn:hover:not(:disabled) { background: #a04a04; border-color: #a04a04; }
+.cbps-btn-warn:disabled            { opacity: .65; cursor: default; }
