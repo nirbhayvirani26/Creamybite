@@ -836,7 +836,11 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .admin-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); background: var(--color-primary-bg); }
 
 /* Stats */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 28px; }
+/* 190px meant five cards needed 1014px but the admin content area is 974px,
+   so the fifth wrapped onto a row of its own and stretched full width — which
+   reads as a layout fault rather than a wrap. 165px fits five across at that
+   width and still degrades to four, three and two on smaller screens. */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 16px; margin-bottom: 28px; }
 .stat-card {
     padding: 22px 24px;
     background: var(--bg-surface);

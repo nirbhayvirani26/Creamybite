@@ -1430,7 +1430,11 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
 
 .cbbn-slide      { position: relative; flex: 0 0 100%; scroll-snap-align: start;
                    display: block; text-decoration: none; color: #fff;
-                   height: clamp(260px, 42vh, 460px); }
+                   /* Taller than the first pass: at 42vh the slide read as a
+                      strip under the navbar rather than a hero, and the caption
+                      had no room to breathe. 58vh gives it presence while the
+                      560px ceiling stops it swallowing a large monitor. */
+                   height: clamp(340px, 58vh, 560px); }
 .cbbn-img        { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* A gradient rather than a flat wash: the text end stays readable while the

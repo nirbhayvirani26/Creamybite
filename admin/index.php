@@ -622,19 +622,19 @@ $adminNav = array_values($adminNav);
 
 // Page heading for the topbar, taken from the same array.
 $pageTitles = [
-    'orders'     => ['📋 Orders',          'View and manage all customer orders'],
-    'trade'      => ['🏪 Trade Accounts',  'Approve and manage wholesale partners'],
-    'products'   => ['🍦 Products',        'Add, edit and price your range'],
-    'stock'      => ['📦 Stock',           'Stock levels, damage and offline sales'],
-    'invoices'   => ['🧾 Invoices',        'Create, amend and track invoices'],
-    'revenue'    => ['📈 Revenue',         'Sales performance over time'],
-    'banners'    => ['🖼️ Home Banner',     'The slider at the top of the home page'],
-    'gallery'    => ['🖼️ Gallery',         'Photos shown on the public gallery'],
-    'categories' => ['🏷️ Categories',      'Organise the menu'],
-    'promos'     => ['🎟️ Promos',          'Discount codes'],
-    'inquiries'  => ['✉️ Inquiries',        'Messages from the contact form'],
-    'reviews'    => ['⭐ Reviews',          'Customer reviews shown on the home page'],
-    'staff'      => ['🔐 Staff',           'Manage staff logins and section access'],
+    'orders'     => ['<i class="fa-solid fa-clipboard-list"></i> Orders',          'View and manage all customer orders'],
+    'trade'      => ['<i class="fa-solid fa-store"></i> Trade Accounts',  'Approve and manage wholesale partners'],
+    'products'   => ['<i class="fa-solid fa-ice-cream"></i> Products',        'Add, edit and price your range'],
+    'stock'      => ['<i class="fa-solid fa-boxes-stacked"></i> Stock',           'Stock levels, damage and offline sales'],
+    'invoices'   => ['<i class="fa-solid fa-file-invoice"></i> Invoices',        'Create, amend and track invoices'],
+    'revenue'    => ['<i class="fa-solid fa-chart-line"></i> Revenue',         'Sales performance over time'],
+    'banners'    => ['<i class="fa-solid fa-rectangle-ad"></i> Home Banner',     'The slider at the top of the home page'],
+    'gallery'    => ['<i class="fa-solid fa-images"></i> Gallery',         'Photos shown on the public gallery'],
+    'categories' => ['<i class="fa-solid fa-tags"></i> Categories',      'Organise the menu'],
+    'promos'     => ['<i class="fa-solid fa-ticket"></i> Promos',          'Discount codes'],
+    'inquiries'  => ['<i class="fa-solid fa-envelope-open-text"></i> Inquiries',        'Messages from the contact form'],
+    'reviews'    => ['<i class="fa-solid fa-star"></i> Reviews',          'Customer reviews shown on the home page'],
+    'staff'      => ['<i class="fa-solid fa-user-shield"></i> Staff',           'Manage staff logins and section access'],
 ];
 [$pageTitle, $pageSub] = $pageTitles[$activeTab] ?? ['Admin', ''];
 ?>
@@ -757,7 +757,7 @@ $pageTitles = [
         ?>
         <div class="stats-grid cbi-gap-32">
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">🧾</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-file-invoice"></i></div>
                 <div class="stat-label">Invoices</div>
                 <div class="stat-value"><?= $invStats['count'] ?></div>
                 <?php if ($invStats['void'] > 0): ?>
@@ -765,24 +765,24 @@ $pageTitles = [
                 <?php endif; ?>
             </div>
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">💷</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-sterling-sign"></i></div>
                 <div class="stat-label">Total Billed</div>
                 <div class="stat-value cbi-stat-value-sm">£<?= number_format($invStats['billed'], 2) ?></div>
             </div>
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">✅</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-circle-check"></i></div>
                 <div class="stat-label">Received</div>
                 <div class="stat-value cbi-stat-value-sm cbi-stat-good">£<?= number_format($invStats['received'], 2) ?></div>
                 <div class="cbi-stat-subnote"><?= $invStats['paid'] ?> fully paid</div>
             </div>
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">⏳</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-hourglass-half"></i></div>
                 <div class="stat-label">Outstanding</div>
                 <div class="stat-value cbi-stat-value-sm<?= $invStats['owed'] > 0.001 ? ' cbi-stat-bad' : '' ?>">£<?= number_format($invStats['owed'], 2) ?></div>
                 <div class="cbi-stat-subnote"><?= $invStats['part'] ?> part paid</div>
             </div>
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">📤</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-paper-plane"></i></div>
                 <div class="stat-label">Not Paid</div>
                 <div class="stat-value"><?= $invStats['unpaid'] ?></div>
                 <div class="cbi-stat-subnote"><?= $invStats['draft'] ?> still draft</div>
@@ -796,27 +796,27 @@ $pageTitles = [
              tab. Owner-only rather than trying to attribute it to one grant. -->
         <div class="stats-grid cbi-gap-32">
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">📋</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-clipboard-list"></i></div>
                 <div class="stat-label">Total Orders</div>
                 <div class="stat-value"><?= $totalOrders ?></div>
             </div>
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">⏳</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-hourglass-half"></i></div>
                 <div class="stat-label">Pending</div>
                 <div class="stat-value"><?= $pendingOrders ?></div>
             </div>
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">🏪</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-store"></i></div>
                 <div class="stat-label">Pending Trade</div>
                 <div class="stat-value"><?= $pendingTradeCount ?></div>
             </div>
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">💷</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-sterling-sign"></i></div>
                 <div class="stat-label">Total Revenue</div>
                 <div class="stat-value cbi-stat-value-sm">£<?= number_format($totalRevenue, 2) ?></div>
             </div>
             <div class="stat-card glass-panel">
-                <div class="stat-card-icon">🍦</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-ice-cream"></i></div>
                 <div class="stat-label">Products</div>
                 <div class="stat-value"><?= $totalProducts ?></div>
             </div>
@@ -2063,7 +2063,7 @@ $pageTitles = [
                  missed them entirely. */ ?>
         <div class="cbi-rev-source-grid">
             <div class="stat-card glass-panel cbi-rev-card-total">
-                <div class="stat-card-icon">💷</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-sterling-sign"></i></div>
                 <div class="stat-label">Total Revenue</div>
                 <div class="stat-value cbi-rev-value-total">£<?= number_format($revData['grand_total'] ?? 0, 2) ?></div>
                 <div class="cbi-stat-subnote">orders + direct invoices</div>
@@ -2075,13 +2075,13 @@ $pageTitles = [
                 <div class="cbi-stat-subnote"><?= (int)($revData['retail_count'] ?? 0) ?> paid order(s)</div>
             </div>
             <div class="stat-card glass-panel cbi-rev-card-trade">
-                <div class="stat-card-icon">🏪</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-store"></i></div>
                 <div class="stat-label">Trade Customers</div>
                 <div class="stat-value cbi-rev-value-trade">£<?= number_format($revData['trade'] ?? 0, 2) ?></div>
                 <div class="cbi-stat-subnote"><?= (int)($revData['trade_count'] ?? 0) ?> paid order(s)</div>
             </div>
             <div class="stat-card glass-panel cbi-rev-card-invoices">
-                <div class="stat-card-icon">🧾</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-file-invoice"></i></div>
                 <div class="stat-label">Direct Invoices</div>
                 <div class="stat-value cbi-rev-value-invoices">£<?= number_format($revData['invoice_direct'] ?? 0, 2) ?></div>
                 <div class="cbi-stat-subnote">
@@ -2096,7 +2096,7 @@ $pageTitles = [
         <!-- How it was paid -->
         <div class="cbi-rev-method-grid">
             <div class="stat-card glass-panel cbi-rev-card-orders">
-                <div class="stat-card-icon">📊</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-chart-pie"></i></div>
                 <div class="stat-label">Order Revenue</div>
                 <div class="stat-value cbi-rev-value-orders">£<?= number_format($revData['total'] ?? 0, 2) ?></div>
                 <div class="cbi-stat-subnote">paid orders only</div>
@@ -2107,7 +2107,7 @@ $pageTitles = [
                 <div class="stat-value cbi-rev-value-online">£<?= number_format($revData['online'] ?? 0, 2) ?></div>
             </div>
             <div class="stat-card glass-panel cbi-rev-card-cash">
-                <div class="stat-card-icon">💵</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-money-bill"></i></div>
                 <div class="stat-label">Cash</div>
                 <div class="stat-value cbi-rev-value-cash">£<?= number_format($revData['cash'] ?? 0, 2) ?></div>
             </div>
@@ -2117,7 +2117,7 @@ $pageTitles = [
                 <div class="stat-value cbi-rev-value-bank">£<?= number_format($revData['bank'] ?? 0, 2) ?></div>
             </div>
             <div class="stat-card glass-panel cbi-rev-card-unpaid">
-                <div class="stat-card-icon">⏳</div>
+                <div class="stat-card-icon"><i class="fa-solid fa-hourglass-half"></i></div>
                 <div class="stat-label">Unpaid (<?= $revData['unpaid_count'] ?? 0 ?> orders)</div>
                 <div class="stat-value cbi-rev-value-unpaid">£<?= number_format($revData['unpaid_total'] ?? 0, 2) ?></div>
             </div>
@@ -2480,6 +2480,13 @@ $pageTitles = [
                     </div>
 
                     <div class="cbi-bn-actions">
+                        <?php // The handler has always supported editing; there was no
+                              // button for it, so a banner could be created and never
+                              // corrected. Opens the row's own form below. ?>
+                        <button type="button" class="btn-sm" title="Edit"
+                                onclick="bnEdit(<?= (int)$b['id'] ?>)">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
                         <button type="button" class="btn-sm" title="Move up"
                                 onclick="bnMove(<?= (int)$b['id'] ?>, -1)" <?= $i === 0 ? 'disabled' : '' ?>>
                             <i class="fa-solid fa-arrow-up"></i>
@@ -2498,6 +2505,54 @@ $pageTitles = [
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
+
+                    <!-- Edit form, hidden until the pencil is pressed. Inline
+                         rather than a modal so the banner it belongs to stays
+                         visible while it is being changed. -->
+                    <form class="cbi-bn-edit" id="bn-edit-<?= (int)$b['id'] ?>" hidden
+                          onsubmit="return bnSave(event, <?= (int)$b['id'] ?>)">
+                        <div class="cbi-bn-grid">
+                            <div class="form-group">
+                                <label class="form-label">Headline</label>
+                                <input type="text" name="headline" class="form-control" maxlength="120"
+                                       value="<?= htmlspecialchars($b['headline']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Sub text</label>
+                                <input type="text" name="subtext" class="form-control" maxlength="255"
+                                       value="<?= htmlspecialchars($b['subtext']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Links to</label>
+                                <input type="text" name="link_url" class="form-control" maxlength="255"
+                                       value="<?= htmlspecialchars($b['link_url']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Button text</label>
+                                <input type="text" name="link_text" class="form-control" maxlength="60"
+                                       value="<?= htmlspecialchars($b['link_text']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Show from</label>
+                                <input type="date" name="starts_on" class="form-control"
+                                       value="<?= htmlspecialchars($b['starts_on'] ?? '') ?>">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Show until</label>
+                                <input type="date" name="ends_on" class="form-control"
+                                       value="<?= htmlspecialchars($b['ends_on'] ?? '') ?>">
+                            </div>
+                            <div class="form-group cbi-bn-span">
+                                <label class="form-label">Replace the image <span class="cbi-bn-hint-inline">(optional)</span></label>
+                                <input type="file" name="banner_image" class="form-control"
+                                       accept="image/jpeg,image/png,image/webp,image/gif">
+                            </div>
+                        </div>
+                        <div class="cbi-bn-edit-actions">
+                            <button type="submit" class="btn-primary btn-sm"><i class="fa-solid fa-check"></i> Save</button>
+                            <button type="button" class="btn-sm" onclick="bnEdit(<?= (int)$b['id'] ?>)">Cancel</button>
+                        </div>
+                    </form>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -3654,6 +3709,26 @@ function bnPost(body, onOk) {
     .then(d => { if (d.success) { onOk ? onOk(d) : location.reload(); }
                  else { cbAlert(d.message || 'That did not work.', {title: 'Banner', tone: 'danger'}); } })
     .catch(() => cbAlert('Could not reach the server.', {title: 'Banner', tone: 'danger'}));
+}
+
+function bnEdit(id) {
+    const f = document.getElementById('bn-edit-' + id);
+    if (f) { f.hidden = !f.hidden; if (!f.hidden) f.querySelector('input')?.focus(); }
+}
+
+function bnSave(e, id) {
+    e.preventDefault();
+    // FormData carries the optional file as well as the text, so one form
+    // handles "change the words" and "swap the picture" without a second path.
+    const fd = new FormData(e.target);
+    fd.append('action', 'update');
+    fd.append('id', id);
+    fetch('handlers/banner_handler.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => d.success ? location.reload()
+                             : cbAlert(d.message || 'Could not save that banner.', {title:'Banner', tone:'danger'}))
+        .catch(() => cbAlert('Could not reach the server.', {title:'Banner', tone:'danger'}));
+    return false;
 }
 
 function bnToggle(id) { bnPost('action=toggle&id=' + id); }

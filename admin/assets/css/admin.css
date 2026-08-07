@@ -1554,3 +1554,7 @@ th.inv-sort i.is-sorted   { opacity: 1; }
 .admin-wrapper.has-sidebar .cbi-bn-badge.is-done,
 .admin-wrapper.has-sidebar .cbi-bn-badge.is-off  { background:rgba(92,29,36,0.10); color:var(--text-secondary); }
 .admin-wrapper.has-sidebar .cbi-bn-actions { display:flex; gap:6px; flex-wrap:wrap; flex:0 0 auto; }
+.admin-wrapper.has-sidebar .cbi-bn-edit { flex-basis:100%; margin-top:12px; padding-top:14px;
+                                          border-top:1px dashed var(--border-color); }
+.admin-wrapper.has-sidebar .cbi-bn-edit-actions { display:flex; gap:8px; }
+.admin-wrapper.has-sidebar .cbi-bn-hint-inline  { font-weight:400; color:var(--text-muted); font-size:11.5px; }
