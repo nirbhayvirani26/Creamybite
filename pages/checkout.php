@@ -108,16 +108,28 @@ function cbCheckoutNotes(array $cart, array $totals, string $orderType): array
         return [];
     }
     try {
-        $messages = cbCartMessages($cart, (float)$totals['subtotal'], $orderType);
+        $messages = cbCartMessages($cart, (float)$totals['subtotal'], $orderType, $postcode);
     } catch (Throwable $e) {
         error_log('Cart messages skipped: ' . $e->getMessage());
         return [];
     }
 
+    // Only an offer that ALREADY HAS A ROW of its own gets its message
+    // dropped: one that took money off is listed above with the amount, and a
+    // gift has its own row, so repeating either in words is just repetition.
+    //
+    // Free delivery is the exception. It has no row until a postcode has been
+    // entered — before that there is nothing on screen to say delivery has
+    // been earned, so its message is kept. $totals['delivery_is_free'] is true
+    // exactly when the delivery row and the banner are already saying it.
+    $deliveryRowSaysIt = !empty($totals['delivery_is_free']);
     $alreadyShown = [];
     foreach (($totals['offers_applied'] ?? []) as $offer) {
-        $said = trim((string)($offer['message'] ?? ''));
-        if ($said !== '') {
+        $hasRow = round((float)($offer['discount'] ?? 0), 2) > 0
+               || !empty($offer['free_items'])
+               || (!empty($offer['free_delivery']) && $deliveryRowSaysIt);
+        $said   = trim((string)($offer['message'] ?? ''));
+        if ($hasRow && $said !== '') {
             $alreadyShown[] = $said;
         }
     }
@@ -564,6 +576,14 @@ if ($summaryJson) {
                                 <i class="fa-solid fa-circle-info"></i> Used to calculate delivery distance and pre-fill address
                             </small>
                             <div id="postcodeStatus" class="cbco-postcode-status"></div>
+                            <?php // What delivery actually COSTS, in the server's words.
+                                  // #postcodeStatus above says how far away the address
+                                  // is — the browser can work that out. Only the server
+                                  // knows the price, because only the server knows what
+                                  // the offers and the free-delivery-over figure did to
+                                  // it, so that sentence is kept in its own element and
+                                  // written only from the summary reply. ?>
+                            <div id="deliveryPriceNote" class="cbof-price-note cbco-hidden"></div>
                         </div>
                         <input type="hidden" name="delivery_charge" id="delivery_charge_input" value="0">
 
@@ -815,7 +835,6 @@ if ($summaryJson) {
 // fourth. Instead the server renders the whole block of figures and this code
 // simply puts it on screen.
 let cartSubtotal = <?= json_encode((float)$cartTotal) ?>;
-let deliveryCharge = 0.0;
 let appliedPromo = <?= json_encode($appliedPromo) ?>;
 
 // The postcode the summary should be priced against. Empty until one has been
@@ -856,13 +875,41 @@ function refreshSummary() {
         if (typeof data.subtotal === 'number') cartSubtotal = data.subtotal;
         summaryDeliveryNote = data.delivery_note || '';
 
-        renderPostcodeStatus();
+        renderDeliveryPriceNote();
         checkMinimumOrder();
     })
     .catch(() => {
         // Leave the last figures the server gave us on screen. They are stale
         // by one change at worst; invented ones would be wrong outright.
     });
+}
+
+/**
+ * Put the server's one-line delivery price under the postcode box.
+ *
+ * Its own element, never #postcodeStatus — that one is written by the distance
+ * lookup as the customer types, and two writers on one element is how a stale
+ * price survives on screen. Empty text hides the line rather than leaving a
+ * blank gap where a sentence used to be.
+ */
+function renderDeliveryPriceNote() {
+    const el = document.getElementById('deliveryPriceNote');
+    if (!el) return;   // the trade checkout has no postcode box
+    const note = (summaryDeliveryNote || '').trim();
+    el.textContent = note;
+    el.classList.toggle('cbco-hidden', note === '');
+}
+
+/**
+ * Which postcode the server should price the summary against from now on.
+ *
+ * Records it only — the caller asks for the summary, so a single change of
+ * address makes one request rather than two. '' means "no postcode yet",
+ * which is what a fresh page load is priced against; anything the server does
+ * not recognise as a UK postcode it ignores.
+ */
+function useTotalsPostcode(pc) {
+    totalsPostcode = (pc || '').trim().toUpperCase();
 }
 
 // Kept under its old name because several places call it. It no longer
@@ -1298,9 +1345,12 @@ const MAX_DELIVERY_MILES = <?= json_encode(DELIVERY_RADIUS_MILES) ?>;
 // Same constant the server applies, so this page can never show a distance
 // the server would disagree with.
 const DISTANCE_FACTOR = <?= json_encode(DELIVERY_DISTANCE_FACTOR) ?>;
-// Pre-formatted for the messages below: "6" not "6.0", "1.99" with two places.
+// Pre-formatted for the message below: "6" not "6.0".
 const MAX_MILES_TXT = MAX_DELIVERY_MILES.toString().replace(/\.0$/, '');
-const DELIVERY_CHARGE_TXT = '£' + DELIVERY_CHARGE.toFixed(2);
+// There is deliberately no pre-formatted delivery PRICE here any more. This
+// page quotes distances, never prices — an offer or the free-delivery-over
+// figure can make the charge nothing, and only the server knows that. The
+// price a customer reads comes from the summary the server renders.
 
 let lastCalculatedMiles = -1; // cache so we can re-evaluate on cart changes
 
@@ -1500,6 +1550,7 @@ function onPostcodeInput() {
     if (!pc) {
         statusEl.style.display = 'none';
         chargeInput.value = '0';
+        useTotalsPostcode('');
         updateDeliveryDisplay(0);
         resetAddressModes();
         return;
@@ -1522,6 +1573,10 @@ function onPostcodeInput() {
             .then(data => {
                 if (!data.result) {
                     statusEl.innerHTML = '<span class="cbco-status cbco-status-err"><i class="fa-solid fa-circle-xmark"></i> Postcode not found. Please check and try again.</span>';
+                    // A postcode we cannot place must not be priced, or the
+                    // summary would keep quoting the last one that worked.
+                    useTotalsPostcode('');
+                    recalculateTotals();
                     resetAddressModes();
                     return;
                 }
@@ -1543,6 +1598,9 @@ function onPostcodeInput() {
                         submitBtn.disabled = true;
                         submitBtn.dataset.blockedByDistance = '1';
                     }
+                    // Outside the radius: there is no delivery to price, so
+                    // the summary goes back to asking for a postcode.
+                    useTotalsPostcode('');
                     updateDeliveryDisplay(0);
                     return;
                 } else {
@@ -1553,13 +1611,23 @@ function onPostcodeInput() {
                     checkMinimumOrder();   // distance is fine; the basket may not be
                 }
 
+                // Inside the radius. From here the server prices the basket
+                // against this postcode.
+                useTotalsPostcode(pc);
+
+                // These two lines say how FAR AWAY the address is, which the
+                // browser has just measured. What delivery COSTS is a separate
+                // sentence, written underneath from the server's answer — it
+                // used to be claimed here from the page's own constants, which
+                // is why a basket that had earned free delivery was still told
+                // "£1.99 delivery charge".
                 if (miles <= FREE_MILES) {
                     chargeInput.value = '0';
-                    statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> Free delivery! You are within ' + miles.toFixed(1) + ' miles.</span>';
+                    statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> We deliver to you — ' + miles.toFixed(1) + ' miles from our Harrow kitchen.</span>';
                     updateDeliveryDisplay(0);
                 } else {
                     chargeInput.value = DELIVERY_CHARGE.toFixed(2);
-                    statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-truck-fast"></i> ' + DELIVERY_CHARGE_TXT + ' delivery charge – ' + miles.toFixed(1) + ' miles from us.</span>';
+                    statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> We deliver to you — ' + miles.toFixed(1) + ' miles from our Harrow kitchen.</span>';
                     updateDeliveryDisplay(DELIVERY_CHARGE);
                 }
 
@@ -1569,36 +1637,34 @@ function onPostcodeInput() {
             .catch(() => {
                 statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-triangle-exclamation"></i> Could not check postcode. Delivery charge will be calculated at checkout.</span>';
                 chargeInput.value = '0';
+                useTotalsPostcode('');
+                recalculateTotals();
                 resetAddressModes();
             });
     }, 600);
 }
 
+/**
+ * The distance lookup has an answer — tell the server and let it re-price.
+ *
+ * This used to write the delivery figure straight into the summary: it set the
+ * delivery row's display, typed '+ £' + charge into it, and rebuilt the banner
+ * underneath. That was the browser doing its own money arithmetic, and it could
+ * only ever be a guess — it knew the distance, but not whether an offer or the
+ * "free delivery over £X" figure had already taken the charge off. A basket
+ * that qualified for free delivery was shown £1.99 until the server's answer
+ * arrived, and kept showing it if that request failed.
+ *
+ * So it no longer touches the summary at all. It records the charge for the
+ * hidden form field, then asks the server to render the rows and the banner
+ * from computeOrderTotals() — the one function that decides what is charged.
+ */
 function updateDeliveryDisplay(charge) {
-    deliveryCharge = charge;
+    // Posted with the order as a cross-check only. checkout_handler.php works
+    // the real figure out again from the postcode.
     const chargeInput = document.getElementById('delivery_charge_input');
     if (chargeInput) chargeInput.value = charge.toFixed(2);
 
-    const deliveryRow   = document.getElementById('deliveryChargeRow');
-    const deliveryAmt   = document.getElementById('deliveryChargeAmt');
-    const infoBanner    = document.getElementById('deliveryInfoBanner');
-    if (deliveryRow) {
-        deliveryRow.style.display = charge > 0 ? 'flex' : 'none';
-    }
-    if (deliveryAmt) {
-        deliveryAmt.textContent = '+ £' + charge.toFixed(2);
-    }
-    if (infoBanner) {
-        if (charge === 0) {
-            infoBanner.style.background = 'rgba(16,185,129,0.06)';
-            infoBanner.style.borderColor = 'rgba(16,185,129,0.25)';
-            infoBanner.innerHTML = '<p class="cbco-delivery-banner-text cbco-text-success"><i class="fa-solid fa-truck-fast"></i><strong>Free delivery</strong> to your postcode!</p>';
-        } else {
-            infoBanner.style.background = 'rgba(245,158,11,0.06)';
-            infoBanner.style.borderColor = 'rgba(245,158,11,0.25)';
-            infoBanner.innerHTML = '<p class="cbco-delivery-banner-text cbco-status-warn"><i class="fa-solid fa-truck-fast"></i><strong>' + DELIVERY_CHARGE_TXT + '</strong> delivery charge applies</p>';
-        }
-    }
     recalculateTotals();
     triggerStripeAmountUpdate();
 }

@@ -593,12 +593,8 @@ $adminNav = [
     // render an empty page. Gated by its own 'store' permission key, which is
     // also registered in CBI_GRANTABLE_SECTIONS (admin/handlers/staff_handler.php)
     // and in $cbiGrantableSections on the Staff tab, or it could not be ticked.
-    // PAUSED MID-BUILD: admin/store.php is not written yet, so this link is
-    // commented out rather than left to 404. Uncomment it the moment that page
-    // exists — everything else it needs (the handler, the settings layer, the
-    // offers engine, the 'store' permission) is already in place.
-    // ['href' => 'store.php',  'icon' => 'fa-truck-fast',        'label' => 'Delivery & Offers',
-    //  'perm' => 'store'],
+    ['href' => 'store.php',  'icon' => 'fa-truck-fast',        'label' => 'Delivery & Offers',
+     'perm' => 'store'],
 
     ['group' => 'Customers'],
     ['tab' => 'trade',      'icon' => 'fa-store',              'label' => 'Trade Accounts',

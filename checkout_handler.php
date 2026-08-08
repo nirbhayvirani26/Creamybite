@@ -354,6 +354,32 @@ $tradeBusinessName = '';
 if (!empty($_SESSION['trade_user'])) {
     $tradeUserId       = (int)($_SESSION['trade_user']['id'] ?? 0);
     $tradeBusinessName = trim($_SESSION['trade_user']['business_name'] ?? '');
+    // A gift the customer was PROMISED in the basket. computeOrderTotals()
+    // returns it, both the cart and the checkout print it ("— On us", "We will
+    // pop it in the box"), and until this was added nothing carried it onto the
+    // order: the shop packed the box from items_json and the freebie was never
+    // mentioned, so the one thing the customer had been told to expect was the
+    // one thing missing. It goes in the notes rather than into items_json
+    // because a gift is not a priced line and must not disturb the totals or
+    // the stock check that has already run against the paid items.
+    if (!empty($totals['offer_free_items'])) {
+        $giftLines = [];
+        foreach ($totals['offer_free_items'] as $gift) {
+            $label = trim((string)($gift['label'] ?? ''));
+            if ($label === '') {
+                $label = trim((string)($gift['offer_name'] ?? 'Free item'));
+            }
+            $qty = max(1, (int)($gift['qty'] ?? 1));
+            $giftLines[] = '- ' . $qty . ' x ' . $label
+                         . ' (free, from "' . trim((string)($gift['offer_name'] ?? '')) . '")';
+        }
+        if ($giftLines !== []) {
+            $notes = "[FREE ITEM PROMISED — put this in the box]\n"
+                   . implode("\n", $giftLines)
+                   . ($notes !== '' ? "\n\n" . $notes : '');
+        }
+    }
+
     if (!empty($tradeBusinessName) && strpos($notes, 'TRADE B2B ORDER') === false) {
         $notes = '[TRADE B2B ORDER - Store: ' . $tradeBusinessName . ']' . "\n" . $notes;
     }

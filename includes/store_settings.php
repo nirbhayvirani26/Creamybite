@@ -168,6 +168,25 @@ if (!function_exists('cbStoreSettings')) {
             }
         }
 
+        // Each figure above is checked on its own, which cannot catch a pair
+        // that is individually fine and jointly nonsense: a free radius LARGER
+        // than the maximum radius means every address the shop will drive to
+        // gets free delivery, and the charge is never applied to anyone. The
+        // admin form refuses that combination, but a row edited straight into
+        // the database — or a restored backup — would not go through the form.
+        // Fall back to the pair from the defaults rather than guessing which of
+        // the two the owner meant.
+        if ($settings['free_delivery_miles'] > $settings['delivery_radius_miles']) {
+            error_log(sprintf(
+                'store_settings: free_delivery_miles (%s) exceeds delivery_radius_miles (%s); using the defaults for both.',
+                $settings['free_delivery_miles'],
+                $settings['delivery_radius_miles']
+            ));
+            $fallback = cbStoreSettingDefaults();
+            $settings['free_delivery_miles']   = $fallback['free_delivery_miles'];
+            $settings['delivery_radius_miles'] = $fallback['delivery_radius_miles'];
+        }
+
         // The distance factor multiplies every distance the shop measures, so
         // it is clamped rather than trusted. Below 1.0 it would claim driving
         // is shorter than a straight line, which is not possible; above 2.0 it

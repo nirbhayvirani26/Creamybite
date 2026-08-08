@@ -8,8 +8,332 @@ require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/config.php';
 
 require_once __DIR__ . '/../includes/trade_cart.php';
+// The offers a customer is shown and the money they are charged come from the
+// same place. pricing.php is the only thing on the site that decides what a
+// basket costs, and it pulls in includes/offers.php with it.
+require_once __DIR__ . '/../includes/pricing.php';
 // A revoked trade account must stop seeing wholesale prices immediately.
 tradeSessionRevalidate($pdo);
+
+// ── Offers, for the badges and the cart drawer ───────────────
+//
+// Read once for the whole page. A trade partner only sees offers that were
+// explicitly marked for trade — their prices are already wholesale.
+$offerAudience = !empty($_SESSION['trade_user']) ? 'trade' : 'retail';
+$pageOffers    = [];
+try {
+    if (function_exists('cbActiveOffers')) {
+        $pageOffers = cbActiveOffers($offerAudience);
+    }
+} catch (Throwable $e) {
+    // A promotion that cannot be read costs the shop a badge, never the menu.
+    error_log('Offers skipped on the menu: ' . $e->getMessage());
+    $pageOffers = [];
+}
+
+/**
+ * The offer badge for one product card, or '' for no badge.
+ *
+ * Only offers that change what THIS product costs earn a badge. A flat
+ * "£5 off" is taken off the BASKET and spread across whatever is in it, so
+ * printing it on a single tub would promise £5 off that tub; free delivery
+ * and a gift over £30 are basket-wide too. Those all speak for themselves in
+ * the cart instead, where the figures are real.
+ *
+ * An offer with a minimum spend is left off the card for the same reason: the
+ * card has no way to say "once you have spent £30", and a badge with a
+ * condition it cannot state is a badge that misleads.
+ *
+ * The FIRST matching offer wins, in the order the owner arranged them. Two
+ * badges stacked on one card reads as a clearance bin.
+ */
+function cbOrderOfferBadge(array $product, array $offers): string
+{
+    if (!function_exists('cbOfferMatchesLine')) {
+        return '';
+    }
+
+    // cbOfferMatchesLine() reads exactly these three keys, so the same
+    // matching rule decides the badge and the discount. Writing a second
+    // "does this offer apply" test here is how a card ends up advertising
+    // something the basket then refuses to give.
+    $line = [
+        'product_id' => (int)($product['id'] ?? 0),
+        'name'       => trim((string)($product['name'] ?? '')),
+        'category'   => trim((string)($product['category'] ?? '')),
+    ];
+
+    foreach ($offers as $offer) {
+        $type = (string)($offer['type'] ?? '');
+        if (!in_array($type, ['bogo', 'buy_x_get_y', 'percent_off'], true)) {
+            continue;
+        }
+        if ((float)($offer['min_spend'] ?? 0) > 0) {
+            continue;
+        }
+
+        // A CATEGORY offer is not badged, and this is deliberate.
+        //
+        // Basket lines do not carry the product's category yet —
+        // cart_handler.php stores the name, price and quantity — so
+        // cbOfferMatchesLine() matches nothing in the basket for a category
+        // offer, and includes/offers.php takes nothing off. A product card
+        // DOES know its category, so badging one here would put "10% off" on
+        // a tub and then charge full price for it. Rather than have the card
+        // promise what the till refuses, category offers stay off the cards
+        // until a basket line carries its category.
+        if ((string)($offer['scope'] ?? 'all') === 'category') {
+            continue;
+        }
+
+        if (!cbOfferMatchesLine($offer, $line)) {
+            continue;
+        }
+
+        // The owner's own wording first, always. They know their shop.
+        $badge = trim((string)($offer['badge_text'] ?? ''));
+        if ($badge === '') {
+            if ($type === 'bogo') {
+                $badge = 'Two for one';
+            } elseif ($type === 'buy_x_get_y') {
+                $grouping = function_exists('cbOfferGrouping') ? cbOfferGrouping($offer) : null;
+                if ($grouping === null) {
+                    continue;   // half-configured — say nothing rather than guess
+                }
+                [$buy, $get] = $grouping;
+                $badge = 'Buy ' . $buy . ', get ' . $get . ' free';
+            } else {
+                $percent = min(100.0, max(0.0, (float)($offer['amount'] ?? 0)));
+                if ($percent <= 0) {
+                    continue;
+                }
+                $badge = rtrim(rtrim(number_format($percent, 1), '0'), '.') . '% off';
+            }
+        }
+
+        if ($badge !== '') {
+            return $badge;
+        }
+    }
+
+    return '';
+}
+
+/**
+ * The lines of encouragement under the cart drawer's total.
+ *
+ * Anything an offer row above already states is dropped, so a customer is not
+ * told about the same buy-one-get-one twice — the row is the accounting, these
+ * are the words. Never fatal: a shop whose offers cannot be read still has a
+ * working cart.
+ */
+function cbOrderCartNotes(array $cart, array $totals, string $orderType): array
+{
+    if (!function_exists('cbCartMessages')) {
+        return [];
+    }
+    try {
+        $messages = cbCartMessages($cart, (float)$totals['subtotal'], $orderType);
+    } catch (Throwable $e) {
+        error_log('Cart messages skipped on the menu: ' . $e->getMessage());
+        return [];
+    }
+
+    // Only an offer that ALREADY HAS A ROW of its own gets its message
+    // dropped. An offer that took money off is listed above with the amount,
+    // and a gift has its own row — saying it again in words is repetition.
+    //
+    // Free delivery has neither: the drawer has no postcode and so no delivery
+    // row at all. Dropping its message on the strength of it being "applied"
+    // is how a customer who has just earned free delivery gets told nothing
+    // about it.
+    $alreadyShown = [];
+    foreach (($totals['offers_applied'] ?? []) as $offer) {
+        $hasRow = round((float)($offer['discount'] ?? 0), 2) > 0
+               || !empty($offer['free_items']);
+        $said   = trim((string)($offer['message'] ?? ''));
+        if ($hasRow && $said !== '') {
+            $alreadyShown[] = $said;
+        }
+    }
+
+    return array_values(array_filter(
+        $messages,
+        fn($m) => !in_array(trim((string)$m), $alreadyShown, true)
+    ));
+}
+
+/**
+ * The cart drawer's money block, as finished HTML.
+ *
+ * The drawer used to print one figure — cart_handler.php's basket total — and
+ * nothing else. With an offer running that is no longer what the customer
+ * pays, so every figure in here now comes straight out of computeOrderTotals(),
+ * the same function that builds the Stripe charge and writes the order.
+ * Nothing is added up, worked back or rounded a second time.
+ *
+ * Delivery is deliberately absent: the drawer has no postcode and no
+ * collection choice, so there is nothing yet to price. The delivery figures
+ * appear as words in the notes ("you are £4.20 from free delivery") and as
+ * real money at checkout.
+ */
+function cbOrderCartSummary(array $totals, array $cart, ?array $appliedPromo, string $orderType): string
+{
+    $esc = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+
+    $rows = '';
+
+    // ── One row per offer, named the way the owner named it ──
+    foreach (($totals['offers_applied'] ?? []) as $offer) {
+        $amount = round((float)($offer['discount'] ?? 0), 2);
+        if ($amount <= 0) {
+            continue;   // free delivery and free gifts are not money off
+        }
+        $label = trim((string)($offer['name'] ?? ''));
+        if ($label === '') {
+            $label = trim((string)($offer['badge'] ?? ''));
+        }
+        if ($label === '') {
+            $label = 'Offer applied';
+        }
+        $rows .= '<div class="cbof-cart-line cbof-cart-line-offer">'
+               . '<span class="cbof-cart-line-label"><i class="fa-solid fa-tag"></i> ' . $esc($label) . '</span>'
+               . '<span class="cbof-cart-line-value">&minus;' . cbOfferMoney($amount) . '</span></div>';
+    }
+
+    // ── The code the customer typed, kept apart from the shop's own offers ──
+    $promoDiscount = round((float)($totals['promo_discount'] ?? 0), 2);
+    if ($promoDiscount > 0) {
+        $rows .= '<div class="cbof-cart-line cbof-cart-line-offer">'
+               . '<span class="cbof-cart-line-label"><i class="fa-solid fa-ticket"></i> '
+               . ($appliedPromo ? 'Code ' . $esc($appliedPromo['code']) : 'Promo code')
+               . '</span>'
+               . '<span class="cbof-cart-line-value">&minus;' . cbOfferMoney($promoDiscount) . '</span></div>';
+    }
+
+    // ── VAT (trade partners with a VAT number only) ──────────
+    if (!empty($totals['vat_applies'])) {
+        $rows .= '<div class="cbof-cart-line cbof-cart-line-vat">'
+               . '<span class="cbof-cart-line-label"><i class="fa-solid fa-receipt"></i> VAT @ '
+               . (int)round((float)$totals['vat_rate'] * 100) . '%</span>'
+               . '<span class="cbof-cart-line-value">+ ' . cbOfferMoney((float)$totals['vat']) . '</span></div>';
+    }
+
+    $out = '';
+
+    // The breakdown only appears when there is something to break down. A
+    // basket with no offer, no code and no VAT shows exactly what it always
+    // showed: one Total.
+    if ($rows !== '') {
+        $out .= '<div class="cbof-cart-lines">'
+              . '<div class="cbof-cart-line">'
+              . '<span class="cbof-cart-line-label">Subtotal</span>'
+              . '<span class="cbof-cart-line-value">' . cbOfferMoney((float)$totals['subtotal']) . '</span></div>'
+              . $rows
+              . '</div>';
+    }
+
+    $out .= '<div class="cart-total-row">'
+          . '<span class="cart-total-label">Total</span>'
+          . '<span class="cart-total-amount" id="cartTotal">' . cbOfferMoney((float)$totals['total']) . '</span>'
+          . '</div>';
+
+    // ── A gift that has been earned ──────────────────────────
+    foreach (($totals['offer_free_items'] ?? []) as $gift) {
+        $label = trim((string)($gift['label'] ?? ''));
+        if ($label === '') {
+            $label = 'Your free gift';
+        }
+        $qty = max(1, (int)($gift['qty'] ?? 1));
+        if ($qty > 1) {
+            $label .= ' &times; ' . $qty;
+        }
+        $out .= '<div class="cbof-gift-row">'
+              . '<span class="cbof-gift-label"><i class="fa-solid fa-gift"></i> ' . $esc($label) . '</span>'
+              . '<span class="cbof-gift-value">On us</span></div>';
+    }
+
+    // ── The words ────────────────────────────────────────────
+    $notes = cbOrderCartNotes($cart, $totals, $orderType);
+    if ($notes !== []) {
+        $out .= '<div class="cbof-notes">';
+        foreach ($notes as $note) {
+            $out .= '<p class="cbof-note">' . $esc($note) . '</p>';
+        }
+        $out .= '</div>';
+    }
+
+    return $out;
+}
+
+/**
+ * Work out the drawer's figures for whatever is in the basket right now.
+ *
+ * 'delivery' rather than 'collection' because the drawer has no order-type
+ * choice on it, and delivery is the case with something worth saying: how far
+ * off free delivery the basket is, and whether it has reached the minimum.
+ * With no postcode the delivery charge itself is 0, so nothing is quoted that
+ * has not been looked up.
+ */
+function cbOrderCartFigures(PDO $pdo, array $cart): array
+{
+    $subtotal = 0.0;
+    foreach ($cart as $item) {
+        $subtotal += (float)($item['price'] ?? 0) * (int)($item['quantity'] ?? 0);
+    }
+    $promoRow = validatedPromoRow($pdo, round($subtotal, 2));
+
+    return [
+        'totals' => computeOrderTotals($cart, $promoRow, 'delivery', ''),
+        'promo'  => $promoRow ? ($_SESSION['promo'] ?? null) : null,
+    ];
+}
+
+// ── The drawer asks for its figures again whenever the basket changes ──
+//
+// GET, and nothing personal in it: there is no postcode and no address here,
+// only "what does what is already in my session basket come to".
+if (($_GET['summary'] ?? '') === 'json') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+
+    $cart = $_SESSION['cart'] ?? [];
+    $html = '';
+    if ($cart !== []) {
+        try {
+            $figures = cbOrderCartFigures($pdo, $cart);
+            $html    = cbOrderCartSummary($figures['totals'], $cart, $figures['promo'], 'delivery');
+        } catch (Throwable $e) {
+            // The drawer keeps whatever it last showed rather than emptying
+            // itself. A basket the customer cannot see is worse than one that
+            // is a moment out of date.
+            error_log('Cart summary unavailable: ' . $e->getMessage());
+            $html = '';
+        }
+    }
+
+    echo json_encode(['ok' => true, 'html' => $html]);
+    exit;
+}
+
+// ── The drawer's opening figures ─────────────────────────────
+//
+// Rendered here rather than left to the first fetch, so a customer who arrives
+// with a basket already in their session opens the drawer on the right total
+// instead of watching £0.00 correct itself.
+$drawerCart    = $_SESSION['cart'] ?? [];
+$drawerSummary = '';
+if ($drawerCart !== []) {
+    try {
+        $drawerFigures = cbOrderCartFigures($pdo, $drawerCart);
+        $drawerSummary = cbOrderCartSummary(
+            $drawerFigures['totals'], $drawerCart, $drawerFigures['promo'], 'delivery'
+        );
+    } catch (Throwable $e) {
+        error_log('Cart summary unavailable on load: ' . $e->getMessage());
+        $drawerSummary = '';
+    }
+}
 
 // Load categories
 $categories = [];
@@ -269,6 +593,9 @@ if (!empty($products)) {
 
                 $isOutOfStock = ($product['track_stock'] ?? 0) && ($product['stock_qty'] ?? 1) <= 0;
                 $stockLow     = ($product['track_stock'] ?? 0) && ($product['stock_qty'] ?? 0) > 0 && ($product['stock_qty'] ?? 0) <= 5;
+
+                // Nothing to advertise on something we cannot sell today.
+                $offerBadge = $isOutOfStock ? '' : cbOrderOfferBadge($product, $pageOffers);
             ?>
             <article class="product-card glass-panel<?php if ($isOutOfStock): ?> out-of-stock<?php endif; ?>"
                      data-category="<?= htmlspecialchars($product['category']) ?>"
@@ -277,6 +604,13 @@ if (!empty($products)) {
 
                 <?php if (!empty($product['badge'])): ?>
                 <span class="product-badge <?= $badgeClass ?>"><?= htmlspecialchars($product['badge']) ?></span>
+                <?php endif; ?>
+
+                <?php // The offer badge sits top LEFT, so a product can carry
+                      // both this and its own New / Hot / Best Seller badge
+                      // without either covering the other. ?>
+                <?php if ($offerBadge !== ''): ?>
+                <span class="cbof-badge"><i class="fa-solid fa-tag" aria-hidden="true"></i> <?= htmlspecialchars($offerBadge) ?></span>
                 <?php endif; ?>
 
                 <!-- Product Image -->
@@ -387,10 +721,18 @@ if (!empty($products)) {
     </div>
 
     <div class="cart-footer cbor-hidden" id="cartFooter">
-        <div class="cart-total-row">
-            <span class="cart-total-label">Total</span>
-            <span class="cart-total-amount" id="cartTotal">£0.00</span>
-        </div>
+        <?php // The total, any offer that has come off it, an earned gift and
+              // the lines of encouragement — all rendered by the SERVER from
+              // computeOrderTotals(), the same function that makes the charge.
+              // This box used to hold one figure typed in by the browser from
+              // cart_handler.php's basket total, which stopped being what the
+              // customer pays the moment an offer applied to the basket. ?>
+        <div id="cbofCartSummary"><?php if ($drawerSummary !== ''): ?><?= $drawerSummary ?><?php else: ?>
+            <div class="cart-total-row">
+                <span class="cart-total-label">Total</span>
+                <span class="cart-total-amount" id="cartTotal">£0.00</span>
+            </div>
+            <?php endif; ?></div>
         <a href="checkout.php" class="btn-primary btn-checkout">
             <i class="fa-solid fa-arrow-right"></i> Proceed to Checkout
         </a>
@@ -566,7 +908,6 @@ function clearCart() {
 function renderCart() {
     const itemsEl  = document.getElementById('cartItems');
     const footerEl = document.getElementById('cartFooter');
-    const totalEl  = document.getElementById('cartTotal');
 
     if (!cartState.items || cartState.items.length === 0) {
         itemsEl.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon"><i class="fa-solid fa-basket-shopping"></i></div><p>Your cart is empty.<br>Add something delicious!</p></div>`;
@@ -616,9 +957,38 @@ function renderCart() {
     });
 
     itemsEl.innerHTML = html;
-    totalEl.textContent = '£' + cartState.cart_total;
     footerEl.style.display = 'block';
+
+    // The total is no longer typed in here. cartState.cart_total is what the
+    // items add up to before any offer, and printing it next to "Buy one, get
+    // one free" would show the customer a figure they are not being charged.
+    // The server renders that whole block instead.
+    refreshCartSummary();
 } // ← end renderCart
+
+// ── The drawer's money block ─────────────────────────────────
+//
+// NOTHING about money is worked out down here. The page asks order.php for the
+// figures computeOrderTotals() would actually charge and puts the finished
+// block on screen. Only the newest answer is allowed to land: two quick presses
+// of "+" would otherwise race, and the slower reply could arrive last.
+let cartSummaryRequestId = 0;
+function refreshCartSummary() {
+    const mine = ++cartSummaryRequestId;
+
+    return fetch('order.php?summary=json', { headers: { 'Accept': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+            if (mine !== cartSummaryRequestId) return;   // a newer answer is on its way
+            if (!data || !data.ok || typeof data.html !== 'string' || data.html === '') return;
+            const box = document.getElementById('cbofCartSummary');
+            if (box) box.innerHTML = data.html;
+        })
+        .catch(() => {
+            // Leave the last figures the server gave us on screen. They are
+            // stale by one change at worst; invented ones would be wrong.
+        });
+}
 
 // ── Update in-cart indicators on product cards ───────────────
 

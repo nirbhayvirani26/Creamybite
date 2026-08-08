@@ -438,6 +438,20 @@ if (!function_exists('cbApplyOffers')) {
                     if ($orderType !== 'delivery') {
                         continue 2;
                     }
+                    // The admin form lets this be aimed at one product or one
+                    // category, so honour that: free delivery "on Royal
+                    // Flavours" must not apply to a basket of Classics. Without
+                    // this the scope was collected, shown back to the owner as
+                    // the offer they had set, and then quietly ignored.
+                    if (($offer['scope'] ?? 'all') !== 'all') {
+                        $matched = false;
+                        foreach ($lines as $line) {
+                            if (cbOfferMatchesLine($offer, $line)) { $matched = true; break; }
+                        }
+                        if (!$matched) {
+                            continue 2;
+                        }
+                    }
                     $freeDelivery = true;
                     break;
 
@@ -447,6 +461,17 @@ if (!function_exists('cbApplyOffers')) {
                     // without one it does nothing.
                     if ($minSpend <= 0) {
                         continue 2;
+                    }
+                    // Same as above: a gift aimed at a category only earns its
+                    // place when the basket actually contains that category.
+                    if (($offer['scope'] ?? 'all') !== 'all') {
+                        $matched = false;
+                        foreach ($lines as $line) {
+                            if (cbOfferMatchesLine($offer, $line)) { $matched = true; break; }
+                        }
+                        if (!$matched) {
+                            continue 2;
+                        }
                     }
                     $freeItems[] = [
                         'label'       => trim((string)($offer['badge_text'] ?? '')) !== ''
@@ -538,7 +563,8 @@ if (!function_exists('cbCartMessages')) {
      *
      * @return string[]
      */
-    function cbCartMessages(array $cart, float $subtotal, string $orderType): array
+    function cbCartMessages(array $cart, float $subtotal, string $orderType,
+                            string $postcode = ''): array
     {
         $lines = cbOfferLines($cart);
         if ($lines === []) {
@@ -571,8 +597,20 @@ if (!function_exists('cbCartMessages')) {
         //    below on purpose: being told the minimum order is £20 matters
         //    more than being invited to buy one more tub.
         if ($orderType === 'delivery') {
-            $freeOver = $settings['free_delivery_over'];
-            if ($freeOver !== null) {
+            // Only worth saying anything about spending your way to free
+            // delivery if delivery is not already free for this address.
+            // Inside the free radius it costs nothing whatever the basket
+            // comes to, so "you are £16 away from free delivery" was both
+            // wrong and faintly insulting to someone who lives round the
+            // corner. Delivery on this order is free when it is already
+            // being given away by the radius rule.
+            $freeOver         = $settings['free_delivery_over'];
+            $alreadyFreeByArea = ($applied['free_delivery'] ?? false)
+                || (function_exists('calculateDeliveryCharge')
+                    && $postcode !== ''
+                    && calculateDeliveryCharge($postcode, $subtotal) <= 0.0);
+
+            if ($freeOver !== null && !$alreadyFreeByArea) {
                 $messages[] = cbOfferAtLeast($subtotal, $freeOver)
                     ? 'Delivery is on us — you have spent over ' . cbOfferMoney($freeOver) . '.'
                     : 'You are ' . cbOfferMoney($freeOver - $subtotal) . ' away from free delivery.';

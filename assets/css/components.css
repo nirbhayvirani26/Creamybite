@@ -203,9 +203,15 @@
 .cbco-summary-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; }
 .cbco-summary-row-vat      { font-weight: 600; }
 .cbco-summary-row-discount { color: #10b981; font-weight: 600; }
-/* must stay after .cbco-summary-row: the row starts hidden and JS toggles
-   display inline */
-.cbco-summary-row-delivery { display: none; color: #f59e0b; font-weight: 600; }
+/* The delivery row is now rendered by the SERVER, which adds .cbco-hidden
+   itself when there is nothing to say — so this must be display:flex, not
+   display:none. It used to start hidden and be re-shown by
+   `deliveryRow.style.display = 'flex'` in the browser; while that inline show
+   was the only thing that revealed it, the row the server rendered — the one
+   that knows about offers and the free-delivery-over figure — never appeared
+   at all. .cbco-hidden is the LAST rule in this file, so it still wins when
+   the server asks for the row to be hidden. */
+.cbco-summary-row-delivery { display: flex; color: #f59e0b; font-weight: 600; }
 .cbco-summary-divider-tight { margin: 10px 0; }
 .cbco-vat-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; text-align: right; }
 .cbco-delivery-banner { margin-top: 20px; padding: 14px; background: rgba(0, 201, 167, 0.06); border: 1px solid rgba(0, 201, 167, 0.15); border-radius: var(--radius-sm); }
@@ -1536,6 +1542,200 @@ body.about-page .cbab-social-icon > svg { font-size: 0.5em; width: 1em; height: 
 .cboc-collect-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
 .flavour-card-img > i,
 .flavour-card-img > svg { font-size: 0.5em; width: 1em; height: 1em; }
+
+/* ============================================================
+   OFFERS, GIFTS AND CART MESSAGES  (cbof-)
+   ============================================================
+   One set of classes for both places a customer meets an offer: the cart
+   drawer on the menu page and the order summary at checkout. The two pages
+   render their own markup — they have to, one is a slim drawer and the other
+   a full summary — but they share these rules so a buy-one-get-one looks the
+   same in both, and so a change of mind about the tone is made once.
+
+   The palette is the brand's own gold and chocolate rather than the usual
+   discount red. This is a premium ice cream shop; a saving here should read
+   as something the shop is pleased to give, not as a clearance sticker.
+
+   Nothing in here sets `display` on .cbco-summary-row or its variants, so the
+   visibility block at the foot of this file keeps the last word.
+   ------------------------------------------------------------ */
+
+/* ── Delivery, once something has made it free ──────────────── */
+/* Sits on the same row as .cbco-summary-row-delivery and simply recolours it:
+   the amber "you are paying for this" becomes the green of a saving. */
+.cbof-row-free { color: #10b981; }
+
+/* ── The banner under the total ─────────────────────────────── */
+/* Modifiers on .cbco-delivery-banner. Written by the server from the same
+   figures as the rows above it, so the two can never disagree. */
+.cbof-banner-good {
+    background: rgba(16, 185, 129, 0.06);
+    border-color: rgba(16, 185, 129, 0.25);
+}
+.cbof-banner-warn {
+    background: rgba(199, 136, 41, 0.07);
+    border-color: rgba(199, 136, 41, 0.28);
+}
+.cbof-banner-text-good { color: #0f9b76; }
+.cbof-banner-text-warn { color: #9a6612; }
+
+/* ── "Delivery is £1.99." under the postcode box ────────────── */
+/* Its own line rather than sharing #postcodeStatus: that one is written by
+   the browser as it measures the distance, and this one only ever repeats
+   what the server said the price was. Two writers on one element is how a
+   stale figure survives on screen. Hidden by .cbco-hidden, which is the last
+   rule in this file, so this display never fights it. */
+.cbof-price-note {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* ── A gift that has been earned ────────────────────────────── */
+/* Below the total on purpose: a free tub is an extra thing in the box, not
+   money off, so it must not sit among the rows that add up. */
+.cbof-gift-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 9px 12px;
+    border: 1px dashed rgba(199, 136, 41, 0.45);
+    border-radius: var(--radius-sm);
+    background: rgba(253, 244, 229, 0.75);
+}
+.cbof-gift-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.cbof-gift-label > i { font-size: 0.8em; color: var(--color-secondary); }
+.cbof-gift-value {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-secondary);
+    white-space: nowrap;
+}
+
+/* ── The words ──────────────────────────────────────────────── */
+/* Quiet by design. These are lines a customer reads once and acts on, not
+   shouting — no capitals, no exclamation marks, nothing flashing. */
+.cbof-notes {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.cbof-note {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+/* A small gold dot instead of an icon per line: four icons stacked up read as
+   a warning list, and none of this is a warning. */
+.cbof-note::before {
+    content: '';
+    flex: 0 0 auto;
+    width: 5px;
+    height: 5px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: var(--color-secondary);
+    opacity: 0.65;
+}
+
+/* ── The offer badge on a product card ──────────────────────── */
+/* Top LEFT, because .product-badge (New / Hot / Best Seller) already owns the
+   top right — a card can carry both without either covering the other. */
+.cbof-badge {
+    position: absolute;
+    top: 16px; left: 16px;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: calc(100% - 110px);
+    padding: 4px 11px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    color: #FFF6E6;
+    background: linear-gradient(135deg, var(--color-primary) 0%, #7a2b33 100%);
+    border: 1px solid rgba(199, 136, 41, 0.55);
+    box-shadow: 0 2px 8px rgba(92, 29, 36, 0.22);
+    /* A long badge is trimmed rather than allowed to wrap across the photo. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cbof-badge > i { font-size: 0.8em; color: var(--color-secondary); }
+
+/* ── The cart drawer's money block ──────────────────────────── */
+/* The drawer used to print one line, the basket total, straight from
+   cart_handler.php. With an offer running that figure is no longer what the
+   customer pays, so the whole block is rendered by the server from
+   computeOrderTotals() — the same function that makes the charge. */
+.cbof-cart-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+.cbof-cart-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.cbof-cart-line-label {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cbof-cart-line-label > i { font-size: 0.8em; }
+.cbof-cart-line-value { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cbof-cart-line-offer { color: #0f9b76; font-weight: 600; }
+.cbof-cart-line-offer .cbof-cart-line-label > i { color: #0f9b76; }
+.cbof-cart-line-vat   { font-weight: 600; }
+
+/* The drawer footer used to hold one figure and two buttons and could not
+   grow. It now carries the offer breakdown, an earned gift and up to four
+   lines of encouragement — and .cart-items is `flex: 1 1 0` with
+   `min-height: 0`, so a tall footer would squeeze the basket itself down to
+   nothing and the customer could no longer see what they were buying.
+   These two give the basket a floor and let the footer scroll instead.
+   components.css loads after style.css, so this wins without !important. */
+.cart-sidebar .cart-items  { min-height: 96px; }
+.cart-sidebar .cart-footer { max-height: 55vh; overflow-y: auto; }
+
+@media (max-width: 480px) {
+    .cbof-badge { top: 12px; left: 12px; max-width: calc(100% - 96px); }
+    .cbof-gift-row { padding: 8px 10px; }
+}
 
 /* ============================================================
    VISIBILITY UTILITIES — THESE MUST STAY LAST IN THIS FILE
