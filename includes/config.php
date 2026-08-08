@@ -131,36 +131,10 @@ define('ORDER_PREFIX', 'CB');
 // Retail customers are never charged this — shelf prices are inclusive.
 define('TRADE_VAT_RATE', 0.20);   // 20%
 
-// Smallest basket we will deliver. Collection has no minimum — the cost this
-// covers is the driver, not the ice cream.
-//
-// Defined once because it is enforced in three places that must agree: the
-// checkout page (to warn early), stripe_intent.php (so a card is never
-// charged for a basket the handler will reject) and checkout_handler.php (the
-// only one that actually decides). When these were three separate literals,
-// changing the figure in one left the other two quietly enforcing the old one.
-define('MIN_DELIVERY_ORDER', 20.00);
-
-// How far we drive, and what it costs. Same reasoning as the figure above:
-// these were written out by hand in pricing.php, checkout_handler.php, the
-// checkout page's JavaScript, shipping.php and terms.php. Five copies of a
-// number that a shop changes when fuel prices move — and the customer-facing
-// pages are the copies nobody thinks to update, so the site would promise one
-// price and charge another.
-define('FREE_DELIVERY_MILES',   3.0);    // free inside this radius
-define('DELIVERY_RADIUS_MILES', 6.0);    // furthest we will drive at all
-define('DELIVERY_CHARGE',       1.99);   // charged between the two
-
-// Every distance in this app is straight-line (Haversine) between two
-// coordinates, not an actual driving route — postcodes.io gives coordinates,
-// not routes. A real road network is never a straight line, so this factor
-// scales the straight-line figure up to a realistic driving-distance estimate
-// before it is compared against the radius above or shown to a customer.
-// 1.3 is a standard urban "circuity factor" (driving distance is typically
-// 25-35% longer than straight-line in a town/city road grid) — checked
-// against a real route (HA1 2SP to NW3 3RA: 7.55mi straight-line, 9.84mi
-// actually driven, a 1.30x ratio) rather than picked arbitrarily.
-define('DELIVERY_DISTANCE_FACTOR', 1.3);
+// The delivery figures — the charge, the radius, the minimum basket — are no
+// longer written here. They are settings the owner changes from the admin
+// panel, so they live in the database and are defined further down this file,
+// once the database login is known. See the "Delivery figures" block below.
 
 // ── Auto-Detect Environment (Local MAMP vs Live Server) ────────
 //  CLI has no HTTP_HOST. Treat that as LOCAL, not live — otherwise any
@@ -196,6 +170,57 @@ define('DB_NAME', $db['name']);
 define('DB_USER', $db['user']);
 define('DB_PASS', $db['pass']);
 
+// ════════════════════════════════════════════════════════════
+//  Delivery figures — the owner's own settings
+// ════════════════════════════════════════════════════════════
+//
+// These five used to be typed in above as literals, which meant changing the
+// delivery charge was a code edit and an upload. They now come from one row in
+// the database that the admin panel writes to, and they are still defined as
+// the SAME FIVE CONSTANTS, so every place that already reads them keeps
+// working untouched: pricing.php, checkout_handler.php, stripe_intent.php,
+// pages/checkout.php, pages/catalogue.php, pages/faq.php, pages/shipping.php
+// and pages/terms.php.
+//
+// It has to happen HERE, after DB_HOST..DB_PASS are defined above, because
+// that is what includes/store_settings.php connects with — and it opens its
+// own connection rather than using includes/db.php, because db.php requires
+// THIS file on its line 6. Requiring db.php from config.php would be a loop,
+// and four of the files listed above never load db.php at all.
+//
+// If the database cannot be reached, or has not had the migration run on it
+// yet, cbStoreSettings() hands back the figures the shop has always used and
+// the site carries on. Nothing here can white-screen a page.
+require_once __DIR__ . '/store_settings.php';
+$storeSettings = cbStoreSettings();
+
+// Smallest basket we will deliver. Collection has no minimum — the cost this
+// covers is the driver, not the ice cream. Enforced in three places that must
+// agree: the checkout page (to warn early), stripe_intent.php (so a card is
+// never charged for a basket the handler will reject) and checkout_handler.php
+// (the only one that actually decides).
+define('MIN_DELIVERY_ORDER',    $storeSettings['min_delivery_order']);
+
+// How far we drive, and what it costs.
+define('FREE_DELIVERY_MILES',   $storeSettings['free_delivery_miles']);    // free inside this radius
+define('DELIVERY_RADIUS_MILES', $storeSettings['delivery_radius_miles']);  // furthest we will drive at all
+define('DELIVERY_CHARGE',       $storeSettings['delivery_charge']);        // charged between the two
+
+// Every distance in this app is straight-line (Haversine) between two
+// coordinates, not an actual driving route — postcodes.io gives coordinates,
+// not routes. A real road network is never a straight line, so this factor
+// scales the straight-line figure up to a realistic driving-distance estimate
+// before it is compared against the radius above or shown to a customer.
+// 1.3 is a standard urban "circuity factor" (driving distance is typically
+// 25-35% longer than straight-line in a town/city road grid) — checked
+// against a real route (HA1 2SP to NW3 3RA: 7.55mi straight-line, 9.84mi
+// actually driven, a 1.30x ratio) rather than picked arbitrarily.
+define('DELIVERY_DISTANCE_FACTOR', $storeSettings['delivery_distance_factor']);
+
+// The rest of the row — free delivery over £X, the standing cart message — is
+// read through cbStoreSettings() where it is needed. It is deliberately NOT
+// given constants of its own: one way of reading a setting is enough.
+
 // ── Stripe Payment Keys ──────────────────────────────────────
 define('STRIPE_PUBLISHABLE_KEY', $secrets['stripe']['publishable']);
 define('STRIPE_SECRET_KEY',      $secrets['stripe']['secret']);
@@ -207,4 +232,4 @@ define('SMTP_USER', $secrets['smtp']['user']);
 define('SMTP_PASS', $secrets['smtp']['pass']);
 define('SMTP_PORT', $secrets['smtp']['port']);
 
-unset($secrets, $db, $host, $isCli, $isLocal);
+unset($secrets, $db, $host, $isCli, $isLocal, $storeSettings);

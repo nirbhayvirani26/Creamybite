@@ -586,6 +586,20 @@ $adminNav = [
     ['tab' => 'categories', 'icon' => 'fa-tags',               'label' => 'Categories'],
     ['tab' => 'promos',     'icon' => 'fa-ticket',             'label' => 'Promos'],
 
+    ['group' => 'Shop Setup'],
+    // A standalone page rather than a ?tab= in this file — same treatment as
+    // VAT & Accounting below. Deliberately NOT added to $validTabs: there is
+    // no 'store' block in the tab content further down, so a ?tab=store would
+    // render an empty page. Gated by its own 'store' permission key, which is
+    // also registered in CBI_GRANTABLE_SECTIONS (admin/handlers/staff_handler.php)
+    // and in $cbiGrantableSections on the Staff tab, or it could not be ticked.
+    // PAUSED MID-BUILD: admin/store.php is not written yet, so this link is
+    // commented out rather than left to 404. Uncomment it the moment that page
+    // exists — everything else it needs (the handler, the settings layer, the
+    // offers engine, the 'store' permission) is already in place.
+    // ['href' => 'store.php',  'icon' => 'fa-truck-fast',        'label' => 'Delivery & Offers',
+    //  'perm' => 'store'],
+
     ['group' => 'Customers'],
     ['tab' => 'trade',      'icon' => 'fa-store',              'label' => 'Trade Accounts',
      'badge' => $pendingTradeCount > 0 ? (string)$pendingTradeCount : null, 'alert' => true],
@@ -639,6 +653,9 @@ $pageTitles = [
     'gallery'    => ['<i class="fa-solid fa-images"></i> Gallery',         'Photos shown on the public gallery'],
     'categories' => ['<i class="fa-solid fa-tags"></i> Categories',      'Organise the menu'],
     'promos'     => ['<i class="fa-solid fa-ticket"></i> Promos',          'Discount codes'],
+    // Heading for admin/store.php, which is its own page rather than a tab
+    // here. Kept in this array so there is one place the admin headings live.
+    'store'      => ['<i class="fa-solid fa-truck-fast"></i> Delivery &amp; Offers', 'Delivery charges, offers and cart messages'],
     'inquiries'  => ['<i class="fa-solid fa-envelope-open-text"></i> Inquiries',        'Messages from the contact form'],
     'reviews'    => ['<i class="fa-solid fa-star"></i> Reviews',          'Customer reviews shown on the home page'],
     'staff'      => ['<i class="fa-solid fa-user-shield"></i> Staff',           'Manage staff logins and section access'],
@@ -3179,7 +3196,7 @@ $pageTitles = [
                 'products' => 'Products', 'stock' => 'Stock', 'categories' => 'Categories',
                 'promos' => 'Promos', 'trade' => 'Trade Accounts', 'inquiries' => 'Inquiries',
                 'gallery' => 'Gallery', 'banners' => 'Home Banner', 'reviews' => 'Reviews',
-                  'accounting' => 'VAT & Accounting',
+                'accounting' => 'VAT & Accounting', 'store' => 'Delivery & Offers',
             ];
             ?>
 
@@ -4599,6 +4616,18 @@ function cbiOwnerChangePassword() {
     .catch(() => { msgEl.textContent = 'Network error.'; });
 }
 
+// These strings go into innerHTML below, so they have to be made safe. Escape
+// them rather than delete the characters: the old strip turned the ampersand
+// out of "VAT & Accounting" and "Delivery & Offers", leaving the owner looking
+// at "VAT  Accounting" with a hole in it. Escaping shows the & and is just as
+// safe, because the browser renders the entity as text and never as markup.
+function cbiEscHtml(s) {
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 // Backdrop is built by JS when needed, same as askWhoDelivered() above —
 // reuses the .cbi-wd-* dialog styling rather than a second copy of it.
 function cbiEditStaff(staffId, name, granted, active) {
@@ -4608,7 +4637,7 @@ function cbiEditStaff(staffId, name, granted, active) {
     const checks = Object.entries(CBI_STAFF_SECTIONS).map(([key, label]) => `
         <label class="cbi-staff-check">
             <input type="checkbox" name="cbiPerm" value="${key}" ${granted.includes(key) ? 'checked' : ''}>
-            ${String(label).replace(/[<>&]/g, '')}
+            ${cbiEscHtml(label)}
         </label>`).join('');
 
     const wrap = document.createElement('div');
@@ -4616,7 +4645,7 @@ function cbiEditStaff(staffId, name, granted, active) {
     wrap.className = 'cbi-wd-backdrop';
     wrap.innerHTML = `
         <div class="cbi-wd-box" role="dialog" aria-modal="true" aria-labelledby="cbiEditTitle">
-            <h3 id="cbiEditTitle" class="cbi-wd-title"><i class="fa-solid fa-user-shield"></i> ${String(name).replace(/[<>&]/g, '')}</h3>
+            <h3 id="cbiEditTitle" class="cbi-wd-title"><i class="fa-solid fa-user-shield"></i> ${cbiEscHtml(name)}</h3>
             <p class="cbi-wd-sub">Choose which sections this account can see and edit.</p>
 
             <div class="cbi-staff-checks">${checks}</div>

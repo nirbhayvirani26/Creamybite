@@ -10,8 +10,11 @@
 //
 //  Order of operations:
 //      subtotal      = sum(line price x qty)
-//      discount      = promo, never more than the subtotal
-//      delivery      = postcode-based, 0 for collection
+//      offers        = the shop's own promotions (BOGO and friends)
+//      promo         = the code the customer typed, on what is left after them
+//      discount      = offers + promo, never more than the subtotal
+//      delivery      = postcode-based, 0 for collection, 0 when an offer or
+//                      the free-delivery-over figure covers it
 //      taxable base  = subtotal - discount + delivery
 //      VAT           = 20% of the base, trade customers with a VAT number only
 //      total         = base + VAT
@@ -20,10 +23,20 @@
 //  their profile. Retail shelf prices are VAT-inclusive, so retail orders
 //  never have VAT added on top.
 //
+//  OFFERS AND PROMO CODES ARE REPORTED SEPARATELY
+//  ----------------------------------------------
+//  computeOrderTotals() returns 'offer_discount' and 'promo_discount' as well
+//  as the combined 'discount', so the checkout can list "Buy one get one free
+//  −£4.50" and "SUMMER10 −£1.35" on their own lines. 'discount' keeps its old
+//  meaning — everything taken off the goods — so the three existing callers
+//  (the checkout page, stripe_intent.php, checkout_handler.php) stay correct
+//  without being touched.
+//
 //  Requires config.php (TRADE_VAT_RATE) and an open session.
 // ============================================================
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/offers.php';
 
 /**
  * Delivery charge for a postcode, in pounds.
@@ -136,7 +149,13 @@ function tradeVatNumber(): string
  * @param string     $orderType 'delivery' or 'collection'
  * @param string     $postcode  delivery postcode
  *
- * @return array{subtotal:float,discount:float,delivery:float,vat:float,vat_rate:float,vat_applies:bool,total:float,total_pence:int}
+ * @return array{
+ *   subtotal:float, discount:float, offer_discount:float, promo_discount:float,
+ *   delivery:float, delivery_before_offer:float, delivery_is_free:bool,
+ *   delivery_free_reason:string, offer_messages:array<int,string>,
+ *   offer_free_items:array, offers_applied:array,
+ *   vat:float, vat_rate:float, vat_applies:bool, total:float, total_pence:int
+ * }
  */
 function computeOrderTotals(array $cart, ?array $promoRow, string $orderType, string $postcode): array
 {
@@ -147,16 +166,86 @@ function computeOrderTotals(array $cart, ?array $promoRow, string $orderType, st
     }
     $subtotal = round($subtotal, 2);
 
-    // ── Discount ─────────────────────────────────────────────
-    $discount = 0.0;
+    // ── The shop's own offers ────────────────────────────────
+    //
+    // Worked out before the promo code, because the code applies to what is
+    // left after them (see below). The whole block is wrapped: a promotion the
+    // owner has half-configured, or an offers table that cannot be read, must
+    // cost the shop a discount it meant to give — never a checkout. If
+    // anything at all goes wrong here the basket simply sells at its normal
+    // price and the customer can still pay.
+    $offerDiscount     = 0.0;
+    $offerMessages     = [];
+    $offerFreeItems    = [];
+    $offersApplied     = [];
+    $offerFreeDelivery = false;
+
+    if (function_exists('cbActiveOffers') && function_exists('cbApplyOffers')) {
+        try {
+            $offers = cbActiveOffers(tradeIsLoggedIn() ? 'trade' : 'retail');
+            if ($offers !== []) {
+                $applied = cbApplyOffers($cart, $offers, $subtotal, $orderType);
+
+                // Read back defensively rather than trusted wholesale. This is
+                // the boundary between the offer maths and the customer's card,
+                // and it is the last place a wrong figure can be stopped.
+                $offerDiscount = round((float)($applied['discount'] ?? 0), 2);
+                if (!is_finite($offerDiscount) || $offerDiscount < 0) {
+                    $offerDiscount = 0.0;
+                }
+                $offerDiscount = min($offerDiscount, $subtotal);
+
+                $offerMessages  = is_array($applied['messages'] ?? null)   ? array_values($applied['messages'])   : [];
+                $offerFreeItems = is_array($applied['free_items'] ?? null) ? array_values($applied['free_items']) : [];
+                $offersApplied  = is_array($applied['applied'] ?? null)    ? array_values($applied['applied'])    : [];
+
+                foreach ($offersApplied as $one) {
+                    if (!empty($one['free_delivery'])) {
+                        $offerFreeDelivery = true;
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('Offers skipped for this basket: ' . $e->getMessage());
+            $offerDiscount     = 0.0;
+            $offerMessages     = [];
+            $offerFreeItems    = [];
+            $offersApplied     = [];
+            $offerFreeDelivery = false;
+        }
+    }
+
+    // ── The promo code ───────────────────────────────────────
+    //
+    // Applied to what is left AFTER the offers, which is how a high street
+    // does it: "10% off" on a basket where one tub is already free is 10% of
+    // what you are actually paying, not 10% of the ticket price. With no
+    // offers running the remainder IS the subtotal, so a basket that has no
+    // offer on it is charged exactly what it was charged before.
+    //
+    // Taking it out of the remainder also means offers + promo can never
+    // between them exceed the subtotal, and the two figures reported below
+    // always add up to the combined discount — so the checkout can never list
+    // two lines that do not sum to the total taken off.
+    $remaining     = round(max(0.0, $subtotal - $offerDiscount), 2);
+    $promoDiscount = 0.0;
     if ($promoRow) {
         if (($promoRow['discount_type'] ?? '') === 'percentage') {
-            $discount = round($subtotal * ((float)$promoRow['discount_value'] / 100), 2);
+            $promoDiscount = round($remaining * ((float)$promoRow['discount_value'] / 100), 2);
         } else {
-            $discount = (float)$promoRow['discount_value'];
+            $promoDiscount = round((float)$promoRow['discount_value'], 2);
         }
-        // Never discount below zero.
-        $discount = min($discount, $subtotal);
+        // A negative value in the promo row would ADD to the bill. Nothing
+        // in the admin panel writes one, but a customer must not be charged
+        // extra by a discount however the row got there.
+        $promoDiscount = min(max(0.0, $promoDiscount), $remaining);
+    }
+
+    $discount = round($offerDiscount + $promoDiscount, 2);
+    // Cannot happen — both come out of the same subtotal above — but the
+    // shop can never end up owing money, so it is checked rather than assumed.
+    if ($discount > $subtotal) {
+        $discount = $subtotal;
     }
 
     // ── Delivery ─────────────────────────────────────────────
@@ -174,6 +263,32 @@ function computeOrderTotals(array $cart, ?array $promoRow, string $orderType, st
         $delivery = calculateDeliveryCharge($postcode, $subtotal - $discount);
     }
 
+    // Two things can put the delivery charge on the shop: an offer that says
+    // so, and the "free delivery over £X" figure in the store settings.
+    //
+    // The threshold is measured against the SUBTOTAL, which is the same figure
+    // cbCartMessages() measures it against when it tells the customer
+    // "delivery is on us". If one of them used the discounted amount instead,
+    // a customer could be told delivery was free and then charged for it.
+    // Applied here rather than inside calculateDeliveryCharge() because that
+    // function's answer is cached per postcode for the whole checkout: it
+    // answers "how far away is this address", which does not change when the
+    // basket does.
+    $deliveryBeforeOffer = $delivery;
+    $freeReason          = '';
+
+    if ($delivery > 0.0 && $offerFreeDelivery) {
+        $freeReason = 'offer';
+    } elseif ($delivery > 0.0) {
+        $freeOver = cbStoreSettings()['free_delivery_over'];
+        if ($freeOver !== null && $freeOver > 0 && cbOfferAtLeast($subtotal, (float)$freeOver)) {
+            $freeReason = 'spend';
+        }
+    }
+    if ($freeReason !== '') {
+        $delivery = 0.0;
+    }
+
     // ── VAT ──────────────────────────────────────────────────
     $base       = max(0.0, round($subtotal - $discount + $delivery, 2));
     $vatApplies = tradeVatApplies();
@@ -181,14 +296,26 @@ function computeOrderTotals(array $cart, ?array $promoRow, string $orderType, st
     $total      = round($base + $vat, 2);
 
     return [
-        'subtotal'    => $subtotal,
-        'discount'    => $discount,
-        'delivery'    => $delivery,
-        'vat'         => $vat,
-        'vat_rate'    => TRADE_VAT_RATE,
-        'vat_applies' => $vatApplies,
-        'total'       => $total,
-        'total_pence' => (int)round($total * 100),
+        'subtotal'              => $subtotal,
+        // Everything off the goods — offers and the promo code together.
+        // Unchanged in meaning, so existing callers need no edit.
+        'discount'              => $discount,
+        'offer_discount'        => $offerDiscount,
+        'promo_discount'        => $promoDiscount,
+        'delivery'              => $delivery,
+        // What delivery would have cost before anything made it free, so the
+        // checkout can show the saving rather than just a missing row.
+        'delivery_before_offer' => $deliveryBeforeOffer,
+        'delivery_is_free'      => $freeReason !== '',
+        'delivery_free_reason'  => $freeReason,   // '', 'offer' or 'spend'
+        'offer_messages'        => $offerMessages,
+        'offer_free_items'      => $offerFreeItems,
+        'offers_applied'        => $offersApplied,
+        'vat'                   => $vat,
+        'vat_rate'              => TRADE_VAT_RATE,
+        'vat_applies'           => $vatApplies,
+        'total'                 => $total,
+        'total_pence'           => (int)round($total * 100),
     ];
 }
 

@@ -13,12 +13,36 @@ tradeSessionRevalidate($pdo);
 // Load cart
 $cart = $_SESSION['cart'] ?? [];
 $errors = $_SESSION['checkout_errors'] ?? [];
-unset($_SESSION['checkout_errors']);
 
-// Redirect if cart empty
-if (empty($cart)) {
-    header('Location: order.php?empty_cart=1');
-    exit;
+// ── The order summary, asked for on its own ──────────────────
+//
+// Every figure on this page can move while the customer is standing on it:
+// they change a quantity, type a postcode, switch to collection, apply a code.
+// Each of those numbers has to be the one computeOrderTotals() would actually
+// charge, so the page asks the SERVER to work the summary out again and hands
+// back finished HTML. Nothing about money is worked out in the browser — a
+// page that does its own arithmetic is how a customer ends up seeing a
+// different number from the one on their card.
+//
+// The cart drawer on order.php answers the same question for itself, in its
+// own markup, through the same computeOrderTotals().
+//
+// POST rather than GET: a postcode is the customer's own address, and personal
+// details do not belong in a URL.
+$summaryJson = (($_POST['summary'] ?? $_GET['summary'] ?? '') === 'json');
+
+if ($summaryJson) {
+    // A background refresh must NOT swallow the one-shot error list — those
+    // belong to the next real page load, not to a summary request.
+    $errors = [];
+} else {
+    unset($_SESSION['checkout_errors']);
+
+    // Redirect if cart empty
+    if (empty($cart)) {
+        header('Location: order.php?empty_cart=1');
+        exit;
+    }
 }
 
 // Totals come from pricing.php, the same code that creates the Stripe
@@ -39,8 +63,26 @@ if (!empty($_SESSION['promo']) && !$promoRow) {
     $errors[] = 'Your promo code no longer applies to this basket and has been removed.';
 }
 $appliedPromo = $_SESSION['promo'] ?? null;
+$isTradeUser  = !empty($_SESSION['trade_user']);
+$tradeUser    = $_SESSION['trade_user'] ?? [];
 
-$totals = computeOrderTotals($cart, $promoRow, 'delivery', '');
+// What the summary is being asked about. The page itself always renders the
+// "delivery, postcode not given yet" case, exactly as it did before; a summary
+// request says which order type and postcode the customer has since chosen.
+$summaryOrderType = 'delivery';
+$summaryPostcode  = '';
+if ($summaryJson) {
+    $summaryOrderType = (($_POST['order_type'] ?? '') === 'collection') ? 'collection' : 'delivery';
+    $summaryPostcode  = strtoupper(trim((string)($_POST['postcode'] ?? '')));
+    // Only a real UK postcode is passed on. calculateDeliveryCharge() calls
+    // postcodes.io for anything else it is given, and a half-typed postcode is
+    // a lookup that can only fail.
+    if (!preg_match('/^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/', $summaryPostcode)) {
+        $summaryPostcode = '';
+    }
+}
+
+$totals = computeOrderTotals($cart, $promoRow, $summaryOrderType, $summaryPostcode);
 
 $cartTotal      = $totals['subtotal'];
 $discountAmount = $totals['discount'];
@@ -48,6 +90,233 @@ $vatApplies     = $totals['vat_applies'];
 $vatRate        = $totals['vat_rate'];
 $vatAmount      = $totals['vat'];
 $grandTotal     = $totals['total'];
+
+/**
+ * The lines of encouragement to print under the total.
+ *
+ * cbCartMessages() writes them all — the shop's standing message, what has
+ * been earned, the delivery figures, the gentle nudges. Anything an offer row
+ * already states in the summary above is dropped here, so the customer is not
+ * told about the same buy-one-get-one twice: the row is the accounting, these
+ * are the words.
+ *
+ * Never fatal. A shop whose offers cannot be read still has a checkout.
+ */
+function cbCheckoutNotes(array $cart, array $totals, string $orderType): array
+{
+    if (!function_exists('cbCartMessages')) {
+        return [];
+    }
+    try {
+        $messages = cbCartMessages($cart, (float)$totals['subtotal'], $orderType);
+    } catch (Throwable $e) {
+        error_log('Cart messages skipped: ' . $e->getMessage());
+        return [];
+    }
+
+    $alreadyShown = [];
+    foreach (($totals['offers_applied'] ?? []) as $offer) {
+        $said = trim((string)($offer['message'] ?? ''));
+        if ($said !== '') {
+            $alreadyShown[] = $said;
+        }
+    }
+
+    return array_values(array_filter(
+        $messages,
+        fn($m) => !in_array(trim((string)$m), $alreadyShown, true)
+    ));
+}
+
+/**
+ * Every money row of the order summary, as finished HTML.
+ *
+ * ONE renderer, used both for the page itself and for the refresh that follows
+ * a quantity change. Two renderers — one in PHP, one in JavaScript — is how the
+ * screen and the charge drift apart, so there is deliberately only this.
+ *
+ * Every figure in here comes straight out of computeOrderTotals(). Nothing is
+ * added up, worked back or rounded a second time.
+ */
+function cbCheckoutSummaryFigures(
+    array $totals,
+    array $cart,
+    ?array $appliedPromo,
+    string $orderType,
+    string $postcode,
+    bool $isTradeUser
+): string {
+    $esc = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    $out = '';
+
+    // ── Subtotal ─────────────────────────────────────────────
+    $out .= '<div class="cbco-summary-row"><span>Subtotal</span>'
+          . '<span id="subtotalDisplay">' . cbOfferMoney((float)$totals['subtotal']) . '</span></div>';
+
+    // ── One row per offer, named the way the owner named it ──
+    // Named rather than lumped into "Discount": a customer should be able to
+    // see WHICH promotion took the money off, and match it to the one the
+    // shop advertised.
+    foreach (($totals['offers_applied'] ?? []) as $offer) {
+        $amount = round((float)($offer['discount'] ?? 0), 2);
+        if ($amount <= 0) {
+            continue;   // free delivery and free gifts have their own rows
+        }
+        $label = trim((string)($offer['name'] ?? ''));
+        if ($label === '') {
+            $label = trim((string)($offer['badge'] ?? ''));
+        }
+        if ($label === '') {
+            $label = 'Offer applied';
+        }
+        $out .= '<div class="cbco-summary-row cbco-summary-row-discount">'
+              . '<span><i class="fa-solid fa-tag"></i> ' . $esc($label) . '</span>'
+              . '<span>&minus;' . cbOfferMoney($amount) . '</span></div>';
+    }
+
+    // ── The code the customer typed, kept apart from the shop's own offers ──
+    $promoDiscount = round((float)$totals['promo_discount'], 2);
+    $out .= '<div id="discountRow" class="cbco-summary-row cbco-summary-row-discount'
+          . ($promoDiscount > 0 ? '' : ' cbco-hidden') . '">'
+          . '<span><i class="fa-solid fa-ticket"></i> '
+          . ($appliedPromo ? 'Code ' . $esc($appliedPromo['code']) : 'Promo code')
+          . '</span>'
+          . '<span id="discountDisplay">&minus;' . cbOfferMoney($promoDiscount) . '</span></div>';
+
+    // ── Delivery ─────────────────────────────────────────────
+    // Wholesale is not billed per drop, so a trade basket never has this row.
+    if (!$isTradeUser) {
+        $deliveryClass = 'cbco-summary-row cbco-summary-row-delivery';
+        $deliveryValue = '';
+        if (!empty($totals['delivery_is_free'])) {
+            // Something made a real charge disappear — say so rather than
+            // silently dropping the row, so the saving is visible.
+            $deliveryClass .= ' cbof-row-free';
+            $deliveryValue  = 'On us';
+        } elseif ((float)$totals['delivery'] > 0) {
+            $deliveryValue = '+ ' . cbOfferMoney((float)$totals['delivery']);
+        } else {
+            $deliveryClass .= ' cbco-hidden';
+        }
+        $out .= '<div id="deliveryChargeRow" class="' . $deliveryClass . '">'
+              . '<span><i class="fa-solid fa-truck-fast"></i> Delivery</span>'
+              . '<span id="deliveryChargeAmt">' . $deliveryValue . '</span></div>';
+    }
+
+    // ── VAT (trade partners with a VAT number only) ──────────
+    if (!empty($totals['vat_applies'])) {
+        $out .= '<div id="vatRow" class="cbco-summary-row cbco-summary-row-vat">'
+              . '<span><i class="fa-solid fa-receipt"></i> VAT @ '
+              . (int)round((float)$totals['vat_rate'] * 100) . '%</span>'
+              . '<span id="vatDisplay">+ ' . cbOfferMoney((float)$totals['vat']) . '</span></div>';
+    }
+
+    $out .= '<hr class="summary-divider cbco-summary-divider-tight">';
+    $out .= '<div class="summary-total-row"><span class="summary-total-label">Total</span>'
+          . '<span class="summary-total-price" id="summaryTotal">'
+          . cbOfferMoney((float)$totals['total']) . '</span></div>';
+
+    if (!empty($totals['vat_applies']) && function_exists('tradeVatNumber')) {
+        $out .= '<div class="cbco-vat-note">VAT charged against <strong>'
+              . $esc(tradeVatNumber()) . '</strong></div>';
+    }
+
+    // ── A gift that has been earned ──────────────────────────
+    // Not money off — an extra thing in the box — so it sits below the total
+    // rather than pretending to be a discount.
+    foreach (($totals['offer_free_items'] ?? []) as $gift) {
+        $label = trim((string)($gift['label'] ?? ''));
+        if ($label === '') {
+            $label = 'Your free gift';
+        }
+        $qty = max(1, (int)($gift['qty'] ?? 1));
+        if ($qty > 1) {
+            $label .= ' &times; ' . $qty;
+        }
+        $out .= '<div class="cbof-gift-row">'
+              . '<span class="cbof-gift-label"><i class="fa-solid fa-gift"></i> ' . $esc($label) . '</span>'
+              . '<span class="cbof-gift-value">On us</span></div>';
+    }
+
+    // ── The words ────────────────────────────────────────────
+    $notes = cbCheckoutNotes($cart, $totals, $orderType);
+    if ($notes !== []) {
+        $out .= '<div class="cbof-notes">';
+        foreach ($notes as $note) {
+            $out .= '<p class="cbof-note">' . $esc($note) . '</p>';
+        }
+        $out .= '</div>';
+    }
+
+    // ── The delivery banner under the total ──────────────────
+    // Written here, from the same figures, so it can never advertise a
+    // delivery price the summary above disagrees with.
+    if (!$isTradeUser && $orderType !== 'collection') {
+        $bannerClass = 'cbco-delivery-banner';
+        $textClass   = 'cbco-delivery-banner-text';
+        $icon        = 'fa-location-dot';
+        $bannerText  = 'Enter your postcode above and we will show you the delivery cost.';
+
+        if ($postcode !== '') {
+            $icon = 'fa-truck-fast';
+            if ((float)$totals['delivery'] <= 0) {
+                $bannerClass .= ' cbof-banner-good';
+                $textClass   .= ' cbof-banner-text-good';
+                $bannerText   = match ((string)($totals['delivery_free_reason'] ?? '')) {
+                    'spend' => 'Delivery is on us — this basket is over our free delivery amount.',
+                    'offer' => 'Delivery is on us with this order.',
+                    default => 'Free delivery to your postcode.',
+                };
+            } else {
+                $bannerClass .= ' cbof-banner-warn';
+                $textClass   .= ' cbof-banner-text-warn';
+                $bannerText   = 'Delivery to your postcode is '
+                              . cbOfferMoney((float)$totals['delivery']) . '.';
+            }
+        }
+
+        $out .= '<div id="deliveryInfoBanner" class="' . $bannerClass . '">'
+              . '<p class="' . $textClass . '"><i class="fa-solid ' . $icon . '"></i> '
+              . $esc($bannerText) . '</p></div>';
+    }
+
+    return $out;
+}
+
+/**
+ * A one-line statement of what delivery costs, for the message under the
+ * postcode box. The browser knows the distance; only the server knows the
+ * price, because only the server knows what the offers did to it.
+ */
+function cbCheckoutDeliveryNote(array $totals, string $orderType, string $postcode, bool $isTradeUser): string
+{
+    if ($isTradeUser || $orderType === 'collection' || $postcode === '') {
+        return '';
+    }
+    if ((float)$totals['delivery'] > 0) {
+        return 'Delivery is ' . cbOfferMoney((float)$totals['delivery']) . '.';
+    }
+    return 'Delivery is on us.';
+}
+
+// ── The JSON reply ───────────────────────────────────────────
+if ($summaryJson) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode([
+        'ok'             => true,
+        'item_count'     => count($cart),
+        // The subtotal is the only raw number the page keeps, and only because
+        // the minimum-order rule is measured against it — the same figure
+        // checkout_handler.php and stripe_intent.php measure it against.
+        'subtotal'       => (float)$totals['subtotal'],
+        'delivery_note'  => cbCheckoutDeliveryNote($totals, $summaryOrderType, $summaryPostcode, $isTradeUser),
+        'html'           => cbCheckoutSummaryFigures(
+            $totals, $cart, $appliedPromo, $summaryOrderType, $summaryPostcode, $isTradeUser
+        ),
+    ]);
+    exit;
+}
 
 ?>
 <!DOCTYPE html>
@@ -145,11 +414,9 @@ $grandTotal     = $totals['total'];
                 <?php endif; ?>
 
                 <div class="glass-panel section-card">
-                    <?php
-                    $isTradeUser = !empty($_SESSION['trade_user']);
-                    $tradeUser   = $_SESSION['trade_user'] ?? [];
-                    ?>
-
+                    <?php // $isTradeUser and $tradeUser are settled at the top of
+                          // the file — the summary renderer needs them before any
+                          // of this markup runs. ?>
                     <?php if ($isTradeUser): ?>
                     <!-- ── B2B TRADE CUSTOMER CHECKOUT ────────────────────────── -->
                     <div class="cbco-trade-banner">
@@ -512,59 +779,15 @@ $grandTotal     = $totals['total'];
                     </div>
                     <?php endif; ?>
 
-                    <!-- Subtotal row -->
-                    <div class="cbco-summary-row">
-                        <span>Subtotal</span>
-                        <span id="subtotalDisplay">£<?= number_format($cartTotal, 2) ?></span>
-                    </div>
-
-                    <!-- Discount row (hidden if no promo) -->
-                    <div id="discountRow" class="cbco-summary-row cbco-summary-row-discount<?= $appliedPromo ? '' : ' cbco-hidden' ?>">
-                        <span><i class="fa-solid fa-ticket"></i> Discount</span>
-                        <span id="discountDisplay">−£<?= number_format($discountAmount, 2) ?></span>
-                    </div>
-
-                    <!-- Delivery charge row (hidden until postcode entered).
-                         Wholesale deliveries are not charged per drop, so trade
-                         never sees this row — it was appearing on trade baskets
-                         the moment the summary refreshed, adding £1.99 to an
-                         order that is not billed that way. -->
-                    <?php if (!$isTradeUser): ?>
-                    <div id="deliveryChargeRow" class="cbco-summary-row cbco-summary-row-delivery">
-                        <span><i class="fa-solid fa-truck-fast"></i> Delivery</span>
-                        <span id="deliveryChargeAmt">+ £<?= number_format(DELIVERY_CHARGE, 2) ?></span>
-                    </div>
-                    <?php endif; ?>
-
-                    <!-- VAT row (trade partners with a VAT number only) -->
-                    <?php if ($vatApplies): ?>
-                    <div id="vatRow" class="cbco-summary-row cbco-summary-row-vat">
-                        <span><i class="fa-solid fa-receipt"></i> VAT @ <?= (int)($vatRate * 100) ?>%</span>
-                        <span id="vatDisplay">+ £<?= number_format($vatAmount, 2) ?></span>
-                    </div>
-                    <?php endif; ?>
-
-                    <hr class="summary-divider cbco-summary-divider-tight">
-
-                    <div class="summary-total-row">
-                        <span class="summary-total-label">Total</span>
-                        <span class="summary-total-price" id="summaryTotal">£<?= number_format($grandTotal, 2) ?></span>
-                    </div>
-
-                    <?php if ($vatApplies): ?>
-                    <div class="cbco-vat-note">
-                        VAT charged against <strong><?= htmlspecialchars(tradeVatNumber()) ?></strong>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if (!$isTradeUser): ?>
-                    <div id="deliveryInfoBanner" class="cbco-delivery-banner">
-                        <p class="cbco-delivery-banner-text">
-                            <i class="fa-solid fa-location-dot"></i>
-                            Enter your postcode above to see delivery cost
-                        </p>
-                    </div>
-                    <?php endif; ?>
+                    <?php // Every money row, the earned gifts, the messages and the
+                          // delivery banner live in here, rendered by ONE function
+                          // from the figures computeOrderTotals() returned. When the
+                          // basket or the postcode changes, the server renders it
+                          // again and this box is replaced whole — so the screen and
+                          // the charge cannot drift apart. ?>
+                    <div id="cbofSummaryFigures"><?= cbCheckoutSummaryFigures(
+                            $totals, $cart, $appliedPromo, $summaryOrderType, $summaryPostcode, $isTradeUser
+                        ) ?></div>
 
                     <div class="cbco-add-more-row">
                         <a href="order.php" class="cbco-add-more-link">
@@ -583,59 +806,70 @@ $grandTotal     = $totals['total'];
 <?php require __DIR__ . '/../includes/site_footer.php'; ?>
 
 <script>
-// ── Promo Code & Totals Recalculation ───────────────────────────
-let cartSubtotal = <?= (float)$cartTotal ?>;
+// ── The order summary ───────────────────────────────────────────
+//
+// NOTHING about money is worked out down here. This page used to compute the
+// promo discount, the VAT and the total in the browser, which meant three
+// separate copies of rules that live in computeOrderTotals() — and offers,
+// which the browser has no way of knowing about at all, would have made a
+// fourth. Instead the server renders the whole block of figures and this code
+// simply puts it on screen.
+let cartSubtotal = <?= json_encode((float)$cartTotal) ?>;
 let deliveryCharge = 0.0;
 let appliedPromo = <?= json_encode($appliedPromo) ?>;
-const vatApplies = <?= $vatApplies ? 'true' : 'false' ?>;
-const vatRate    = <?= (float)$vatRate ?>;
 
-function recalculateTotals() {
-    let subtotal = cartSubtotal;
-    let discount = 0.0;
-    
-    if (appliedPromo) {
-        const val = parseFloat(appliedPromo.discount_value);
-        if (appliedPromo.discount_type === 'percentage') {
-            discount = Math.round(subtotal * val) / 100;
-        } else {
-            discount = Math.min(val, subtotal);
-        }
-        
-        const discountRow = document.getElementById('discountRow');
-        const discountDisplay = document.getElementById('discountDisplay');
-        if (discountRow && discountDisplay) {
-            discountRow.style.display = discount > 0 ? 'flex' : 'none';
-            discountDisplay.textContent = '−£' + discount.toFixed(2);
-        }
-    } else {
-        const discountRow = document.getElementById('discountRow');
-        if (discountRow) discountRow.style.display = 'none';
-    }
-    
+// The postcode the summary should be priced against. Empty until one has been
+// looked up and found to be inside the delivery radius — see onPostcodeInput().
+let totalsPostcode = '';
+// Only the newest answer is allowed on screen: two quick presses of "+" would
+// otherwise race, and the slower reply could land last.
+let totalsRequestId = 0;
+// What the server last said delivery costs, in words, for the line under the
+// postcode box. The browser knows the distance; only the server knows the
+// price, because only the server knows what the offers did to it.
+let summaryDeliveryNote = '';
+
+/** Ask the server to work the summary out again and show what it says. */
+function refreshSummary() {
     const isCollection = document.querySelector('input[name="order_type"]:checked')?.value === 'collection';
-    let currentDelivery = isCollection ? 0.0 : deliveryCharge;
+    const mine = ++totalsRequestId;
 
-    // Mirrors computeOrderTotals() in pricing.php: VAT applies to the
-    // discounted goods plus delivery. Keep the two in step.
-    const base = Math.max(0, subtotal - discount + currentDelivery);
-    const vat  = vatApplies ? Math.round(base * vatRate * 100) / 100 : 0.0;
+    const body = new URLSearchParams({
+        summary:    'json',
+        order_type: isCollection ? 'collection' : 'delivery',
+        postcode:   isCollection ? '' : totalsPostcode,
+    });
 
-    const vatRow = document.getElementById('vatRow');
-    const vatDisplay = document.getElementById('vatDisplay');
-    if (vatRow && vatDisplay) {
-        vatRow.style.display = vatApplies ? 'flex' : 'none';
-        vatDisplay.textContent = '+ £' + vat.toFixed(2);
-    }
+    return fetch('checkout.php', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    body.toString(),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (mine !== totalsRequestId) return;   // a newer answer is already on its way
+        if (!data || !data.ok) return;
 
-    let grandTotal = base + vat;
+        const box = document.getElementById('cbofSummaryFigures');
+        if (box && typeof data.html === 'string') box.innerHTML = data.html;
 
+        if (typeof data.subtotal === 'number') cartSubtotal = data.subtotal;
+        summaryDeliveryNote = data.delivery_note || '';
+
+        renderPostcodeStatus();
+        checkMinimumOrder();
+    })
+    .catch(() => {
+        // Leave the last figures the server gave us on screen. They are stale
+        // by one change at worst; invented ones would be wrong outright.
+    });
+}
+
+// Kept under its old name because several places call it. It no longer
+// calculates anything — it asks.
+function recalculateTotals() {
     checkMinimumOrder();
-
-    const totalEl = document.getElementById('summaryTotal');
-    if (totalEl) {
-        totalEl.textContent = '£' + grandTotal.toFixed(2);
-    }
+    refreshSummary();
 }
 
 function applyPromo() {
@@ -741,29 +975,16 @@ function reEvaluateCharges() {
                 'error',
                 'fa-solid fa-triangle-exclamation'
             );
-
-            // Hide discount row
-            const discountRow = document.getElementById('discountRow');
-            if (discountRow) discountRow.style.display = 'none';
+            // The promo row disappears with the next summary the server sends
+            // — it is the server that decides whether the code still counts.
         }
     }
 
     // ── 2. Re-check delivery if postcode already looked up ────────
     if (!isCollection && lastCalculatedMiles >= 0) {
-        const statusEl    = document.getElementById('postcodeStatus');
-        const chargeInput = document.getElementById('delivery_charge_input');
-
-        if (lastCalculatedMiles <= FREE_MILES) {
-            if (chargeInput) chargeInput.value = '0';
-            if (statusEl) statusEl.innerHTML = '<span class="cbco-status cbco-status-ok"><i class="fa-solid fa-circle-check"></i> Free delivery! You are within ' + lastCalculatedMiles.toFixed(1) + ' miles.</span>';
-            updateDeliveryDisplay(0);
-        } else {
-            if (chargeInput) chargeInput.value = DELIVERY_CHARGE.toFixed(2);
-            if (statusEl) statusEl.innerHTML = '<span class="cbco-status cbco-status-warn"><i class="fa-solid fa-truck-fast"></i> ' + DELIVERY_CHARGE_TXT + ' delivery charge – ' + lastCalculatedMiles.toFixed(1) + ' miles from us.</span>';
-            updateDeliveryDisplay(DELIVERY_CHARGE);
-        }
+        updateDeliveryDisplay(lastCalculatedMiles <= FREE_MILES ? 0 : DELIVERY_CHARGE);
     } else {
-        // No postcode yet — just recalculate totals with whatever we have
+        // No postcode yet — ask for the summary with what we have
         recalculateTotals();
     }
 }

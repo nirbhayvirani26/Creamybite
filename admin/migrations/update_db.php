@@ -546,6 +546,61 @@ $tables = [
         KEY `idx_when` (`occurred_at`),
         KEY `idx_entity` (`entity`, `entity_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // ── The shop's own dials, editable from the admin panel ──
+    //
+    // ONE row, always id = 1, so reading it is a single lookup on the primary
+    // key rather than a scan — and so there can never be two rows quietly
+    // disagreeing about what the delivery charge is. The seed below fills it
+    // with exactly the figures config.php used to hard-code, so nothing about
+    // the shop changes the moment this runs.
+    'store_settings' => "CREATE TABLE IF NOT EXISTS `store_settings` (
+        `id`                       TINYINT UNSIGNED NOT NULL DEFAULT 1,
+        `delivery_charge`          DECIMAL(6,2) NOT NULL DEFAULT 1.99,
+        `free_delivery_miles`      DECIMAL(5,2) NOT NULL DEFAULT 3.00,
+        `delivery_radius_miles`    DECIMAL(5,2) NOT NULL DEFAULT 6.00,
+        `delivery_distance_factor` DECIMAL(4,2) NOT NULL DEFAULT 1.30,
+        `min_delivery_order`       DECIMAL(8,2) NOT NULL DEFAULT 20.00,
+        `free_delivery_over`       DECIMAL(8,2) NULL DEFAULT NULL,
+        `cart_message`             VARCHAR(255) NULL DEFAULT NULL,
+        `cart_message_active`      TINYINT(1)   NOT NULL DEFAULT 0,
+        `updated_at`               DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        `updated_by`               VARCHAR(120) NOT NULL DEFAULT '',
+        PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // ── Offers: BOGO, money off, free delivery and the rest ──
+    //
+    // `scope` and `scope_value` say WHAT the offer is on — everything, one
+    // category, or one product. `applies_to` says WHO gets it: retail
+    // customers, trade partners, or both. Trade prices are already the
+    // discount, so an offer left on the default never touches a wholesale
+    // basket by accident.
+    //
+    // Dates are DATE, not DATETIME: an offer runs for whole days, and a
+    // shopkeeper setting "ends 31 December" means the end of that day, not
+    // midnight at the start of it.
+    'offers' => "CREATE TABLE IF NOT EXISTS `offers` (
+        `id`           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `name`         VARCHAR(120) NOT NULL,
+        `type`         ENUM('bogo','buy_x_get_y','percent_off','fixed_off','free_delivery','free_item_over') NOT NULL DEFAULT 'percent_off',
+        `scope`        ENUM('all','category','product') NOT NULL DEFAULT 'all',
+        `scope_value`  VARCHAR(120) NULL DEFAULT NULL,
+        `buy_qty`      INT          NULL DEFAULT NULL,
+        `get_qty`      INT          NULL DEFAULT NULL,
+        `amount`       DECIMAL(8,2) NULL DEFAULT NULL,
+        `min_spend`    DECIMAL(8,2) NULL DEFAULT NULL,
+        `cart_message` VARCHAR(255) NULL DEFAULT NULL,
+        `badge_text`   VARCHAR(40)  NULL DEFAULT NULL,
+        `applies_to`   ENUM('retail','trade','both') NOT NULL DEFAULT 'retail',
+        `active`       TINYINT(1)   NOT NULL DEFAULT 0,
+        `starts_on`    DATE         NULL DEFAULT NULL,
+        `ends_on`      DATE         NULL DEFAULT NULL,
+        `sort_order`   INT          NOT NULL DEFAULT 0,
+        `created_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        KEY `idx_live` (`active`, `sort_order`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 ];
 
 foreach ($tables as $name => $sql) {
@@ -1017,6 +1072,45 @@ try {
     $results[] = ['table' => 'vat_settings', 'col' => '(seed row)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
+// ── 2e2. Seed the one store_settings row ───────────────────
+//
+// Seeded from the delivery figures the site is running RIGHT NOW — the
+// constants config.php has already defined by the time this file runs. When
+// the row does not exist yet those constants are the built-in defaults, which
+// are the numbers config.php used to hard-code, so running this migration
+// cannot change what a customer is charged. It only moves where the numbers
+// are kept.
+//
+// INSERT IGNORE, so a second run — or a run after the owner has edited the
+// delivery charge in the admin panel — leaves their figures completely alone.
+try {
+    if (cb_table_exists($pdo, 'store_settings')) {
+        $st = $pdo->prepare(
+            "INSERT IGNORE INTO `store_settings`
+                (`id`, `delivery_charge`, `free_delivery_miles`, `delivery_radius_miles`,
+                 `delivery_distance_factor`, `min_delivery_order`, `updated_by`)
+             VALUES (1, ?, ?, ?, ?, ?, 'set up by the database updater')"
+        );
+        $st->execute([
+            DELIVERY_CHARGE,
+            FREE_DELIVERY_MILES,
+            DELIVERY_RADIUS_MILES,
+            DELIVERY_DISTANCE_FACTOR,
+            MIN_DELIVERY_ORDER,
+        ]);
+        $results[] = [
+            'table'  => 'store_settings',
+            'col'    => '(seed row)',
+            'status' => $st->rowCount() > 0
+                ? '[ok] created with the delivery figures the shop is already using'
+                : 'already present ✓',
+            'ok'     => true,
+        ];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'store_settings', 'col' => '(seed row)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
+}
+
 // ── 2f. Add "Bank" as a recognised order payment status ────
 //
 // payment_status started as a plain Unpaid/Paid/Cash enum. A bank-transfer
@@ -1141,9 +1235,9 @@ $allOk    = ($failures === []);
         <p class="su-build">
             This file was last changed <strong><?= $selfDate ? date('d M Y, H:i', $selfDate) : 'unknown' ?></strong>
             and is checking <strong><?= $stepCount ?></strong> things.
-            <?php if ($stepCount < 24): ?>
+            <?php if ($stepCount < 78): ?>
             <br><span class="su-build-warn">
-                An older copy — the current one checks 24. If you have just uploaded,
+                An older copy — the current one checks 78. If you have just uploaded,
                 PHP may still be running the previous version: restart PHP in hPanel,
                 or wait two minutes and reload.
             </span>
