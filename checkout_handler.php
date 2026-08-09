@@ -116,6 +116,72 @@ function abandonCheckout(array $messages): void
 // with a payment taken they become review notes on a recorded order.
 $errors = [];
 
+// ── Is the shop taking orders on this channel at all? ────────
+//
+// The owner flips delivery and collection on and off by hand from the admin
+// panel, and it takes effect on the very next request. So a customer can be
+// sitting on the checkout page, basket filled in, at the moment the shop
+// stops taking that kind of order — they press the button and land here.
+// This is where they are told, in the shop's own words.
+//
+// FIRST RULE IN THE FILE, AND DELIBERATELY SO. Nothing below this line has
+// worked out a total, reserved stock or created a charge, so refusing here
+// costs nothing and leaves nothing behind. It also outranks the field checks
+// underneath it: if the shop is shut, "please enter a valid phone number" is
+// a ridiculous thing to say to someone.
+//
+// Hiding the radio button on the checkout page is not enough on its own and
+// never was. The page a customer already had open still has the old buttons
+// on it, and anyone can post this form directly. The refusal has to be here.
+//
+// The channel name is worked out exactly the way the rest of this file works
+// it out — anything that is not the literal string 'collection' is a
+// delivery (see line 75, and again at the address and minimum-order checks).
+// cbOrderingOpen() is strict by design and answers "closed" to anything that
+// is not one of its two words, so 'Collection' would otherwise be refused as
+// a shut collection channel while the order it produced was written as a
+// delivery. Canonicalise first, then ask, and the two always agree.
+$orderChannel = ($orderType === 'collection') ? 'collection' : 'delivery';
+if (!cbOrderingOpen($orderChannel)) {
+    // The owner's own wording if they wrote any, otherwise a sentence that
+    // fits the situation — including the case where BOTH are off, which must
+    // not tell someone to come and collect from a shop that is shut.
+    $closedNote = cbOrderingClosedNote($orderChannel);
+    if ($closedNote === '') {
+        $closedNote = 'We are not taking orders on that option at the moment. Please do try again a little later.';
+    }
+
+    if ($capturedPence === null) {
+        // No money has been taken, so the kind thing is simply to send them
+        // back and explain. abandonCheckout() sets a message and redirects —
+        // it does not touch $_SESSION['cart'], so the basket they spent ten
+        // minutes filling is still there, item for item, when the checkout
+        // page reloads. Nothing is deducted, nothing is written, nothing to
+        // undo.
+        //
+        // The "nothing has been charged" line rests on the same evidence the
+        // rest of this file already trusts: $capturedPence is null, i.e.
+        // Stripe says the intent has not succeeded. Every other rule above
+        // and below uses that same test to decide it is safe to throw the
+        // whole order away, so if it were unreliable, discarding would be the
+        // bug rather than the reassurance.
+        abandonCheckout([
+            $closedNote,
+            'Nothing has been charged, and your basket has been kept exactly as it was.',
+        ]);
+    }
+
+    // The card has ALREADY been charged. checkout.php confirms the payment in
+    // the browser and only then submits this form, so the money can genuinely
+    // be in by the time we get here — and if the shop closed in that window,
+    // bouncing the customer back would leave them paid up with no record of
+    // what for. A closed shop taking one order it has to ring up about is far
+    // cheaper than that. Record it, flag it, and let the owner sort it out,
+    // which is what this file does with every other rule once money is real.
+    $errors[] = 'Placed after ' . $orderChannel
+              . ' orders were switched off. The card had already been charged, so this order was recorded for you to check rather than refused.';
+}
+
 // ── Bot protection check ─────────────────────────────────────
 if (!empty($_POST['website'])) {
     if ($capturedPence === null) {

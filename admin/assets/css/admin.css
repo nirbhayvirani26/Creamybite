@@ -1671,6 +1671,10 @@ th.inv-sort i.is-sorted   { opacity: 1; }
 .cbst-panel { background: var(--bg-surface); border: 1px solid var(--border-light);
               border-radius: 14px; padding: 22px 24px; margin-bottom: 22px;
               scroll-margin-top: 18px; }
+/* The open/closed panel carries a little more weight than the rest, because it
+   is the one somebody is looking for in a hurry. */
+.cbst-panel-open { border-color: rgba(var(--color-primary-rgb), 0.28);
+                   box-shadow: 0 3px 14px rgba(40,16,20,0.06); }
 .cbst-panel-head  { display: flex; align-items: center; justify-content: space-between;
                     gap: 14px; flex-wrap: wrap; }
 .cbst-panel-title { font-size: 17px; margin: 0 0 12px; color: var(--color-primary);
@@ -1768,6 +1772,72 @@ select.cbst-input { appearance: none; background-image:
 .cbst-icon-btn:hover:not(:disabled) { color: var(--color-primary); border-color: var(--color-primary); }
 .cbst-icon-btn.is-danger:hover:not(:disabled) { color: #a04040; border-color: #a04040; }
 .cbst-icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Open for orders / closed now ────────────────────────────
+   Two cards, one per way of ordering. Everything about a card — its left
+   edge, its icon, its state line and its button — is driven by ONE class,
+   .is-open or .is-shut, so a card cannot end up half repainted and reading
+   green while it says "Closed".
+
+   The colours are the two already used on this page: #10b981 / #0f7a52 for
+   running, #a04040 for stopped, the same pair the offer pills and the
+   delivery verdict use. Colour is never the only signal — the state is
+   written out in words and carries its own icon, for anyone who cannot tell
+   the two apart. */
+.cbst-channels { display: grid; gap: 18px;
+                 grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); }
+
+.cbst-channel { padding: 18px 20px; border-radius: 13px; background: var(--bg-main);
+                border: 1px solid var(--border-light); border-left: 5px solid var(--text-muted); }
+.cbst-channel.is-open { border-left-color: #10b981; }
+.cbst-channel.is-shut { border-left-color: #a04040; background: rgba(160,64,64,0.045); }
+
+.cbst-channel-top  { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.cbst-channel-icon { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 13px;
+                     display: inline-flex; align-items: center; justify-content: center;
+                     font-size: 18px; background: rgba(16,185,129,0.12); color: #0f7a52; }
+.cbst-channel.is-shut .cbst-channel-icon { background: rgba(160,64,64,0.11); color: #a04040; }
+.cbst-channel-id    { min-width: 0; }
+.cbst-channel-name  { font-size: 16px; margin: 0 0 4px; color: var(--color-primary); }
+.cbst-channel-state { margin: 0; font-size: 14.5px; font-weight: 700; line-height: 1.45;
+                      display: flex; align-items: baseline; gap: 8px; }
+.cbst-channel.is-open .cbst-channel-state { color: #0f7a52; }
+.cbst-channel.is-shut .cbst-channel-state { color: #a04040; }
+.cbst-channel-state i { font-size: 0.82em; flex: 0 0 auto; }
+.cbst-channel-blurb { font-size: 13px; color: var(--text-secondary); line-height: 1.65;
+                      margin: 0 0 16px; }
+
+.cbst-channel-btn { width: 100%; display: inline-flex; align-items: center;
+                    justify-content: center; gap: 10px; padding: 13px 18px;
+                    font-size: 14.5px; font-weight: 700; font-family: inherit;
+                    border-radius: 11px; border: 1px solid transparent; cursor: pointer;
+                    margin-bottom: 18px; }
+.cbst-channel-btn i { font-size: 1.15em; }
+.cbst-channel-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* Open now, so the button is the one that stops it — and it looks like it. */
+.cbst-channel.is-open .cbst-channel-btn { background: rgba(160,64,64,0.07); color: #a04040;
+                                          border-color: rgba(160,64,64,0.40); }
+.cbst-channel.is-open .cbst-channel-btn:hover:not(:disabled) { background: #a04040; color: #fff;
+                                                               border-color: #a04040; }
+/* Closed now, so the button is the one that starts it again. */
+.cbst-channel.is-shut .cbst-channel-btn { background: rgba(16,185,129,0.10); color: #0f7a52;
+                                          border-color: rgba(16,185,129,0.45); }
+.cbst-channel.is-shut .cbst-channel-btn:hover:not(:disabled) { background: #0f7a52; color: #fff;
+                                                               border-color: #0f7a52; }
+
+.cbst-channel-note { margin-bottom: 0; }
+.cbst-channel-save { margin-top: 11px; }
+.cbst-channel-seen { margin-top: 16px; }
+.cbst-channel-seen .cbst-cart-preview { margin-top: 7px; }
+
+/* Both switched off. Loud on purpose — a shop that is taking no orders at all
+   must never be something you have to notice for yourself. */
+.cbst-shut-all { display: flex; align-items: flex-start; gap: 13px; padding: 15px 17px;
+                 border-radius: 11px; margin-bottom: 20px; font-size: 13.5px;
+                 line-height: 1.65; color: #7a2d2d;
+                 background: rgba(160,64,64,0.09); border: 1px solid rgba(160,64,64,0.40); }
+.cbst-shut-all i { font-size: 1.15em; margin-top: 2px; flex: 0 0 auto; }
+.cbst-shut-all strong { display: block; font-size: 14.5px; margin-bottom: 3px; }
 
 /* ── The offers list ─────────────────────────────────────── */
 .cbst-offer-list { display: flex; flex-direction: column; gap: 12px; }
@@ -1870,6 +1940,8 @@ select.cbst-input { appearance: none; background-image:
 @media (max-width: 720px) {
     .cbst-wrap { padding: 18px 14px 60px; }
     .cbst-panel { padding: 18px 16px; }
+    .cbst-channels { grid-template-columns: 1fr; }
+    .cbst-channel { padding: 16px; }
     .cbst-form { grid-template-columns: 1fr; }
     .cbst-row  { grid-template-columns: 1fr; }
     .cbst-ladder-row { grid-template-columns: 1fr; gap: 4px; }

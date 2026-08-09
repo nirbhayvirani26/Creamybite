@@ -4,6 +4,8 @@
 //
 //  Everything admin/store.php saves comes through here:
 //
+//      set_channel_open  open or close delivery orders, or collection orders,
+//                        and the line customers are shown while it is closed
 //      save_settings   the delivery charge, the two distances, the distance
 //                      factor, the minimum order, free delivery over £X and
 //                      the standing cart message
@@ -45,6 +47,10 @@ adminRequire('store');
 
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/db.php';
+// cbStoreSettingDefaults() — used by set_channel_open below to build a complete
+// settings row if this database somehow has none. config.php already pulls this
+// file in; naming it here says out loud that this handler depends on it.
+require_once __DIR__ . '/../../includes/store_settings.php';
 
 // The three enums, spelled exactly as the columns declare them in
 // admin/migrations/update_db.php. Anything not in these lists never reaches
@@ -53,6 +59,21 @@ require_once __DIR__ . '/../../includes/db.php';
 const CBST_TYPES     = ['bogo', 'buy_x_get_y', 'percent_off', 'fixed_off', 'free_delivery', 'free_item_over'];
 const CBST_SCOPES    = ['all', 'category', 'product'];
 const CBST_AUDIENCES = ['retail', 'trade', 'both'];
+
+// The two ways a customer can order, spelled EXACTLY as the columns spell them
+// and exactly as includes/store_settings.php spells them. cbOrderingOpen()
+// matches these two words and nothing else, so a third spelling accepted here
+// would be a channel the owner could close from this page and the checkout
+// would never enforce. It is also what makes it safe for the SQL below to put
+// the channel name into a column name.
+const CBST_CHANNELS = ['delivery', 'collection'];
+
+// How each channel reads in a sentence, so the confirmation the owner gets back
+// says what actually happened rather than "Saved."
+const CBST_CHANNEL_WORDS = [
+    'delivery'   => ['label' => 'Delivery',   'verb' => 'have an order delivered'],
+    'collection' => ['label' => 'Collection', 'verb' => 'come and collect an order'],
+];
 
 // Upper limits. The columns themselves would take more (DECIMAL(8,2) holds
 // nearly a million), but a £900,000 delivery charge is a slipped finger, not
@@ -389,6 +410,152 @@ function cbstValidateOffer(array $in, array &$errors): ?array
 $action = (string)($_POST['action'] ?? $_GET['action'] ?? '');
 
 try {
+
+    // ── Open or close a way of ordering ─────────────────────
+    //
+    // "We are closing early tonight, stop taking delivery orders." One channel
+    // at a time and with immediate effect: the flag is read fresh on every
+    // request by cbStoreSettings(), so the next customer to reach the checkout
+    // is refused, and the one already sitting on the page is refused when they
+    // press the button.
+    //
+    // The two channels are INDEPENDENT. Nothing here reads or writes the other
+    // one's columns, so closing deliveries can never disturb collection.
+    //
+    // The optional note travels with the switch rather than having a save of
+    // its own, because it is the SAME thought: the owner is closing a channel
+    // and saying why. It means a note typed but not yet saved is kept when the
+    // switch is flipped, instead of being quietly thrown away.
+    if ($action === 'set_channel_open') {
+
+        $channel = (string)($_POST['channel'] ?? '');
+        if (!in_array($channel, CBST_CHANNELS, true)) {
+            // Not something a person can do from the page — only a hand-made
+            // POST reaches here, so there is no field to hang a sentence on.
+            cbstRefuse([], 'That is not a way of ordering this shop has.');
+        }
+
+        // Exactly "1" or "0". Not "on", not "true", not empty — this decides
+        // whether a real shop is taking money tonight, and a value nobody meant
+        // must not be read as either answer.
+        $rawOpen = (string)($_POST['open'] ?? '');
+        if ($rawOpen !== '0' && $rawOpen !== '1') {
+            cbstRefuse([], 'It was not clear whether that should be opened or closed, so nothing has been changed. Reload the page and try again.');
+        }
+        $open = (int)$rawOpen;
+
+        // Blank is normal and means "no wording of my own" — the shop then
+        // writes a sentence that fits, in cbOrderingClosedNote(). The column is
+        // VARCHAR(255), so anything longer would be cut off by MySQL and the
+        // owner would never know which half a customer was reading.
+        $note = trim((string)($_POST['note'] ?? ''));
+        if (mb_strlen($note) > 255) {
+            cbstRefuse([
+                'note_' . $channel => 'That message is too long — keep it under 255 characters.',
+            ]);
+        }
+
+        // Read BEFORE writing, so the confirmation can tell the owner what
+        // actually changed: flipping the switch and saving a message are the
+        // same action here, and "Saved" would not say which one they just did.
+        $before = $pdo->query(
+            "SELECT `delivery_open`, `collection_open`, `delivery_closed_note`, `collection_closed_note`
+               FROM `store_settings` WHERE `id` = 1"
+        )->fetch();
+        $before = is_array($before) ? $before : [];
+
+        $wasOpen  = (isset($before[$channel . '_open']) && (int)$before[$channel . '_open'] === 0) ? 0 : 1;
+        $wasNote  = trim((string)($before[$channel . '_closed_note'] ?? ''));
+
+        // INSERT ... ON DUPLICATE KEY for the same reason save_settings uses it:
+        // the settings row is always id 1, so this can only ever touch that one
+        // row, and a database whose seed row went missing gets a complete and
+        // sensible one rather than a half-filled row of zeroes. The figures in
+        // the INSERT half are the shop's own built-in fallbacks — the same ones
+        // the site would have been running on with no row at all — so nothing
+        // about delivery pricing changes on that path either.
+        //
+        // On the ordinary path (the row exists) ONLY this channel's two columns
+        // are written. The other channel is not named anywhere in the UPDATE.
+        //
+        // The column names are interpolated, which is safe and is the reason
+        // $channel is checked against CBST_CHANNELS above and never used
+        // otherwise: a column name cannot be a bound parameter.
+        $defaults = cbStoreSettingDefaults();
+
+        $pdo->prepare(
+            "INSERT INTO `store_settings`
+                (id, delivery_charge, free_delivery_miles, delivery_radius_miles,
+                 delivery_distance_factor, min_delivery_order,
+                 `{$channel}_open`, `{$channel}_closed_note`, updated_at, updated_by)
+             VALUES
+                (1, :charge, :free_miles, :radius, :factor, :min_order,
+                 :open, :note, NOW(), :who)
+             ON DUPLICATE KEY UPDATE
+                `{$channel}_open`        = VALUES(`{$channel}_open`),
+                `{$channel}_closed_note` = VALUES(`{$channel}_closed_note`),
+                updated_at               = VALUES(updated_at),
+                updated_by               = VALUES(updated_by)"
+        )->execute([
+            'charge'     => $defaults['delivery_charge'],
+            'free_miles' => $defaults['free_delivery_miles'],
+            'radius'     => $defaults['delivery_radius_miles'],
+            'factor'     => $defaults['delivery_distance_factor'],
+            'min_order'  => $defaults['min_delivery_order'],
+            'open'       => $open,
+            'note'       => $note === '' ? null : $note,
+            'who'        => mb_substr(adminStaffName(), 0, 120),
+        ]);
+
+        // Read the row back rather than reporting what we hoped we wrote. What
+        // the page paints on screen afterwards comes from THIS, so the switches
+        // an owner is looking at are the switches the shop is actually running.
+        $after = $pdo->query(
+            "SELECT `delivery_open`, `collection_open`, `delivery_closed_note`, `collection_closed_note`,
+                    `updated_at`, `updated_by`
+               FROM `store_settings` WHERE `id` = 1"
+        )->fetch();
+        $after = is_array($after) ? $after : [];
+
+        // Read exactly the way includes/store_settings.php reads it — a channel
+        // is closed only when the row says so in as many words, and anything
+        // else (missing, NULL, unreadable) leaves it open. The admin page must
+        // never show "Closed" for a shop the checkout is still serving.
+        $deliveryOpen   = (isset($after['delivery_open'])   && (int)$after['delivery_open']   === 0) ? 0 : 1;
+        $collectionOpen = (isset($after['collection_open']) && (int)$after['collection_open'] === 0) ? 0 : 1;
+        $nowOpen        = $channel === 'delivery' ? $deliveryOpen : $collectionOpen;
+        $nowNote        = trim((string)($after[$channel . '_closed_note'] ?? ''));
+        $anyOpen        = ($deliveryOpen === 1 || $collectionOpen === 1);
+
+        $label = CBST_CHANNEL_WORDS[$channel]['label'];
+        $verb  = CBST_CHANNEL_WORDS[$channel]['verb'];
+
+        if ($wasOpen !== $nowOpen) {
+            $message = $nowOpen === 1
+                ? $label . ' orders are open again — customers can ' . $verb . '.'
+                : $label . ' orders are closed. Nobody can ' . $verb . ' until you switch this back on.';
+            if (!$anyOpen) {
+                $message .= ' Both ways of ordering are off now, so your shop is not taking any orders at all.';
+            }
+        } elseif ($wasNote !== $nowNote) {
+            $message = 'Your message is saved. ' . $label . ' orders are still '
+                     . ($nowOpen === 1 ? 'open.' : 'closed.');
+        } else {
+            $message = $label . ' orders are ' . ($nowOpen === 1 ? 'open' : 'closed')
+                     . '. Nothing needed changing.';
+        }
+
+        cbstReply([
+            'success'         => true,
+            'channel'         => $channel,
+            'open'            => $nowOpen,
+            'note'            => $nowNote,
+            'delivery_open'   => $deliveryOpen,
+            'collection_open' => $collectionOpen,
+            'any_open'        => $anyOpen,
+            'message'         => $message,
+        ]);
+    }
 
     // ── Delivery, minimums and the standing cart message ────
     //

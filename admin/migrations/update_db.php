@@ -564,6 +564,10 @@ $tables = [
         `free_delivery_over`       DECIMAL(8,2) NULL DEFAULT NULL,
         `cart_message`             VARCHAR(255) NULL DEFAULT NULL,
         `cart_message_active`      TINYINT(1)   NOT NULL DEFAULT 0,
+        `delivery_open`            TINYINT(1)   NOT NULL DEFAULT 1,
+        `collection_open`          TINYINT(1)   NOT NULL DEFAULT 1,
+        `delivery_closed_note`     VARCHAR(255) NULL DEFAULT NULL,
+        `collection_closed_note`   VARCHAR(255) NULL DEFAULT NULL,
         `updated_at`               DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         `updated_by`               VARCHAR(120) NOT NULL DEFAULT '',
         PRIMARY KEY (`id`)
@@ -763,6 +767,36 @@ $columns = [
     ['products', 'fibre_g',         "ALTER TABLE `products` ADD COLUMN `fibre_g`       DECIMAL(6,2) NULL DEFAULT NULL AFTER `sugars_g`"],
     ['products', 'protein_g',       "ALTER TABLE `products` ADD COLUMN `protein_g`     DECIMAL(6,2) NULL DEFAULT NULL AFTER `fibre_g`"],
     ['products', 'salt_g',          "ALTER TABLE `products` ADD COLUMN `salt_g`        DECIMAL(6,3) NULL DEFAULT NULL AFTER `protein_g`"],
+
+    // ── "Open for orders" / "Closed now" — the two switches ──────
+    //
+    // The owner needs to stop taking DELIVERY orders without stopping
+    // COLLECTION, and the other way round, by hand and with immediate effect:
+    // "we are closing early tonight, stop the deliveries". Two independent
+    // flags, not a rota — a schedule cannot answer the phone when the van
+    // breaks down.
+    //
+    // DEFAULT 1 on both, and that is a safety decision rather than a
+    // preference. An existing row gets 1 the moment the column is added, so
+    // running this migration on a busy shop cannot shut its doors. The whole
+    // feature is built to FAIL OPEN: an order the shop has to ring up and
+    // apologise for is a bad evening, whereas a shop that silently refuses
+    // every order because of a schema change is a lost one.
+    //
+    // The notes are NULL, not '', so "the owner has not written anything" is
+    // distinguishable from "the owner deliberately wrote nothing". A NULL note
+    // gets the plain-English wording from cbOrderingClosedNote(), which also
+    // knows whether the OTHER channel is still running — the point being not
+    // to tell someone to come and collect when collection is shut too.
+    //
+    // These are also in the CREATE TABLE above, for a database that has never
+    // seen store_settings. These four lines are for the one that has: the live
+    // shop's table already exists, and CREATE TABLE IF NOT EXISTS will not add
+    // a column to it.
+    ['store_settings', 'delivery_open',          "ALTER TABLE `store_settings` ADD COLUMN `delivery_open`          TINYINT(1)   NOT NULL DEFAULT 1 AFTER `cart_message_active`"],
+    ['store_settings', 'collection_open',        "ALTER TABLE `store_settings` ADD COLUMN `collection_open`        TINYINT(1)   NOT NULL DEFAULT 1 AFTER `delivery_open`"],
+    ['store_settings', 'delivery_closed_note',   "ALTER TABLE `store_settings` ADD COLUMN `delivery_closed_note`   VARCHAR(255) NULL DEFAULT NULL AFTER `collection_open`"],
+    ['store_settings', 'collection_closed_note', "ALTER TABLE `store_settings` ADD COLUMN `collection_closed_note` VARCHAR(255) NULL DEFAULT NULL AFTER `delivery_closed_note`"],
 ];
 
 foreach ($columns as [$table, $col, $sql]) {

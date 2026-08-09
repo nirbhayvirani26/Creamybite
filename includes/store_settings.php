@@ -77,6 +77,25 @@ if (!function_exists('cbStoreSettingDefaults')) {
             // The standing message shown in the cart, and whether it is on.
             'cart_message'             => null,
             'cart_message_active'      => 0,
+            // Is the shop taking delivery orders? Collection orders?
+            //
+            // BOTH DEFAULT TO OPEN, AND THAT IS DELIBERATE. This array is what
+            // the whole site falls back to when the database cannot be read,
+            // so these two numbers decide what a database outage does to the
+            // shop. Open means a blip costs the owner an order they have to
+            // ring up about. Closed would mean a blip quietly turns customers
+            // away with a message saying the shop has stopped taking orders —
+            // no error, no alert, nothing on screen to say anything is wrong.
+            // The second failure is far more expensive and far harder to
+            // notice, so this file fails OPEN. Do not "harden" these to 0.
+            'delivery_open'            => 1,
+            'collection_open'          => 1,
+            // What customers are told when a channel is off. NULL means the
+            // owner has not written their own wording, and
+            // cbOrderingClosedNote() supplies a sentence that fits the
+            // situation.
+            'delivery_closed_note'     => null,
+            'collection_closed_note'   => null,
             'updated_at'               => null,
             'updated_by'               => '',
         ];
@@ -104,6 +123,8 @@ if (!function_exists('cbStoreSettings')) {
      *   delivery_radius_miles:float, delivery_distance_factor:float,
      *   min_delivery_order:float, free_delivery_over:?float,
      *   cart_message:?string, cart_message_active:int,
+     *   delivery_open:int, collection_open:int,
+     *   delivery_closed_note:?string, collection_closed_note:?string,
      *   updated_at:?string, updated_by:string
      * }
      */
@@ -212,11 +233,170 @@ if (!function_exists('cbStoreSettings')) {
         $settings['cart_message_active'] =
             ($settings['cart_message'] !== null && (int)($row['cart_message_active'] ?? 0) === 1) ? 1 : 0;
 
+        // ── Are we taking orders? ────────────────────────────
+        //
+        // Read from the SAME row as everything above — one query per request,
+        // memoised below, exactly as before. These fields cost nothing extra;
+        // they ride along on the SELECT * that was already happening.
+        //
+        // Note the shape of the test: a channel is CLOSED only when the row
+        // says so in as many words. Every other reading — the column missing
+        // because this database has not had the migration run on it, the value
+        // NULL, the value a string the shop does not recognise — leaves the
+        // channel OPEN.
+        //
+        // That asymmetry is the whole point. isset() is doing real work here:
+        // (int)null is 0, so a plain `(int)$row[$key] === 0` would read a NULL
+        // as "closed" and shut the shop over a column that had merely never
+        // been filled in. Closing a real business needs a real instruction.
+        foreach (['delivery_open', 'collection_open'] as $key) {
+            $settings[$key] = (isset($row[$key]) && (int)$row[$key] === 0) ? 0 : 1;
+        }
+
+        // The owner's own wording for each. Blank stays NULL so that
+        // cbOrderingClosedNote() knows to write the sentence itself rather
+        // than showing a customer an empty space where an explanation
+        // should be.
+        foreach (['delivery_closed_note', 'collection_closed_note'] as $key) {
+            $note = trim((string)($row[$key] ?? ''));
+            $settings[$key] = $note === '' ? null : $note;
+        }
+
         $settings['id']         = (int)($row['id'] ?? 1);
         $settings['updated_at'] = isset($row['updated_at']) ? (string)$row['updated_at'] : null;
         $settings['updated_by'] = trim((string)($row['updated_by'] ?? ''));
 
         return $cache = $settings;
+    }
+}
+
+// ════════════════════════════════════════════════════════════
+//  "Open for orders" / "Closed now"
+// ════════════════════════════════════════════════════════════
+//
+//  Two switches the owner flips by hand from the admin panel — one for
+//  delivery, one for collection — with immediate effect. Not a rota: the
+//  reason a shop stops taking deliveries at half past six is that the van
+//  would not get back in time, and no timetable knows that in advance.
+//
+//  The two are INDEPENDENT. Closing deliveries must leave collection running,
+//  because the shop is still open and people are still walking in.
+//
+//  Everything below reads the row cbStoreSettings() already fetched. No second
+//  query, no second connection — the flags came down with the delivery charge
+//  on the same SELECT, and they are memoised for the request along with it.
+
+if (!function_exists('cbOrderingOpen')) {
+    /**
+     * Is the shop taking orders on this channel right now?
+     *
+     * @param string $type 'delivery' or 'collection'. Exactly those two —
+     *                     anything else is false. See below for why this is
+     *                     strict when almost everything else here is forgiving.
+     */
+    function cbOrderingOpen(string $type): bool
+    {
+        // No case-folding, no near-misses, no guessing. Every caller that
+        // gates an order has ALREADY decided which channel that order is on —
+        // checkout_handler.php, for one, treats anything that is not exactly
+        // 'collection' as a delivery. If this function were lenient where the
+        // caller is strict, the two would disagree about what is being asked:
+        // 'Collection' would be waved through as an open collection order and
+        // then written to the database as a delivery, on an evening when
+        // delivery is precisely what the owner has switched off.
+        //
+        // So callers canonicalise first and pass one of these two words. An
+        // unrecognised channel is not a channel this shop can take an order
+        // on, and false is the honest answer.
+        //
+        // This is NOT the fail-open rule bending. Fail-open is about the
+        // DATABASE being unreachable, which is a fault of ours and must not
+        // cost the owner business. A channel name the shop does not use is a
+        // different thing entirely, and refusing it is correct.
+        if ($type !== 'delivery' && $type !== 'collection') {
+            return false;
+        }
+
+        $settings = cbStoreSettings();
+
+        // ?? 1 for the same reason the read in cbStoreSettings() leans this
+        // way: if the key is somehow absent, the shop stays open.
+        return (int)($settings[$type . '_open'] ?? 1) === 1;
+    }
+}
+
+if (!function_exists('cbOrderingClosedNote')) {
+    /**
+     * The line to show a customer about a channel that is switched off.
+     *
+     * Returns the owner's own wording if they typed any, and otherwise writes
+     * a sentence that fits the situation. Empty string when there is nothing
+     * to say — either the channel is running, or the channel is not one this
+     * shop has.
+     *
+     * THE DEFAULT WORDING LOOKS AT THE OTHER CHANNEL. Sending someone to come
+     * and collect when collection is shut as well is worse than saying
+     * nothing: they read a helpful sentence, drive over, and find the door
+     * closed. So when both are off, neither message points anywhere — and both
+     * calls return the SAME sentence, which a page showing both channels
+     * should print once rather than twice.
+     *
+     * Admin note: this is the customer's view, not the editor's. A settings
+     * page wanting to show the owner what they themselves typed — including
+     * "nothing yet" — should read $settings['delivery_closed_note'] /
+     * ['collection_closed_note'] straight off cbStoreSettings(), which is NULL
+     * until they write something.
+     *
+     * @param string $type 'delivery' or 'collection'.
+     */
+    function cbOrderingClosedNote(string $type): string
+    {
+        if ($type !== 'delivery' && $type !== 'collection') {
+            return '';
+        }
+
+        // Nothing to explain about a channel that is taking orders. Guarding
+        // here means a page that calls this without checking first cannot
+        // announce a closure to a customer of a shop that is wide open — the
+        // one mistake in this whole feature that costs money silently.
+        if (cbOrderingOpen($type)) {
+            return '';
+        }
+
+        $settings = cbStoreSettings();
+
+        // What the owner wrote always wins. They know why they closed.
+        $own = trim((string)($settings[$type . '_closed_note'] ?? ''));
+        if ($own !== '') {
+            return $own;
+        }
+
+        $otherOpen = cbOrderingOpen($type === 'delivery' ? 'collection' : 'delivery');
+
+        // Warm and calm, and never shouted. A customer reading this was about
+        // to give the shop money; they should come away thinking "fair enough,
+        // I'll try tomorrow", not "what a shambles".
+        if (!$otherOpen) {
+            return 'We have paused orders for the moment. Please do check back a little later — we are sorry to keep you waiting.';
+        }
+
+        return $type === 'delivery'
+            ? 'We have stopped taking delivery orders for now. Collection is still available.'
+            : 'We have stopped taking collection orders for now. Please choose delivery.';
+    }
+}
+
+if (!function_exists('cbAnyOrderingOpen')) {
+    /**
+     * Can the shop take an order at all, by any means?
+     *
+     * False only when the owner has switched BOTH channels off — the point at
+     * which the checkout has nothing to offer and should say so plainly
+     * instead of showing a customer a form that cannot be submitted.
+     */
+    function cbAnyOrderingOpen(): bool
+    {
+        return cbOrderingOpen('delivery') || cbOrderingOpen('collection');
     }
 }
 

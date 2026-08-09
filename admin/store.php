@@ -6,8 +6,12 @@
 //  brought to their door, what offers are running, and what the basket says
 //  to them while they shop.
 //
-//  Four sections, in the order the owner thinks about them:
+//  Five sections, in the order the owner thinks about them:
 //
+//    0  Are you taking orders?  two switches, delivery and collection, flipped
+//                             by hand with immediate effect. First on the page
+//                             because it is what somebody comes here for in a
+//                             hurry — the rest is set once and left alone.
 //    1  Delivery & minimums   the charge, the two distances, the smallest
 //                             basket, and free delivery over a certain spend
 //    2  Offers                buy one get one free, money off, free delivery,
@@ -333,6 +337,43 @@ foreach ([
     $pvLadder[] = ['miles' => $m, 'out' => cbstDeliveryOutcome($settings, $m, $pvSpend)];
 }
 
+// ── Are we taking orders? ────────────────────────────────────
+//
+// Every word the two switches use lives HERE, in one array, and is written
+// into the markup once. The page's JavaScript does not carry a second copy of
+// any of it — it reads the wording back off data- attributes when it repaints a
+// switch, so there is no pair of sentences that can drift apart.
+//
+// The state itself comes from cbOrderingOpen(), the same function the checkout
+// asks, rather than from the raw column. The one thing this panel must never do
+// is show "Closed" for a channel the shop is still serving, or the reverse.
+$cbstChannels = [
+    'delivery' => [
+        'icon'        => 'fa-truck-fast',
+        'title'       => 'Delivery orders',
+        'openState'   => 'Open — taking delivery orders',
+        'shutState'   => 'Closed — not taking delivery orders',
+        'openBtn'     => 'Start taking delivery orders',
+        'shutBtn'     => 'Stop taking delivery orders',
+        'openBlurb'   => 'Customers inside your delivery area can have an order brought to them.',
+        'shutBlurb'   => 'Nobody can order delivery. The checkout will not let them, and no card is charged.',
+        'placeholder' => 'Our driver has finished for the evening — collection is still running.',
+    ],
+    'collection' => [
+        'icon'        => 'fa-bag-shopping',
+        'title'       => 'Collection orders',
+        'openState'   => 'Open — taking collection orders',
+        'shutState'   => 'Closed — not taking collection orders',
+        'openBtn'     => 'Start taking collection orders',
+        'shutBtn'     => 'Stop taking collection orders',
+        'openBlurb'   => 'Customers can order and come to the shop to pick it up.',
+        'shutBlurb'   => 'Nobody can order for collection. The checkout will not let them, and no card is charged.',
+        'placeholder' => 'We are not able to hand orders over this evening — delivery is still running.',
+    ],
+];
+
+$cbstAnyOpen = cbAnyOrderingOpen();
+
 [$pageTitle, $pageSub] = ['Delivery &amp; Offers', 'Delivery charges, offers and the message in the basket'];
 ?>
 <!DOCTYPE html>
@@ -376,11 +417,116 @@ foreach ([
     </div>
 
     <nav class="cbst-jump">
+        <a href="#s-open" class="cbst-jump-link"><i class="fa-solid fa-shop"></i> Taking orders</a>
         <a href="#s-delivery" class="cbst-jump-link"><i class="fa-solid fa-truck-fast"></i> Delivery</a>
         <a href="#s-offers" class="cbst-jump-link"><i class="fa-solid fa-tags"></i> Offers</a>
         <a href="#s-message" class="cbst-jump-link"><i class="fa-solid fa-basket-shopping"></i> Basket message</a>
         <a href="#s-preview" class="cbst-jump-link"><i class="fa-solid fa-eye"></i> What a customer pays</a>
     </nav>
+
+
+    <!-- ══ 0. Are you taking orders? ════════════════════════ -->
+    <?php // First on the page on purpose. On a busy evening this is the one
+          // thing the owner comes here to reach, and it should not need
+          // scrolling past a delivery charge to find. ?>
+    <section class="cbst-panel cbst-panel-open" id="s-open">
+        <h2 class="cbst-panel-title"><i class="fa-solid fa-shop" aria-hidden="true"></i> Are you taking orders?</h2>
+        <p class="cbst-note">
+            Two switches, one for each way of ordering, and they work on their own —
+            you can stop deliveries and keep taking collections, or the other way
+            round. A switch takes effect the moment you press it: the next customer
+            to reach the checkout is turned away politely, and nobody's card is
+            charged for an order you are not going to make.
+        </p>
+
+        <?php // Shown when BOTH are off. Kept in the page rather than created by
+              // JavaScript so it is already on screen when the page loads that
+              // way, and only hidden or shown afterwards. ?>
+        <div class="cbst-shut-all" id="cbstShutAll" <?= $cbstAnyOpen ? 'hidden' : '' ?>>
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <div>
+                <strong>Your shop is not taking any orders at all.</strong>
+                Both delivery and collection are closed, so nobody can check out —
+                they can still look around the shop, but the basket will not go
+                through. Switch one of them back on when you are ready.
+            </div>
+        </div>
+
+        <div class="cbst-channels" id="cbstChannels">
+            <?php foreach ($cbstChannels as $cbstKey => $cbstCh): ?>
+                <?php $cbstIsOpen = cbOrderingOpen($cbstKey); ?>
+                <article class="cbst-channel <?= $cbstIsOpen ? 'is-open' : 'is-shut' ?>"
+                         data-channel="<?= htmlspecialchars($cbstKey) ?>"
+                         data-open-state="<?= htmlspecialchars($cbstCh['openState']) ?>"
+                         data-shut-state="<?= htmlspecialchars($cbstCh['shutState']) ?>"
+                         data-open-btn="<?= htmlspecialchars($cbstCh['openBtn']) ?>"
+                         data-shut-btn="<?= htmlspecialchars($cbstCh['shutBtn']) ?>"
+                         data-open-blurb="<?= htmlspecialchars($cbstCh['openBlurb']) ?>"
+                         data-shut-blurb="<?= htmlspecialchars($cbstCh['shutBlurb']) ?>">
+
+                    <div class="cbst-channel-top">
+                        <span class="cbst-channel-icon">
+                            <i class="fa-solid <?= htmlspecialchars($cbstCh['icon']) ?>" aria-hidden="true"></i>
+                        </span>
+                        <div class="cbst-channel-id">
+                            <h3 class="cbst-channel-name"><?= htmlspecialchars($cbstCh['title']) ?></h3>
+                            <p class="cbst-channel-state">
+                                <i class="fa-solid <?= $cbstIsOpen ? 'fa-circle-check' : 'fa-circle-xmark' ?>"
+                                   aria-hidden="true" data-state-dot></i>
+                                <span data-state-line><?= htmlspecialchars($cbstIsOpen ? $cbstCh['openState'] : $cbstCh['shutState']) ?></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <p class="cbst-channel-blurb" data-state-blurb>
+                        <?= htmlspecialchars($cbstIsOpen ? $cbstCh['openBlurb'] : $cbstCh['shutBlurb']) ?>
+                    </p>
+
+                    <button type="button" class="cbst-channel-btn" data-act="channel-toggle">
+                        <i class="fa-solid <?= $cbstIsOpen ? 'fa-toggle-on' : 'fa-toggle-off' ?>"
+                           aria-hidden="true" data-state-icon></i>
+                        <span data-state-btn><?= htmlspecialchars($cbstIsOpen ? $cbstCh['shutBtn'] : $cbstCh['openBtn']) ?></span>
+                    </button>
+
+                    <div class="cbst-field cbst-channel-note">
+                        <label class="cbst-label" for="cbstNote_<?= htmlspecialchars($cbstKey) ?>">
+                            What customers are told while this is closed
+                        </label>
+                        <?php // The owner's OWN wording, straight off the row — blank
+                              // when they have not written any. Deliberately not
+                              // cbOrderingClosedNote(), which is the customer's view
+                              // and would put words in this box that the owner never
+                              // typed and could not then clear. ?>
+                        <textarea class="cbst-input cbst-textarea" rows="2" maxlength="255"
+                                  id="cbstNote_<?= htmlspecialchars($cbstKey) ?>" data-note
+                                  placeholder="<?= htmlspecialchars($cbstCh['placeholder']) ?>"><?=
+                            htmlspecialchars((string)($settings[$cbstKey . '_closed_note'] ?? '')) ?></textarea>
+                        <small class="cbst-hint">
+                            Optional. Leave it empty and the shop writes a friendly line of
+                            its own that fits — including whether the other way of ordering
+                            is still available.
+                        </small>
+                        <p class="cbst-err" data-err="note_<?= htmlspecialchars($cbstKey) ?>" hidden></p>
+                        <button type="button" class="cbst-btn is-ghost cbst-channel-save" data-act="channel-note">
+                            <i class="fa-solid fa-check" aria-hidden="true"></i> Save this message
+                        </button>
+                    </div>
+
+                    <?php if (!$cbstIsOpen): ?>
+                    <div class="cbst-channel-seen">
+                        <span class="cbst-label">What a customer is reading right now</span>
+                        <div class="cbst-cart-preview">
+                            <div class="cbst-cart-strip">
+                                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                                <span><?= htmlspecialchars(cbOrderingClosedNote($cbstKey)) ?></span>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        </div>
+    </section>
 
 
     <!-- ══ 1. Delivery & minimums ═══════════════════════════ -->
@@ -503,9 +649,13 @@ foreach ([
                 <button type="submit" class="cbst-btn is-primary" id="cbstSaveSettings">
                     <i class="fa-solid fa-check" aria-hidden="true"></i> Save delivery settings
                 </button>
+                <?php // "Last change on this page", not "last saved these figures".
+                      // The switches at the top of the page live in the same row and
+                      // stamp the same two columns when they are flipped, so this
+                      // line has to be true of either. ?>
                 <?php if (!empty($settings['updated_at'])): ?>
                 <span class="cbst-saved-note">
-                    Last saved <?= htmlspecialchars(date('j M Y \a\t g:ia', strtotime((string)$settings['updated_at']))) ?><?php
+                    Last change on this page <?= htmlspecialchars(date('j M Y \a\t g:ia', strtotime((string)$settings['updated_at']))) ?><?php
                         if (trim((string)$settings['updated_by']) !== ''):
                             ?> by <?= htmlspecialchars((string)$settings['updated_by']) ?><?php
                         endif; ?>

@@ -33,7 +33,63 @@ if (empty($cart)) {
 // to write the order. Computing them separately here is how the amount
 // charged drifts away from the amount recorded.
 $postcode  = strtoupper(trim($_REQUEST['postcode'] ?? ''));
-$orderType = trim($_REQUEST['order_type'] ?? 'delivery');
+// Whether the caller actually named a channel matters below — see the note on
+// the page-load call. 'delivery' is the historic default when it did not.
+$orderTypeNamed = isset($_REQUEST['order_type']);
+$orderType      = trim($_REQUEST['order_type'] ?? 'delivery');
+
+// ── Is the shop taking orders on this channel? ───────────────
+//
+// Before ANY of it: before the totals, before the stock check, and a long way
+// before a PaymentIntent exists. A card charged for an order the shop has
+// already decided it will not fulfil is the worst thing that can happen in
+// this feature, and the only certain way to avoid it is never to create the
+// intent in the first place.
+//
+// THE PAGE-LOAD CALL NAMES NO CHANNEL. checkout.php opens with a bare
+// `fetch('../stripe_intent.php')` — no body, no query string — so order_type
+// is absent and has always fallen through to 'delivery'. That default is
+// harmless while the shop delivers, and actively wrong the moment it does
+// not: refusing that call would leave stripeReady false, and
+// triggerStripeAmountUpdate() gives up on its first line when that happens,
+// so the card form would never load again for the rest of the page. An owner
+// who switched delivery off for the evening would lose every card payment
+// from the collection customers still walking in.
+//
+// So when nothing was named and delivery is shut, resolve to the channel the
+// shop can actually serve. That is also the more honest amount to quote: the
+// intent is created without a delivery charge on it, matching what the
+// checkout is showing a customer who can only collect. When BOTH are shut
+// there is nothing to fall back to, the gate below refuses, no intent is ever
+// created, and no card can be charged.
+//
+// With both channels open this branch cannot fire and the default is
+// 'delivery', exactly as before.
+if (!$orderTypeNamed && !cbOrderingOpen('delivery') && cbOrderingOpen('collection')) {
+    $orderType = 'collection';
+}
+
+// Canonicalised the same way checkout_handler.php canonicalises it, because
+// the two have to reach the same verdict about the same submission — and
+// because cbOrderingOpen() answers "closed" to any word it does not know.
+$orderChannel = ($orderType === 'collection') ? 'collection' : 'delivery';
+if (!cbOrderingOpen($orderChannel)) {
+    $closedNote = cbOrderingClosedNote($orderChannel);
+    if ($closedNote === '') {
+        $closedNote = 'We are not taking orders on that option at the moment. Please do try again a little later.';
+    }
+
+    // Through the same shape of reply as every other refusal in this file, so
+    // the checkout script renders it as an ordinary message in the card panel
+    // rather than hanging on a form that will never load. Flagged as well as
+    // worded, the way the minimum-order refusal is, so the page can tell a
+    // closed shop apart from a payment that went wrong.
+    echo json_encode([
+        'error'           => $closedNote,
+        'ordering_closed' => true,
+    ]);
+    exit;
+}
 
 $subtotalForPromo = 0.0;
 foreach ($cart as $item) {
