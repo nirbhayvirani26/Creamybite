@@ -82,6 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trade Account Login – <?= SHOP_NAME ?></title>
+    <?php // A login form has nothing for search to rank; send searchers to
+          // trade_register.php instead. ?>
+    <meta name="robots" content="noindex, nofollow">
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">

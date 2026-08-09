@@ -338,6 +338,8 @@ if ($summaryJson) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout – <?= SHOP_NAME ?></title>
     <meta name="description" content="Complete your ice cream order at <?= SHOP_NAME ?>.">
+    <?php // Cart contents and personal details pass through here — must never be indexed. ?>
+    <meta name="robots" content="noindex, nofollow">
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">

@@ -3,65 +3,93 @@
     Only pages a customer would want to land on. Checkout, the trade area and
     anything reached by a private token are deliberately absent — they are
     either useless out of context or should not be public at all.
+
+    lastmod is the date each page last actually changed, taken from the
+    project history rather than typed by hand, so it cannot drift into a
+    polite fiction. Regenerate it when pages are added or reworked.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://orders.creamybite.com/index.php</loc>
+        <loc>https://orders.creamybite.com/</loc>
+        <lastmod>2026-08-07</lastmod>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
         <loc>https://orders.creamybite.com/pages/order.php</loc>
+        <lastmod>2026-08-08</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
         <loc>https://orders.creamybite.com/pages/about.php</loc>
+        <lastmod>2026-08-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://orders.creamybite.com/pages/gallery.php</loc>
+        <lastmod>2026-08-07</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
     <url>
-        <loc>https://orders.creamybite.com/pages/gallery.php</loc>
+        <loc>https://orders.creamybite.com/pages/trade_register.php</loc>
+        <lastmod>2026-08-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://orders.creamybite.com/pages/trade_login.php</loc>
+        <lastmod>2026-08-07</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
+    </url>
+    <url>
+        <loc>https://orders.creamybite.com/pages/shipping.php</loc>
+        <lastmod>2026-08-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
     <url>
-        <loc>https://orders.creamybite.com/pages/shipping.php</loc>
-        <changefreq>yearly</changefreq>
-        <priority>0.4</priority>
-    </url>
-    <url>
         <loc>https://orders.creamybite.com/pages/returns.php</loc>
+        <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.4</priority>
     </url>
     <url>
         <loc>https://orders.creamybite.com/pages/faq.php</loc>
+        <lastmod>2026-08-04</lastmod>
         <changefreq>monthly</changefreq>
-        <priority>0.4</priority>
+        <priority>0.6</priority>
     </url>
     <url>
         <loc>https://orders.creamybite.com/pages/allergens.php</loc>
+        <lastmod>2026-08-04</lastmod>
         <changefreq>monthly</changefreq>
-        <priority>0.4</priority>
+        <priority>0.5</priority>
     </url>
     <url>
         <loc>https://orders.creamybite.com/pages/storage.php</loc>
+        <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
-        <priority>0.3</priority>
+        <priority>0.4</priority>
     </url>
     <url>
         <loc>https://orders.creamybite.com/pages/cookies.php</loc>
+        <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
     <url>
         <loc>https://orders.creamybite.com/pages/privacy.php</loc>
+        <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
     <url>
         <loc>https://orders.creamybite.com/pages/terms.php</loc>
+        <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>

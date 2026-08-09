@@ -89,7 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trade Account Application – <?= SHOP_NAME ?></title>
-    <?php require __DIR__ . '/../includes/favicon.php'; ?>
+<?php require __DIR__ . '/../includes/seo_head.php'; ?>
+    <meta name="description" content="Apply for a Creamy Bite trade account to stock handcrafted ice cream and cocoa drinks in your shop, cafe or store — wholesale pricing and bulk tubs for retailers.">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/animations.css') ?>">

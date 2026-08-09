@@ -345,7 +345,12 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
     <div class="container">
         <div class="section-header">
             <span class="section-label">Our Flavours</span>
-            <h2 class="section-title">A Taste for Every Mood</h2>
+            <?php // The page's one h1. It used to live in the hero, but the hero is the
+                  // ELSE branch of the banner slider — switching banners on removed the
+                  // only h1 from the most important page on the site. Here it survives
+                  // either way. .section-title is styled by class, so the tag change is
+                  // invisible. ?>
+            <h1 class="section-title">Handcrafted Ice Cream for Every Mood</h1>
             <div class="cb-drip-line" aria-hidden="true"><span></span><span></span><span></span></div>
             <p class="section-subtitle">From indulgent chocolate to refreshing sorbets — handcrafted with love for every craving.</p>
         </div>

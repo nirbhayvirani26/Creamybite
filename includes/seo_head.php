@@ -27,6 +27,13 @@ $cbSeoPath = $_SERVER['SCRIPT_NAME'] ?? '';
 if (defined('SITE_BASE') && SITE_BASE !== '' && str_starts_with($cbSeoPath, SITE_BASE)) {
     $cbSeoPath = substr($cbSeoPath, strlen(SITE_BASE));
 }
+// "/index.php" and "/" serve the identical page, so leaving the canonical on
+// /index.php lets a search engine treat them as two competing copies and split
+// the ranking between them. The root form is the one people link to and the one
+// the sitemap lists, so that is the one to declare.
+if ($cbSeoPath === '/index.php' || $cbSeoPath === 'index.php') {
+    $cbSeoPath = '/';
+}
 $cbSeoUrl = $cbSeoBase . $cbSeoPath;
 
 $cbSeoTitle = $cbSeoTitle ?? (SHOP_NAME . ' – ' . SHOP_TAGLINE);

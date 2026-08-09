@@ -426,6 +426,48 @@ if (!empty($products)) {
     } catch (PDOException $e) { }
 }
 
+// ── Product structured data for the menu ──────────────────────
+//
+// Skipped entirely for a signed-in trade session: the block above swaps
+// $variantsByProduct prices to wholesale in place for a trade partner, and a
+// search crawler — always anonymous — must never be handed a wholesale
+// price as if it were the retail one. Anonymous is the only session a
+// crawler ever has, so this still covers everything that gets indexed.
+$cbMenuSchema = [];
+if (empty($_SESSION['trade_user'])) {
+    foreach ($products as $p) {
+        $vs = $variantsByProduct[$p['id']] ?? [];
+        if ($vs) {
+            $prices = array_column($vs, 'price');
+            $offer  = [
+                '@type'         => 'AggregateOffer',
+                'priceCurrency' => 'GBP',
+                'lowPrice'      => number_format((float)min($prices), 2, '.', ''),
+                'highPrice'     => number_format((float)max($prices), 2, '.', ''),
+                'offerCount'    => count($vs),
+                'availability'  => 'https://schema.org/InStock',
+            ];
+        } else {
+            $oos   = ($p['track_stock'] ?? 0) && ($p['stock_qty'] ?? 1) <= 0;
+            $offer = [
+                '@type'         => 'Offer',
+                'priceCurrency' => 'GBP',
+                'price'         => number_format((float)$p['price'], 2, '.', ''),
+                'availability'  => $oos ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+            ];
+        }
+        $cbMenuSchema[] = [
+            'id'          => (int)$p['id'],
+            'name'        => $p['name'],
+            'description' => $p['description'],
+            'category'    => $p['category'] ?? null,
+            'image'       => !empty($p['image'])
+                ? rtrim(SITE_URL, '/') . '/assets/images/products/' . $p['image']
+                : rtrim(SITE_URL, '/') . '/assets/images/logo.png',
+            'offer'       => $offer,
+        ];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -435,6 +477,37 @@ if (!empty($products)) {
     <title>Order – <?= SHOP_NAME ?></title>
 <?php require __DIR__ . '/../includes/seo_head.php'; ?>
     <meta name="description" content="Browse and order handcrafted ice cream and cocoa drinks at <?= SHOP_NAME ?>. Fresh flavours made daily, delivered to your door.">
+    <?php if (!empty($cbMenuSchema)):
+        $cbOrderUrl = rtrim(SITE_URL, '/') . '/pages/order.php';
+        $cbItemList = [
+            '@context'        => 'https://schema.org',
+            '@type'           => 'ItemList',
+            'itemListElement' => [],
+        ];
+        foreach ($cbMenuSchema as $i => $item) {
+            $cbItemList['itemListElement'][] = [
+                '@type'    => 'ListItem',
+                'position' => $i + 1,
+                'item'     => [
+                    '@type'       => 'Product',
+                    'name'        => $item['name'],
+                    'description' => $item['description'],
+                    'category'    => $item['category'],
+                    'image'       => $item['image'],
+                    'url'         => $cbOrderUrl . '#pcard-' . $item['id'],
+                    'sku'         => (string)$item['id'],
+                    'brand'       => ['@type' => 'Brand', 'name' => SHOP_NAME],
+                    'offers'      => $item['offer'],
+                ],
+            ];
+        }
+    ?>
+    <?php // No JSON_UNESCAPED_SLASHES here on purpose — product names and
+          // descriptions are admin-editable free text, and an unescaped "/"
+          // would let a stray "</script>" inside one close this tag early
+          // for every visitor. Escaped slashes are inert either way. ?>
+    <script type="application/ld+json"><?= json_encode($cbItemList, JSON_PRETTY_PRINT) ?></script>
+    <?php endif; ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/animations.css') ?>">

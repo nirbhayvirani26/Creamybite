@@ -33,6 +33,16 @@ $policyUpdated = $policyUpdated ?? date('F Y');
     <?php $seoDescription = $policyIntro !== '' ? $policyIntro : $policyTitle . ' for ' . SHOP_NAME; ?>
     <?php $cbSeoTitle = $policyTitle . ' – ' . SHOP_NAME; ?>
     <?php require __DIR__ . '/seo_head.php'; ?>
+    <?php // Mirrors the visible breadcrumb in <main> below — Home > this page,
+          // nothing more, since that is the only trail a visitor actually sees. ?>
+    <script type="application/ld+json"><?= json_encode([
+        '@context'        => 'https://schema.org',
+        '@type'           => 'BreadcrumbList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => $cbSeoBase . '/index.php'],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => $policyTitle, 'item' => $cbSeoUrl],
+        ],
+    ]) ?></script>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">
