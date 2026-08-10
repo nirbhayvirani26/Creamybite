@@ -103,8 +103,15 @@ foreach ($products as $p) { if (cbAllergenReviewed($p)) { $confirmed++; } }
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="cbab-body">
+<body class="admin-wrapper has-sidebar cbab-body">
 
+<?php
+// Same sidebar as every other admin page.
+$cbSidebarCurrent = 'products';
+require __DIR__ . '/_sidebar.php';
+?>
+
+<div class="admin-shell">
 <div class="cbab-wrap">
 
     <div class="cbab-head">
@@ -253,5 +260,6 @@ function cbabAllChecked(on) {
 }
 </script>
 
+</div><!-- /admin-shell -->
 </body>
 </html>

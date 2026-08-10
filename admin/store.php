@@ -410,12 +410,19 @@ try {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <?php require __DIR__ . '/_csrf_js.php'; ?>
 </head>
-<body class="cbst-body">
+<body class="admin-wrapper has-sidebar cbst-body">
 
+<?php
+// The same sidebar every other admin page shows. Set before the include so the
+// Delivery & Offers entry is the one lit up.
+$cbSidebarCurrent = 'store';
+require __DIR__ . '/_sidebar.php';
+?>
+
+<div class="admin-shell">
 <div class="cbst-wrap">
 
     <header class="cbst-head">
-        <a href="index.php" class="cbst-back"><i class="fa-solid fa-arrow-left"></i> Admin</a>
         <h1 class="cbst-title"><i class="fa-solid fa-truck-fast" aria-hidden="true"></i> <?= $pageTitle ?></h1>
         <p class="cbst-sub"><?= htmlspecialchars($pageSub) ?></p>
     </header>
@@ -1145,6 +1152,7 @@ try {
         </form>
     </div>
 </div>
+</div><!-- /admin-shell -->
 
 <script src="<?= cbAsset('../assets/js/modal.js') ?>"></script>
 <script src="<?= cbAsset('assets/js/store.js') ?>"></script>

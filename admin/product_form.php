@@ -262,24 +262,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
 <script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
 </head>
-<body>
+<body class="admin-wrapper has-sidebar">
 
-<header class="navbar">
-    <div class="container nav-container">
-        <a href="../index.php" class="logo"><span class="logo-emoji"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i></span> <?= SHOP_NAME ?></a>
-        <nav><ul class="nav-links">
-            <li><a href="index.php?tab=orders">Orders</a></li>
-            <li><a href="index.php?tab=products" class="active">Products</a></li>
-            <li><a href="index.php?tab=gallery">Gallery</a></li>
-            <li><a href="index.php?tab=categories">Categories</a></li>
-        </ul></nav>
-        <div class="nav-actions">
-            <a href="logout.php" class="btn-secondary cbpf-nav-btn">
-                <i class="fa-solid fa-right-from-bracket"></i> Logout
-            </a>
-        </div>
-    </div>
-</header>
+<?php
+// Replaces a hand-written four-link navbar (Orders, Products, Gallery,
+// Categories) that had drifted well out of date with the real menu — it was
+// missing Trade Accounts, Invoices, Revenue, Delivery & Offers and the rest.
+$cbSidebarCurrent = 'products';
+require __DIR__ . '/_sidebar.php';
+?>
+
+<div class="admin-shell">
 
 <main class="cbpf-main">
     <div class="container cbpf-page-wrap">
@@ -907,5 +900,6 @@ function escHtml(str) {
 }
 
 </script>
+</div><!-- /admin-shell -->
 </body>
 </html>

@@ -158,7 +158,15 @@ $customerNo = 'TC-' . str_pad((string)$tradeId, 5, '0', STR_PAD_LEFT);
 <link rel="stylesheet" href="<?= cbAsset('assets/css/admin.css') ?>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="admin-wrapper cbtr-page">
+<body class="admin-wrapper has-sidebar cbtr-page">
+
+<?php
+// Same sidebar as every other admin page.
+$cbSidebarCurrent = 'trade';
+require __DIR__ . '/_sidebar.php';
+?>
+
+<div class="admin-shell">
 <div class="container cbtr-shell">
 
     <div class="cbtr-head no-print">
@@ -396,5 +404,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+</div><!-- /admin-shell -->
 </body>
 </html>

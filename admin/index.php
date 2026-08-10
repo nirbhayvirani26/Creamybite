@@ -572,51 +572,10 @@ function cbTogglePanel(id) {
 // This used to be written out twice — a top navbar and a tab strip — kept
 // in step by hand. They drifted: the navbar was missing Trade Accounts,
 // Revenue and Inquiries entirely. One array, one render, no drift.
-$adminNav = [
-    ['group' => 'Sales'],
-    ['tab' => 'orders',     'icon' => 'fa-clipboard-list',     'label' => 'Orders',
-     'badge' => $pendingOrders > 0 ? (string)$pendingOrders : null],
-    ['tab' => 'invoices',   'icon' => 'fa-file-invoice',       'label' => 'Invoices',
-     'badge' => $invoiceOutstanding > 0 ? '£' . number_format($invoiceOutstanding, 0) : null, 'alert' => true],
-    ['tab' => 'revenue',    'icon' => 'fa-chart-line',         'label' => 'Revenue'],
-
-    ['group' => 'Catalogue'],
-    ['tab' => 'products',   'icon' => 'fa-ice-cream',          'label' => 'Products'],
-    ['tab' => 'stock',      'icon' => 'fa-boxes-stacked',      'label' => 'Stock'],
-    ['tab' => 'categories', 'icon' => 'fa-tags',               'label' => 'Categories'],
-    ['tab' => 'promos',     'icon' => 'fa-ticket',             'label' => 'Promos'],
-
-    ['group' => 'Shop Setup'],
-    // A standalone page rather than a ?tab= in this file — same treatment as
-    // VAT & Accounting below. Deliberately NOT added to $validTabs: there is
-    // no 'store' block in the tab content further down, so a ?tab=store would
-    // render an empty page. Gated by its own 'store' permission key, which is
-    // also registered in CBI_GRANTABLE_SECTIONS (admin/handlers/staff_handler.php)
-    // and in $cbiGrantableSections on the Staff tab, or it could not be ticked.
-    ['href' => 'store.php',  'icon' => 'fa-truck-fast',        'label' => 'Delivery & Offers',
-     'perm' => 'store'],
-
-    ['group' => 'Customers'],
-    ['tab' => 'trade',      'icon' => 'fa-store',              'label' => 'Trade Accounts',
-     'badge' => $pendingTradeCount > 0 ? (string)$pendingTradeCount : null, 'alert' => true],
-    ['tab' => 'inquiries',  'icon' => 'fa-envelope-open-text', 'label' => 'Inquiries',
-     'badge' => $unreadInquiries > 0 ? (string)$unreadInquiries : null, 'alert' => true],
-
-    ['group' => 'Finance'],
-    // Links out to the standalone module rather than being a tab in this
-    // file — see admin/accounting/_layout.php for why it lives apart.
-    ['href' => 'accounting/index.php', 'icon' => 'fa-chart-pie', 'label' => 'VAT & Accounting',
-     'perm' => 'accounting'],
-
-    ['group' => 'Content'],
-    ['tab' => 'banners',    'icon' => 'fa-rectangle-ad',       'label' => 'Home Banner'],
-    ['tab' => 'gallery',    'icon' => 'fa-images',             'label' => 'Gallery'],
-    ['tab' => 'reviews',    'icon' => 'fa-star',               'label' => 'Reviews',
-     'badge' => $pendingReviews > 0 ? (string)$pendingReviews : null, 'alert' => true],
-
-    ['group' => 'Admin'],
-    ['tab' => 'staff',      'icon' => 'fa-user-shield',        'label' => 'Staff'],
-];
+// The admin menu lives in _sidebar_nav.php now, so the sidebar on every other
+// admin page renders from the SAME array. Two copies drift; this one already
+// did once, losing Trade Accounts, Revenue and Inquiries from a second copy.
+require_once __DIR__ . '/_sidebar_nav.php';
 
 // Staff logins only see the sections they've been granted; the Staff
 // section itself is owner-only regardless of what's been granted (see
@@ -660,52 +619,7 @@ $pageTitles = [
 ?>
 
 <!-- ══ Sidebar ════════════════════════════════════════════ -->
-<aside class="admin-sidebar" id="adminSidebar">
-    <a href="../index.php" class="sb-brand" target="_blank" title="<?= SHOP_NAME ?> — open the shop">
-        <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>">
-    </a>
-
-    <nav class="sb-nav">
-        <?php foreach ($adminNav as $item): ?>
-            <?php if (isset($item['group'])): ?>
-                <div class="sb-section"><?= htmlspecialchars($item['group']) ?></div>
-            <?php elseif (isset($item['href'])): ?>
-                <?php // An external page rather than a tab in this file. Hidden
-                      // entirely from staff who do not hold the permission, so
-                      // the sidebar never offers a door that will not open. ?>
-                <?php if (empty($item['perm']) || adminCan($item['perm'])): ?>
-                <a href="<?= htmlspecialchars($item['href']) ?>" class="sb-link">
-                    <i class="fa-solid <?= $item['icon'] ?>"></i>
-                    <span class="sb-label"><?= htmlspecialchars($item['label']) ?></span>
-                </a>
-                <?php endif; ?>
-            <?php else: ?>
-                <a href="index.php?tab=<?= $item['tab'] ?>"
-                   class="sb-link <?= $activeTab === $item['tab'] ? 'active' : '' ?>">
-                    <i class="fa-solid <?= $item['icon'] ?>"></i>
-                    <span class="sb-label"><?= htmlspecialchars($item['label']) ?></span>
-                    <?php if (!empty($item['badge'])): ?>
-                    <span class="sb-badge <?= !empty($item['alert']) ? 'alert' : '' ?>"><?= htmlspecialchars($item['badge']) ?></span>
-                    <?php endif; ?>
-                </a>
-            <?php endif; ?>
-        <?php endforeach; ?>
-    </nav>
-
-    <div class="sb-foot">
-        <div class="sb-user">
-            <i class="fa-solid fa-user-shield"></i>
-            <span><?= htmlspecialchars(adminStaffName()) ?></span>
-        </div>
-        <a href="../index.php" target="_blank" class="sb-foot-btn shop">
-            <i class="fa-solid fa-globe"></i> <span>View Shop</span>
-        </a>
-        <a href="logout.php" class="sb-foot-btn out">
-            <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
-        </a>
-    </div>
-</aside>
-<div class="admin-sidebar-backdrop" id="sidebarBackdrop"></div>
+<?php require __DIR__ . '/_sidebar.php'; ?>
 
 <div class="admin-shell">
     <header class="admin-topbar">
@@ -4173,38 +4087,9 @@ async function removeOrderItem(orderId, itemIndex, itemName) {
     .catch(err => cbAlert('Could not reach the server: ' + err.message, {title:'Request failed', tone:'danger'}));
 }
 
-// ── Sidebar drawer (mobile) ─────────────────────────────────
-(function () {
-    var sidebar  = document.getElementById('adminSidebar');
-    var backdrop = document.getElementById('sidebarBackdrop');
-    var toggle   = document.getElementById('sbToggle');
-    if (!sidebar || !backdrop || !toggle) return;
+// The sidebar drawer now ships with the sidebar itself, in admin/_sidebar.php,
+// so every page that includes it gets a working hamburger rather than a dead one.
 
-    function setOpen(open) {
-        sidebar.classList.toggle('open', open);
-        backdrop.classList.toggle('show', open);
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        // Stop the page behind scrolling while the drawer covers it.
-        document.body.style.overflow = open ? 'hidden' : '';
-    }
-
-    toggle.addEventListener('click', function () {
-        setOpen(!sidebar.classList.contains('open'));
-    });
-    backdrop.addEventListener('click', function () { setOpen(false); });
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') setOpen(false);
-    });
-    // Tapping a menu item closes the drawer, otherwise it hides the page
-    // you just navigated to.
-    sidebar.querySelectorAll('.sb-link').forEach(function (a) {
-        a.addEventListener('click', function () { setOpen(false); });
-    });
-    // Returning to desktop width must not leave the drawer state stuck on.
-    window.addEventListener('resize', function () {
-        if (window.innerWidth > 980) setOpen(false);
-    });
-})();
 
 // ── Table sorting ───────────────────────────────────────────
 // Sorts the rows already on the page. data-sortN holds a machine-readable

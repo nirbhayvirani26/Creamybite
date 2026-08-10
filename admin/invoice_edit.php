@@ -66,7 +66,15 @@ $locked = ($inv['status'] === 'void');
 <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
 <script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
 </head>
-<body class="admin-wrapper cbie-page">
+<body class="admin-wrapper has-sidebar cbie-page">
+
+<?php
+// Same sidebar as every other admin page.
+$cbSidebarCurrent = 'invoices';
+require __DIR__ . '/_sidebar.php';
+?>
+
+<div class="admin-shell">
 <div class="container cbie-shell">
 
     <div class="cbie-page-head">
@@ -797,5 +805,6 @@ function cbMarkInvoiceShared(invoiceId) {
     } catch (e) { /* sharing must not fail because recording it did */ }
 }
 </script>
+</div><!-- /admin-shell -->
 </body>
 </html>
