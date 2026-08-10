@@ -584,6 +584,47 @@ if (empty($_SESSION['trade_user'])) {
 <section class="products-section cbor-menu-section" id="menu">
     <div class="container">
         <?php
+        // ── Are we taking orders? ────────────────────────────
+        //
+        // Said HERE, at the top of the menu, and not left to the checkout. A
+        // customer who picks out four tubs, opens the basket, presses through
+        // to checkout and only THEN reads that the shop has stopped taking
+        // deliveries has been let down twice — once by the shop being shut and
+        // once by us for letting them do all that first.
+        //
+        // Calm, not alarming. Nothing here is broken; the shop has made a
+        // decision about this evening, and the menu is still worth reading.
+        // The checkout says it again, because that is where it is enforced.
+        $cbDeliveryOpen   = cbOrderingOpen('delivery');
+        $cbCollectionOpen = cbOrderingOpen('collection');
+        if (!$cbDeliveryOpen || !$cbCollectionOpen):
+            $cbBothClosed = !$cbDeliveryOpen && !$cbCollectionOpen;
+            // With both off, cbOrderingClosedNote() returns the SAME sentence
+            // whichever method it is asked about — one that points at neither,
+            // because sending someone to collect from a shut shop is worse than
+            // saying nothing. So it is asked once and printed once.
+            $cbClosedType  = !$cbDeliveryOpen ? 'delivery' : 'collection';
+            $cbClosedNote  = cbOrderingClosedNote($cbClosedType);
+            // Same words as the checkout panel, deliberately. A customer who
+            // reads this here and then goes through to checkout should meet the
+            // same sentence, not a second differently-worded apology that reads
+            // like a different problem. Time-neutral too — the owner may well
+            // be closing at ten in the morning, not "for the evening".
+            $cbClosedTitle = $cbBothClosed
+                ? 'We are not taking orders just now'
+                : ($cbClosedType === 'delivery'
+                    ? 'Delivery is paused just now — collection is still running'
+                    : 'Collection is paused just now — delivery is still running');
+        ?>
+        <div class="cbor-paused-notice" role="status">
+            <i class="fa-solid fa-clock cbor-paused-notice-icon" aria-hidden="true"></i>
+            <div class="cbor-paused-notice-body">
+                <strong class="cbor-paused-notice-title"><?= htmlspecialchars($cbClosedTitle) ?></strong>
+                <span class="cbor-paused-notice-text"><?= htmlspecialchars($cbClosedNote) ?></span>
+            </div>
+        </div>
+        <?php endif; ?>
+        <?php
         $cartNotice = $_SESSION['cart_notice'] ?? null;
         unset($_SESSION['cart_notice']);
         if ($cartNotice):

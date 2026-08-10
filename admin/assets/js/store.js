@@ -117,6 +117,212 @@
 
 
     /* ════════════════════════════════════════════════════════
+     *  0.  Are you taking orders?
+     *
+     *  Two switches, delivery and collection, flipped by hand. One press does
+     *  it — there is no confirm box in the way, because the owner reaching for
+     *  this has a queue in front of them, and the answer to a mis-press is the
+     *  same button again.
+     *
+     *  NONE OF THE WORDING LIVES HERE. Every sentence a switch can show was
+     *  written once in admin/store.php and put on the card as a data-
+     *  attribute; this file only chooses which of them to display. A second
+     *  copy in JavaScript is a second copy to keep in step, and the one that
+     *  drifts is always the one nobody is looking at.
+     *
+     *  THE PAGE IS FETCHED AGAIN AFTERWARDS, and that is not laziness. The
+     *  line a customer actually reads comes from cbOrderingClosedNote(), which
+     *  works off a settings row read once per request and held for that
+     *  request — so this request cannot see what it just wrote, and neither
+     *  can anything else until the next one. The card is repainted from the
+     *  server's answer straight away so the owner is never left wondering, and
+     *  the reload a moment later brings the customer-facing preview and the
+     *  "last change" line back into line with the shop. Anything the owner had
+     *  typed and not saved is carried across it.
+     * ════════════════════════════════════════════════════════ */
+
+    var channels = $('cbstChannels');
+    var shutAll  = $('cbstShutAll');
+
+    function cardFor(channel) {
+        // Only ever our own two words, but this is built into a selector, so
+        // it is checked rather than trusted.
+        if (!channels || !/^[a-z]+$/.test(String(channel))) { return null; }
+        return channels.querySelector('.cbst-channel[data-channel="' + channel + '"]');
+    }
+
+    /**
+     * What the owner has typed into a closed-message box but not yet saved.
+     *
+     * Compared against the value the server rendered, which is recorded on
+     * every box below before anything can change it.
+     */
+    function unsavedNotes() {
+        var out = {};
+        if (!channels) { return out; }
+        channels.querySelectorAll('.cbst-channel').forEach(function (card) {
+            var box = card.querySelector('[data-note]');
+            if (box && box.value !== box.dataset.saved) {
+                out[card.dataset.channel] = box.value;
+            }
+        });
+        return out;
+    }
+
+    if (channels) {
+        channels.querySelectorAll('[data-note]').forEach(function (box) {
+            box.dataset.saved = box.value;
+        });
+    }
+
+    /* ── Carrying a confirmation over the reload ─────────── */
+
+    var CARRY = 'cbstCarry';
+
+    function carry(payload) {
+        payload.at = Date.now();
+        try {
+            sessionStorage.setItem(CARRY, JSON.stringify(payload));
+        } catch (err) {
+            // Storage refused (private browsing, or it is full). The switch is
+            // still saved and the reload still shows the right state — only the
+            // sentence about it is lost, so there is nothing to report.
+        }
+    }
+
+    (function restoreCarried() {
+        var raw;
+        try {
+            raw = sessionStorage.getItem(CARRY);
+            if (raw !== null) { sessionStorage.removeItem(CARRY); }
+        } catch (err) {
+            return;
+        }
+        if (!raw) { return; }
+
+        var payload;
+        try { payload = JSON.parse(raw); } catch (err) { return; }
+        if (!payload || typeof payload !== 'object') { return; }
+
+        // Only a confirmation from the reload we just asked for. Without this,
+        // a save followed by wandering off somewhere else would put a stale
+        // "Delivery orders are closed" on screen the next time this page was
+        // opened, describing something that happened hours ago.
+        if (!(Date.now() - Number(payload.at) < 30000)) { return; }
+
+        Object.keys(payload.notes || {}).forEach(function (channel) {
+            var card = cardFor(channel);
+            var box  = card ? card.querySelector('[data-note]') : null;
+            if (box) { box.value = String(payload.notes[channel]); }
+        });
+
+        if (payload.message) { say(payload.message, payload.tone || 'ok'); }
+    })();
+
+    /* ── Showing a channel's state ───────────────────────── */
+
+    function paintChannel(card, isOpen) {
+        if (!card) { return; }
+        var d = card.dataset;
+
+        card.classList.toggle('is-open', isOpen);
+        card.classList.toggle('is-shut', !isOpen);
+
+        var dot = card.querySelector('[data-state-dot]');
+        if (dot) { dot.className = 'fa-solid ' + (isOpen ? 'fa-circle-check' : 'fa-circle-xmark'); }
+
+        var line = card.querySelector('[data-state-line]');
+        if (line) { line.textContent = isOpen ? d.openState : d.shutState; }
+
+        var blurb = card.querySelector('[data-state-blurb]');
+        if (blurb) { blurb.textContent = isOpen ? d.openBlurb : d.shutBlurb; }
+
+        // The button always offers the opposite of where the channel is now:
+        // open, and it is the one that stops it.
+        var icon = card.querySelector('[data-state-icon]');
+        if (icon) { icon.className = 'fa-solid ' + (isOpen ? 'fa-toggle-on' : 'fa-toggle-off'); }
+
+        var label = card.querySelector('[data-state-btn]');
+        if (label) { label.textContent = isOpen ? d.shutBtn : d.openBtn; }
+
+        // "What a customer is reading right now" is only true while the channel
+        // is shut, and its sentence is written by the server. Hiding it here
+        // rather than rewriting it means this file never has to guess what that
+        // sentence would be; the reload brings back the real one.
+        var seen = card.querySelector('.cbst-channel-seen');
+        if (seen) { seen.hidden = isOpen; }
+    }
+
+    /* ── Pressing a switch, or saving its message ────────── */
+
+    if (channels) {
+        channels.addEventListener('click', function (e) {
+            var button = e.target.closest('[data-act]');
+            if (!button) { return; }
+
+            var act = button.dataset.act;
+            if (act !== 'channel-toggle' && act !== 'channel-note') { return; }
+
+            var card = button.closest('.cbst-channel');
+            if (!card) { return; }
+
+            var box = card.querySelector('[data-note]');
+            clearErrors(card);
+
+            // The switch asks for the opposite of what is on screen. The
+            // message button asks for "keep", which tells the handler to read
+            // the state out of the database and leave it alone — so saving
+            // wording can never move a switch, however out of date this page is.
+            var open = (act === 'channel-toggle')
+                ? (card.classList.contains('is-open') ? '0' : '1')
+                : 'keep';
+
+            var buttons = card.querySelectorAll('button');
+            buttons.forEach(function (b) { b.disabled = true; });
+
+            send({
+                action:  'set_channel_open',
+                channel: card.dataset.channel,
+                open:    open,
+                note:    box ? box.value : ''
+            }).then(function (res) {
+
+                if (res && res.success) {
+                    // Both cards, from the row the handler read back after
+                    // writing — not from what this page assumed it asked for.
+                    paintChannel(cardFor('delivery'),   Number(res.delivery_open) === 1);
+                    paintChannel(cardFor('collection'), Number(res.collection_open) === 1);
+                    if (shutAll) { shutAll.hidden = !!res.any_open; }
+
+                    // The note as it is now STORED, trimmed ends and all, so the
+                    // box shows what a customer would get rather than what was
+                    // typed at it.
+                    if (box) {
+                        box.value = (res.note === null || res.note === undefined) ? '' : String(res.note);
+                        box.dataset.saved = box.value;
+                    }
+
+                    carry({ message: res.message || 'Saved.', tone: 'ok', notes: unsavedNotes() });
+                    // Left disabled on purpose until the page comes back — a
+                    // second press while the first is still landing would ask
+                    // for the opposite of a state that is already changing.
+                    setTimeout(function () { window.location.reload(); }, 900);
+                    return;
+                }
+
+                buttons.forEach(function (b) { b.disabled = false; });
+
+                var homeless = showErrors(card, (res && res.errors) || {});
+                var headline = (res && res.message) || 'That could not be changed.';
+                if (homeless.length) { headline = homeless.join(' '); }
+                say(headline, 'bad');
+                goToFirstError(card);
+            });
+        });
+    }
+
+
+    /* ════════════════════════════════════════════════════════
      *  1 & 3.  Delivery settings and the basket message
      *
      *  One row in the database, so one save. Section 3 writes what it has into

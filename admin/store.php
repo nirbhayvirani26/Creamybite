@@ -374,6 +374,26 @@ $cbstChannels = [
 
 $cbstAnyOpen = cbAnyOrderingOpen();
 
+// Can this database actually STORE a switch?
+//
+// cbOrderingOpen() answers "open" on a server whose migration has not been run,
+// which is right for the shop — it keeps taking orders — but it means the two
+// cards below would read "Open" for a perfectly good reason and then refuse to
+// change, with MySQL's own wording, the first time the owner pressed one. So
+// the columns are asked for once here, and the section says plainly what is
+// wrong instead. One indexed read on one row, on an admin page that already
+// makes three larger queries than this.
+$cbstChannelsReady = true;
+try {
+    $pdo->query(
+        "SELECT `delivery_open`, `collection_open`, `delivery_closed_note`, `collection_closed_note`
+           FROM `store_settings` WHERE `id` = 1"
+    )->fetch();
+} catch (Throwable $e) {
+    $cbstChannelsReady = false;
+    error_log('Store page: the open/close columns are not on this database yet: ' . $e->getMessage());
+}
+
 [$pageTitle, $pageSub] = ['Delivery &amp; Offers', 'Delivery charges, offers and the message in the basket'];
 ?>
 <!DOCTYPE html>
@@ -439,6 +459,18 @@ $cbstAnyOpen = cbAnyOrderingOpen();
             charged for an order you are not going to make.
         </p>
 
+        <?php if (!$cbstChannelsReady): ?>
+        <div class="cbst-banner is-warn">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <div>
+                <strong>These two switches need the database updating first.</strong>
+                Your shop is taking orders as normal and everything else on this page
+                works — but until this is done the switches cannot be saved. Run
+                <a href="migrations/update_db.php">Update DB</a> once, then come back here.
+            </div>
+        </div>
+        <?php endif; ?>
+
         <?php // Shown when BOTH are off. Kept in the page rather than created by
               // JavaScript so it is already on screen when the page loads that
               // way, and only hidden or shown afterwards. ?>
@@ -470,7 +502,11 @@ $cbstAnyOpen = cbAnyOrderingOpen();
                         </span>
                         <div class="cbst-channel-id">
                             <h3 class="cbst-channel-name"><?= htmlspecialchars($cbstCh['title']) ?></h3>
-                            <p class="cbst-channel-state">
+                            <?php // aria-live so the change is spoken as well as
+                                  // shown — the state is repainted in place rather
+                                  // than the page moving, and a screen reader has
+                                  // nothing else to notice. ?>
+                            <p class="cbst-channel-state" aria-live="polite">
                                 <i class="fa-solid <?= $cbstIsOpen ? 'fa-circle-check' : 'fa-circle-xmark' ?>"
                                    aria-hidden="true" data-state-dot></i>
                                 <span data-state-line><?= htmlspecialchars($cbstIsOpen ? $cbstCh['openState'] : $cbstCh['shutState']) ?></span>
@@ -482,7 +518,8 @@ $cbstAnyOpen = cbAnyOrderingOpen();
                         <?= htmlspecialchars($cbstIsOpen ? $cbstCh['openBlurb'] : $cbstCh['shutBlurb']) ?>
                     </p>
 
-                    <button type="button" class="cbst-channel-btn" data-act="channel-toggle">
+                    <button type="button" class="cbst-channel-btn" data-act="channel-toggle"
+                            <?= $cbstChannelsReady ? '' : 'disabled' ?>>
                         <i class="fa-solid <?= $cbstIsOpen ? 'fa-toggle-on' : 'fa-toggle-off' ?>"
                            aria-hidden="true" data-state-icon></i>
                         <span data-state-btn><?= htmlspecialchars($cbstIsOpen ? $cbstCh['shutBtn'] : $cbstCh['openBtn']) ?></span>
@@ -507,7 +544,8 @@ $cbstAnyOpen = cbAnyOrderingOpen();
                             is still available.
                         </small>
                         <p class="cbst-err" data-err="note_<?= htmlspecialchars($cbstKey) ?>" hidden></p>
-                        <button type="button" class="cbst-btn is-ghost cbst-channel-save" data-act="channel-note">
+                        <button type="button" class="cbst-btn is-ghost cbst-channel-save" data-act="channel-note"
+                                <?= $cbstChannelsReady ? '' : 'disabled' ?>>
                             <i class="fa-solid fa-check" aria-hidden="true"></i> Save this message
                         </button>
                     </div>

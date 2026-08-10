@@ -109,6 +109,31 @@ function cbstRefuse(array $errors, string $message = ''): void
     cbstReply(['success' => false, 'message' => $message, 'errors' => $errors]);
 }
 
+/**
+ * Turn "this database has not been migrated" into an instruction, and leave
+ * every other database failure alone.
+ *
+ * The open/close columns are new. A server that has not had
+ * admin/migrations/update_db.php run on it since they were added still serves
+ * the shop perfectly — includes/store_settings.php falls back to OPEN when it
+ * cannot read them — but it cannot store a switch, and MySQL says so in words
+ * no shop owner should ever be shown.
+ *
+ * Returns normally when the fault is something else, so the caller rethrows and
+ * the ordinary error path handles it.
+ */
+function cbstNeedsMigration(Throwable $e): void
+{
+    $text = $e->getMessage();
+    if (stripos($text, 'Unknown column') === false
+        && stripos($text, "doesn't exist") === false
+        && stripos($text, 'Base table or view not found') === false) {
+        return;
+    }
+    cbstRefuse([], 'Your database has not been updated for these switches yet, so nothing has been changed. '
+                 . 'Open Update DB once from the admin menu, then come back to this page — everything else here still works in the meantime.');
+}
+
 // ────────────────────────────────────────────────────────────
 //  Reading what was typed
 // ────────────────────────────────────────────────────────────
@@ -435,20 +460,42 @@ try {
             cbstRefuse([], 'That is not a way of ordering this shop has.');
         }
 
-        // Exactly "1" or "0". Not "on", not "true", not empty — this decides
-        // whether a real shop is taking money tonight, and a value nobody meant
-        // must not be read as either answer.
+        // Exactly "1", "0" or "keep". Not "on", not "true", not empty — this
+        // decides whether a real shop is taking money tonight, and a value
+        // nobody meant must not be read as either answer.
+        //
+        // "keep" is what the Save-this-message button sends. Saving the wording
+        // and flipping the switch are the same action here, so without a third
+        // value the button would have to post the state it believes the channel
+        // is in — read off the screen. A page left open since before somebody
+        // closed the shop from their phone believes the wrong thing, and saving
+        // a message would quietly reopen it. "keep" says what is actually
+        // meant: leave the switch exactly as the database has it.
         $rawOpen = (string)($_POST['open'] ?? '');
-        if ($rawOpen !== '0' && $rawOpen !== '1') {
+        if ($rawOpen !== '0' && $rawOpen !== '1' && $rawOpen !== 'keep') {
             cbstRefuse([], 'It was not clear whether that should be opened or closed, so nothing has been changed. Reload the page and try again.');
         }
-        $open = (int)$rawOpen;
 
         // Blank is normal and means "no wording of my own" — the shop then
         // writes a sentence that fits, in cbOrderingClosedNote(). The column is
         // VARCHAR(255), so anything longer would be cut off by MySQL and the
         // owner would never know which half a customer was reading.
-        $note = trim((string)($_POST['note'] ?? ''));
+        // An array here used to become the literal string "Array", written
+        // straight into the column and shown to customers — and the PHP warning
+        // it emitted printed ahead of the JSON body, so the reply stopped being
+        // valid JSON and the admin page could not read its own result.
+        $noteRaw = $_POST['note'] ?? null;
+        if ($noteRaw !== null && !is_scalar($noteRaw)) {
+            cbstRefuse([
+                'note_' . $channel => 'That message could not be read. Please retype it.',
+            ]);
+        }
+        // Distinguish "left the box empty on purpose" from "did not send the
+        // field at all": only the first should clear a saved message. Omitting
+        // it used to blank the owner's wording as a side effect of flipping the
+        // switch through any other client.
+        $noteProvided = ($noteRaw !== null);
+        $note = trim((string)($noteRaw ?? ''));
         if (mb_strlen($note) > 255) {
             cbstRefuse([
                 'note_' . $channel => 'That message is too long — keep it under 255 characters.',
@@ -458,14 +505,30 @@ try {
         // Read BEFORE writing, so the confirmation can tell the owner what
         // actually changed: flipping the switch and saving a message are the
         // same action here, and "Saved" would not say which one they just did.
-        $before = $pdo->query(
-            "SELECT `delivery_open`, `collection_open`, `delivery_closed_note`, `collection_closed_note`
-               FROM `store_settings` WHERE `id` = 1"
-        )->fetch();
+        //
+        // A database that has not had the migration run on it has none of these
+        // four columns, and MySQL's own "Unknown column" is not a sentence to
+        // put in front of a shop owner. cbstNeedsMigration() turns exactly that
+        // failure into an instruction and lets every other failure through
+        // untouched.
+        try {
+            $before = $pdo->query(
+                "SELECT `delivery_open`, `collection_open`, `delivery_closed_note`, `collection_closed_note`
+                   FROM `store_settings` WHERE `id` = 1"
+            )->fetch();
+        } catch (Throwable $e) {
+            cbstNeedsMigration($e);
+            throw $e;
+        }
         $before = is_array($before) ? $before : [];
 
+        // The state the database is in right now — which is what "keep" means,
+        // and it is read here rather than taken from the page precisely so a
+        // stale screen cannot decide it.
         $wasOpen  = (isset($before[$channel . '_open']) && (int)$before[$channel . '_open'] === 0) ? 0 : 1;
         $wasNote  = trim((string)($before[$channel . '_closed_note'] ?? ''));
+
+        $open = ($rawOpen === 'keep') ? $wasOpen : (int)$rawOpen;
 
         // INSERT ... ON DUPLICATE KEY for the same reason save_settings uses it:
         // the settings row is always id 1, so this can only ever touch that one
@@ -493,7 +556,9 @@ try {
                  :open, :note, NOW(), :who)
              ON DUPLICATE KEY UPDATE
                 `{$channel}_open`        = VALUES(`{$channel}_open`),
-                `{$channel}_closed_note` = VALUES(`{$channel}_closed_note`),
+                `{$channel}_closed_note` = " . ($noteProvided
+                      ? "VALUES(`{$channel}_closed_note`)"
+                      : "`{$channel}_closed_note`") . ",
                 updated_at               = VALUES(updated_at),
                 updated_by               = VALUES(updated_by)"
         )->execute([

@@ -70,7 +70,10 @@ if ($tradeInstructions !== '') {
 }
 $postcode     = strtoupper(trim($_POST['delivery_postcode'] ?? ''));
 $clientCharge = round((float)($_POST['delivery_charge'] ?? 0), 2);
-$orderType    = trim($_POST['order_type'] ?? 'delivery');
+$orderTypeRaw = $_POST['order_type'] ?? 'delivery';
+// Posted as an array, order_type made trim() throw before any rule ran, so
+// the request died with an uncaught TypeError instead of being refused.
+$orderType    = trim(is_scalar($orderTypeRaw) ? (string)$orderTypeRaw : '');
 
 if ($orderType === 'collection') {
     $postcode = 'HA1 2SP';
@@ -86,7 +89,8 @@ tradeSessionRevalidate($pdo);
 // submits this form, so by the time any rule below runs the money may
 // already be captured. Establish that FIRST: from here on, no failure path
 // may throw the request away without recording what the customer paid.
-$capturedPence  = null;
+$capturedPence   = null;
+$capturedChannel = null;
 $stripeIntentId = $_SESSION['stripe_intent_id'] ?? null;
 if (($_POST['payment_method'] ?? '') === 'online' && $stripeIntentId && class_exists('\Stripe\Stripe')) {
     try {
@@ -94,6 +98,14 @@ if (($_POST['payment_method'] ?? '') === 'online' && $stripeIntentId && class_ex
         $earlyIntent = \Stripe\PaymentIntent::retrieve($stripeIntentId);
         if ($earlyIntent->status === 'succeeded') {
             $capturedPence = (int)$earlyIntent->amount;
+            // stripe_intent.php records the channel it created the charge for.
+            // That is the only trustworthy statement of what the customer
+            // actually paid for; the re-submitted form field is not, because it
+            // can be changed between paying and posting.
+            $paidChannel = trim((string)($earlyIntent->metadata->order_type ?? ''));
+            if ($paidChannel !== '') {
+                $capturedChannel = ($paidChannel === 'collection') ? 'collection' : 'delivery';
+            }
         }
     } catch (Exception $e) {
         error_log('Stripe early retrieve failed: ' . $e->getMessage());
@@ -142,6 +154,26 @@ $errors = [];
 // a shut collection channel while the order it produced was written as a
 // delivery. Canonicalise first, then ask, and the two always agree.
 $orderChannel = ($orderType === 'collection') ? 'collection' : 'delivery';
+
+// The channel must be the one the money was taken for. Without this, a closed
+// channel is reachable on purpose rather than only by the honest race: pay
+// through whichever channel is still OPEN, then post the form with the CLOSED
+// one, and the rule below waves it through because money is real. The order
+// then lands as a delivery on an evening the owner switched delivery off.
+// Trust the PaymentIntent, not the form field, and say so on the order.
+if ($capturedChannel !== null && $capturedChannel !== $orderChannel) {
+    $errors[] = 'Order type was changed after payment: paid as ' . $capturedChannel
+              . ', submitted as ' . $orderChannel . '. Recorded as ' . $capturedChannel
+              . ' — the option the card was actually charged for. Please check this one.';
+    $orderChannel = $capturedChannel;
+    $orderType    = $capturedChannel;
+    if ($orderType === 'collection') {
+        $postcode     = 'HA1 2SP';
+        $clientCharge = 0.0;
+        $address      = 'Collection - Creamy Bite, Unit E5 Phoenix Business centre, HA1 2SP (Collection Time: 11 AM to 8 PM)';
+    }
+}
+
 if (!cbOrderingOpen($orderChannel)) {
     // The owner's own wording if they wrote any, otherwise a sentence that
     // fits the situation — including the case where BOTH are off, which must

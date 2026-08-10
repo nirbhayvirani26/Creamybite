@@ -66,13 +66,60 @@ $appliedPromo = $_SESSION['promo'] ?? null;
 $isTradeUser  = !empty($_SESSION['trade_user']);
 $tradeUser    = $_SESSION['trade_user'] ?? [];
 
+// ── Is the shop taking orders? ───────────────────────────────
+//
+// Two switches the owner flips by hand in the admin panel, read once here.
+// Everything on this page that depends on them — which method is ticked when
+// the page opens, which one can be chosen at all, whether the form is offered
+// — follows from these four lines and nothing else.
+//
+// NONE OF THIS IS ENFORCEMENT. Hiding a radio button stops nobody: a customer
+// who had this page open when the shop closed still has a live form in front
+// of them, and the address bar is not a security boundary. checkout_handler.php
+// and stripe_intent.php each make the same check on the way in, and those are
+// the ones that actually refuse the order. This is only about not wasting
+// somebody's evening filling in a form that was never going to work.
+$cbDeliveryOpen   = cbOrderingOpen('delivery');
+$cbCollectionOpen = cbOrderingOpen('collection');
+$cbAnyOpen        = cbAnyOrderingOpen();
+
+// Delivery is the default and always has been. The one case where that is
+// wrong is when delivery is the method the owner has switched off — opening on
+// it would greet the customer with a postcode box, a minimum-order warning and
+// a delivery charge, all for an order the shop is not taking, and leave them to
+// work out for themselves that the other button is the live one.
+//
+// Nothing else moves the default. With BOTH closed this stays 'delivery',
+// which never reaches the screen: the form is replaced further down.
+$cbDefaultOrderType = (!$cbDeliveryOpen && $cbCollectionOpen) ? 'collection' : 'delivery';
+
 // What the summary is being asked about. The page itself always renders the
-// "delivery, postcode not given yet" case, exactly as it did before; a summary
-// request says which order type and postcode the customer has since chosen.
-$summaryOrderType = 'delivery';
+// "postcode not given yet" case, exactly as it did before; a summary request
+// says which order type and postcode the customer has since chosen.
+//
+// With BOTH methods shut there is no order type — nobody is choosing anything
+// — so the basket is priced the collection way: no delivery row, no minimum,
+// and none of the delivery banner's promises. Priced as a delivery it sat next
+// to the "we are not taking orders" panel cheerfully inviting the customer to
+// "enter your postcode above and we will show you the delivery cost", with no
+// postcode box anywhere on the page to enter it into.
+$summaryOrderType = $cbAnyOpen ? $cbDefaultOrderType : 'collection';
 $summaryPostcode  = '';
 if ($summaryJson) {
     $summaryOrderType = (($_POST['order_type'] ?? '') === 'collection') ? 'collection' : 'delivery';
+    // A summary asked for on a method that has since been switched off is
+    // priced as the method the customer can actually use, so the figures on
+    // screen stay figures they could really be charged — a delivery charge and
+    // a minimum-order line for an order the shop will refuse is worse than no
+    // answer. Refusing the ORDER is the handler's job; this is only arithmetic.
+    //
+    // With both shut this lands on 'collection' for the reason given above the
+    // page's own $summaryOrderType: it is the pricing with nothing added to it.
+    // That case is reached in earnest — the basket beside the closed panel is
+    // still live, and every +/− press asks this endpoint for new figures.
+    if (!cbOrderingOpen($summaryOrderType)) {
+        $summaryOrderType = $cbDeliveryOpen ? 'delivery' : 'collection';
+    }
     $summaryPostcode  = strtoupper(trim((string)($_POST['postcode'] ?? '')));
     // Only a real UK postcode is passed on. calculateDeliveryCharge() calls
     // postcodes.io for anything else it is given, and a half-typed postcode is
@@ -92,6 +139,101 @@ $vatAmount      = $totals['vat'];
 $grandTotal     = $totals['total'];
 
 /**
+ * The Delivery / Collection chooser.
+ *
+ * Both checkouts on this page offer the same two methods — retail says
+ * "Delivery" and "Collection", trade says "Store Delivery" and "Warehouse
+ * Collection" — and both have to react identically when the owner switches one
+ * of them off. Written out twice they would drift, and the one that drifts is
+ * always the one nobody tested.
+ *
+ * A CLOSED METHOD IS SHOWN, GREYED OUT, NOT REMOVED. Dropping it would leave a
+ * lone unexplained button and a customer wondering whether this shop collects
+ * at all, or whether the page is broken. Greyed out, with the reason written
+ * underneath in the owner's own words, answers the question they were about to
+ * ask — and the shape of the page does not change under someone who has used
+ * it before.
+ *
+ * The radio for a closed method is `disabled`, so it cannot be ticked, is
+ * skipped by the keyboard, and is not submitted. That is courtesy, not
+ * security: checkout_handler.php and stripe_intent.php refuse the order
+ * regardless of what arrives.
+ *
+ * @param string $legend          Wording above the pair, without the asterisk.
+ * @param string $deliveryLabel   What this checkout calls delivery.
+ * @param string $collectionLabel What this checkout calls collection.
+ * @param string $defaultType     Which one opens ticked — see $cbDefaultOrderType.
+ */
+function cbOrderTypeChooser(
+    string $legend,
+    string $deliveryLabel,
+    string $collectionLabel,
+    string $defaultType
+): string {
+    $esc = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+
+    $out = '<div class="form-group cbco-mb-20">'
+         . '<label class="form-label cbco-order-type-label">' . $esc($legend) . ' *</label>'
+         . '<div class="cbco-order-type-grid">';
+
+    foreach ([
+        ['delivery',   $deliveryLabel,   'fa-truck-fast'],
+        ['collection', $collectionLabel, 'fa-store'],
+    ] as [$type, $label, $icon]) {
+
+        $open   = cbOrderingOpen($type);
+        $picked = $open && $type === $defaultType;
+
+        // Three states, not two. The pair used to be simply active/idle, and
+        // toggleOrderType() still swaps those two round as the customer picks;
+        // -closed is written later in components.css than -idle, so it keeps
+        // its greyed-out look even after that swap has run.
+        $state = !$open ? 'cbco-order-type-option-closed'
+                        : ($picked ? 'cbco-order-type-option-active' : 'cbco-order-type-option-idle');
+
+        // The icon and the wording follow the same three states, so a paused
+        // method never sits there in full brand colour looking available.
+        $tone = !$open ? 'cbco-text-muted' : ($picked ? 'cbco-icon-primary' : 'cbco-text-secondary');
+        $textTone = !$open ? 'cbco-text-muted' : ($picked ? 'cbco-text-primary' : 'cbco-text-secondary');
+
+        $out .= '<label id="type_' . $type . '_label" class="cbco-order-type-option ' . $state . '"'
+              . (!$open ? ' aria-disabled="true"' : '') . '>'
+              . '<input type="radio" name="order_type" value="' . $type . '"'
+              . ($picked ? ' checked' : '')
+              . (!$open ? ' disabled' : '')
+              . ' class="cbco-hidden" onchange="toggleOrderType(\'' . $type . '\')">'
+              . '<i class="fa-solid ' . $icon . ' cbco-order-type-icon ' . $tone . '" aria-hidden="true"></i>'
+              . '<span class="cbco-order-type-text ' . $textTone . '">' . $esc($label) . '</span>';
+
+        if (!$open) {
+            $out .= '<span class="cbco-order-type-pill">'
+                  . '<i class="fa-solid fa-clock" aria-hidden="true"></i> Paused</span>';
+        }
+
+        $out .= '</label>';
+    }
+
+    $out .= '</div>';
+
+    // The explanation, once, under the pair — the owner's own sentence if they
+    // wrote one. cbOrderingClosedNote() returns '' for a method that is
+    // running, so an ordinary evening prints nothing here at all.
+    //
+    // Only ONE line can appear, because only one method can be closed by the
+    // time this renders: with both closed the form is not on the page.
+    foreach (['delivery', 'collection'] as $type) {
+        $note = cbOrderingClosedNote($type);
+        if ($note !== '') {
+            $out .= '<p class="cbco-channel-note" role="status">'
+                  . '<i class="fa-solid fa-circle-info" aria-hidden="true"></i> '
+                  . $esc($note) . '</p>';
+        }
+    }
+
+    return $out . '</div>';
+}
+
+/**
  * The lines of encouragement to print under the total.
  *
  * cbCartMessages() writes them all — the shop's standing message, what has
@@ -101,8 +243,16 @@ $grandTotal     = $totals['total'];
  * are the words.
  *
  * Never fatal. A shop whose offers cannot be read still has a checkout.
+ *
+ * $postcode is a PARAMETER, and has to be. It used to be read as a bare
+ * $postcode inside the body, where no such variable exists — which printed
+ * "Warning: Undefined variable $postcode" into the middle of the customer's
+ * order summary, and then handed NULL to a `string` parameter, which throws.
+ * The catch below swallowed the throw, so every line of encouragement on this
+ * page silently went missing while the cart drawer on order.php still showed
+ * them. Both symptoms had the same one-word cause.
  */
-function cbCheckoutNotes(array $cart, array $totals, string $orderType): array
+function cbCheckoutNotes(array $cart, array $totals, string $orderType, string $postcode = ''): array
 {
     if (!function_exists('cbCartMessages')) {
         return [];
@@ -251,7 +401,7 @@ function cbCheckoutSummaryFigures(
     }
 
     // ── The words ────────────────────────────────────────────
-    $notes = cbCheckoutNotes($cart, $totals, $orderType);
+    $notes = cbCheckoutNotes($cart, $totals, $orderType, $postcode);
     if ($notes !== []) {
         $out .= '<div class="cbof-notes">';
         foreach ($notes as $note) {
@@ -402,10 +552,21 @@ if ($summaryJson) {
     <div class="container">
 
         <!-- Page Title -->
+        <?php // "Almost There!" and "fill in your delivery details" are exactly
+              // wrong above a panel that has just said the shop is not taking
+              // orders — the customer is not almost there and there are no
+              // details to fill in. The heading is part of the message, so it
+              // changes with it. ?>
         <div class="cbco-page-head">
+            <?php if ($cbAnyOpen): ?>
             <span class="section-label">Almost There!</span>
             <h1 class="cbco-page-title">Complete Your Order <i class="fa-solid fa-ice-cream cb-title-icon" aria-hidden="true"></i></h1>
             <p class="cbco-page-subtitle">Fill in your delivery details and we'll bring the sweetness to you.</p>
+            <?php else: ?>
+            <span class="section-label">Back Shortly</span>
+            <h1 class="cbco-page-title">Your Basket <i class="fa-solid fa-ice-cream cb-title-icon" aria-hidden="true"></i></h1>
+            <p class="cbco-page-subtitle">Everything you picked is here waiting — we will be taking orders again soon.</p>
+            <?php endif; ?>
         </div>
 
         <div class="checkout-grid">
@@ -427,6 +588,38 @@ if ($summaryJson) {
                 </div>
                 <?php endif; ?>
 
+                <?php // With BOTH methods switched off there is no order to
+                      // take, so the form is not printed at all. Leaving it up
+                      // — greyed out, or with a warning above it — invites
+                      // somebody to fill in their address and their card and
+                      // find out at the last press that none of it counted.
+                      //
+                      // The basket panel beside this stays exactly as it is.
+                      // Nothing has been lost and it should look that way. ?>
+                <?php if (!$cbAnyOpen): ?>
+                <div class="glass-panel section-card cbco-paused-panel">
+                    <div class="cbco-paused-mark" aria-hidden="true">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </div>
+                    <h2 class="cbco-paused-title">We are not taking orders just now</h2>
+                    <?php // Both closed, so cbOrderingClosedNote() gives the same
+                          // sentence for either method — asked once and printed
+                          // once. It deliberately points at neither delivery nor
+                          // collection, because neither is available. ?>
+                    <p class="cbco-paused-note"><?= htmlspecialchars(cbOrderingClosedNote('delivery')) ?></p>
+                    <p class="cbco-paused-sub">
+                        Your basket is safe — everything in it will still be here when we open back up.
+                    </p>
+                    <div class="cbco-paused-actions">
+                        <a href="order.php" class="btn-secondary cbco-paused-btn">
+                            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to the menu
+                        </a>
+                        <a href="tel:<?= htmlspecialchars(SHOP_PHONE) ?>" class="btn-primary cbco-paused-btn">
+                            <i class="fa-solid fa-phone" aria-hidden="true"></i> Call us on <?= htmlspecialchars(SHOP_PHONE) ?>
+                        </a>
+                    </div>
+                </div>
+                <?php else: ?>
                 <div class="glass-panel section-card">
                     <?php // $isTradeUser and $tradeUser are settled at the top of
                           // the file — the summary renderer needs them before any
@@ -478,21 +671,12 @@ if ($summaryJson) {
                         </div>
 
                         <!-- Order Type Selector (Collection / Delivery) -->
-                        <div class="form-group cbco-mb-20">
-                            <label class="form-label cbco-order-type-label">Order Delivery Method *</label>
-                            <div class="cbco-order-type-grid">
-                                <label id="type_delivery_label" class="cbco-order-type-option cbco-order-type-option-active">
-                                    <input type="radio" name="order_type" value="delivery" checked class="cbco-hidden" onchange="toggleOrderType('delivery')">
-                                    <i class="fa-solid fa-truck-fast cbco-order-type-icon cbco-icon-primary"></i>
-                                    <span class="cbco-order-type-text cbco-text-primary">Store Delivery</span>
-                                </label>
-                                <label id="type_collection_label" class="cbco-order-type-option cbco-order-type-option-idle">
-                                    <input type="radio" name="order_type" value="collection" class="cbco-hidden" onchange="toggleOrderType('collection')">
-                                    <i class="fa-solid fa-store cbco-order-type-icon cbco-text-secondary"></i>
-                                    <span class="cbco-order-type-text cbco-text-secondary">Warehouse Collection</span>
-                                </label>
-                            </div>
-                        </div>
+                        <?= cbOrderTypeChooser(
+                                'Order Delivery Method',
+                                'Store Delivery',
+                                'Warehouse Collection',
+                                $cbDefaultOrderType
+                            ) ?>
 
                         <!-- B2B Trade Delivery Instructions (Opening Hours & Delivery Place) -->
                         <div class="form-group cbco-mb-20">
@@ -551,21 +735,12 @@ if ($summaryJson) {
                         </div>
 
                         <!-- Order Type Selector (Collection / Delivery) -->
-                        <div class="form-group cbco-mb-20">
-                            <label class="form-label cbco-order-type-label">Order Type *</label>
-                            <div class="cbco-order-type-grid">
-                                <label id="type_delivery_label" class="cbco-order-type-option cbco-order-type-option-active">
-                                    <input type="radio" name="order_type" value="delivery" checked class="cbco-hidden" onchange="toggleOrderType('delivery')">
-                                    <i class="fa-solid fa-truck-fast cbco-order-type-icon cbco-icon-primary"></i>
-                                    <span class="cbco-order-type-text cbco-text-primary">Delivery</span>
-                                </label>
-                                <label id="type_collection_label" class="cbco-order-type-option cbco-order-type-option-idle">
-                                    <input type="radio" name="order_type" value="collection" class="cbco-hidden" onchange="toggleOrderType('collection')">
-                                    <i class="fa-solid fa-store cbco-order-type-icon cbco-text-secondary"></i>
-                                    <span class="cbco-order-type-text cbco-text-secondary">Collection</span>
-                                </label>
-                            </div>
-                        </div>
+                        <?= cbOrderTypeChooser(
+                                'Order Type',
+                                'Delivery',
+                                'Collection',
+                                $cbDefaultOrderType
+                            ) ?>
 
                         <!-- Postcode field group -->
                         <div class="form-group" id="postcode_field_group">
@@ -709,6 +884,7 @@ if ($summaryJson) {
 
                     </form>
                 </div>
+                <?php endif; // $cbAnyOpen ?>
             </div>
 
             <!-- ── Order Summary (Editable) ──────────────────────────── -->
@@ -828,6 +1004,15 @@ if ($summaryJson) {
 <?php require __DIR__ . '/../includes/site_footer.php'; ?>
 
 <script>
+// Escapes anything the server sends before it goes near innerHTML. The
+// closed-shop wording is written by the owner in the admin panel and comes back
+// through this JSON, so without this a stray angle bracket — or a deliberate
+// script tag — would execute in a customer's browser. Same implementation as
+// pages/order.php so the two cannot drift.
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ── The order summary ───────────────────────────────────────────
 //
 // NOTHING about money is worked out down here. This page used to compute the
@@ -1140,6 +1325,20 @@ let stripe, elements, paymentElement, clientSecret;
 let stripeReady = false;
 let currentPaymentMethod = 'online';
 
+// Which method the page opened on. Almost always 'delivery'; 'collection' only
+// when the owner has delivery switched off — see $cbDefaultOrderType. The
+// listener at the bottom of this file uses it to put the panels into the state
+// the ticked radio says they are in.
+const CB_DEFAULT_ORDER_TYPE = <?= json_encode($cbDefaultOrderType) ?>;
+
+<?php // With both methods closed there is no form, no #stripeElement and no
+      // card to take — and stripe_intent.php refuses the request anyway. The
+      // block below writes straight into #stripeElement on both of its failure
+      // paths, INCLUDING inside its own catch, so letting it run against a page
+      // that does not have that element throws from the handler meant to catch
+      // the throw. Everything else in this script stays declared: the basket
+      // panel is still live, and it calls into these functions. ?>
+<?php if ($cbAnyOpen): ?>
 // Initialise Stripe on page load
 (async () => {
     try {
@@ -1154,11 +1353,16 @@ let currentPaymentMethod = 'online';
             // repeating the complaint.
             document.getElementById('stripeElement').innerHTML = data.basket_below_minimum
                 ? `<div class="cbco-card-waiting"><i class="fa-solid fa-basket-shopping"></i> The card form appears once your basket reaches the minimum.</div>`
-                : `<div class="cbco-inline-error"><i class="fa-solid fa-triangle-exclamation"></i> ${data.error}</div>`;
+                : `<div class="cbco-inline-error"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml(data.error)}</div>`;
             // Fall back to Pay Later when card payment cannot work at all —
             // an expired key, or keys never configured. Leaving the customer
             // on a card form that will never load loses the order outright.
-            if (data.fallback_to_later || data.error.includes('REPLACE_ME') || data.error.includes('setup')) {
+            // data.error can now be the owner's own closed-shop wording, and a
+            // perfectly ordinary sentence containing the word "setup" must not
+            // be mistaken for a Stripe misconfiguration and silently switch the
+            // customer to Pay Later. Only the server's explicit flag, or the
+            // unmistakable placeholder key, may do that.
+            if (data.fallback_to_later || data.error.includes('REPLACE_ME')) {
                 selectPayment('later');
             }
             return;
@@ -1192,6 +1396,7 @@ let currentPaymentMethod = 'online';
             '<div class="cbco-inline-error"><i class="fa-solid fa-triangle-exclamation"></i> Could not load payment form. You can still choose Pay Later.</div>';
     }
 })();
+<?php endif; // $cbAnyOpen ?>
 
 // Switch between Pay Online / Pay Later
 function selectPayment(method) {
@@ -1813,6 +2018,20 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             switchToManualMode();
         });
+    }
+
+    // The markup is written in its delivery state — postcode box showing,
+    // address required, warehouse panel hidden — because that is the state it
+    // is in on all but a handful of evenings. When delivery is the method the
+    // owner has switched off, the collection radio is the one rendered ticked,
+    // and the panels have to be told to agree with it. Without this the
+    // customer is asked for a delivery postcode for an order they are coming
+    // to collect, and cannot submit until they fill it in.
+    //
+    // Runs LAST in this listener on purpose: it sets displays that the
+    // postcode listener above can also touch, and the later write wins.
+    if (CB_DEFAULT_ORDER_TYPE === 'collection') {
+        toggleOrderType('collection');
     }
 });
 </script>
