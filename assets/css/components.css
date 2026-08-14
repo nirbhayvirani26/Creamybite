@@ -1423,11 +1423,13 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
 
 .cbbn-slide      { position: relative; flex: 0 0 100%; scroll-snap-align: start;
                    display: block; text-decoration: none; color: #fff;
-                   /* Taller than the first pass: at 42vh the slide read as a
-                      strip under the navbar rather than a hero, and the caption
-                      had no room to breathe. 58vh gives it presence while the
-                      560px ceiling stops it swallowing a large monitor. */
-                   height: clamp(340px, 58vh, 560px); }
+                   /* Requested as clamp(650px, 58vh, 110px). Since the minimum
+                      (650px) is larger than the maximum (110px), CSS clamp()
+                      resolves min(58vh, 110px) — 110px on any real screen —
+                      then max(650px, 110px), so this is a fixed 650px on every
+                      viewport, not a responsive range. Left exactly as given;
+                      flagged in case the min/max were meant the other way round. */
+                   height: clamp(650px, 58vh, 110px); }
 .cbbn-img        { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* A gradient rather than a flat wash: the text end stays readable while the
@@ -1443,6 +1445,17 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
 .cbbn-sub        { font-size: clamp(14px, 1.7vw, 19px); margin: 0; max-width: 42ch;
                    line-height: 1.55; color: rgba(255,255,255,0.93); }
 .cbbn-cta        { margin-top: 6px; }
+
+/* Text on the right instead — for a banner photo whose product sits on the
+   left. Mirrors both the alignment and the gradient direction so the dark
+   scrim always sits behind the text, whichever side that is. Chosen per
+   slide from Admin → Banners. Desktop-only: the @media block below already
+   centres the caption on narrow screens regardless of this, since a phone
+   photo rarely has the width for a distinct left/right product zone. */
+.cbbn-caption--right { align-items: flex-end; text-align: right;
+                   background: linear-gradient(270deg, rgba(44,13,17,0.78) 0%,
+                                                       rgba(44,13,17,0.55) 45%,
+                                                       rgba(44,13,17,0.08) 100%); }
 
 /* ── Arrows and dots ─────────────────────────────────────── */
 .cbbn-nav        { position: absolute; top: 50%; transform: translateY(-50%);
@@ -1687,6 +1700,29 @@ body.about-page .cbab-social-icon > svg { font-size: 0.5em; width: 1em; height: 
 }
 .cbof-badge > i { font-size: 0.8em; color: var(--color-secondary); }
 
+/* Out-of-stock ribbon — same slot/shape as .cbof-badge above (the two never
+   show together, $offerBadge is forced empty for an out-of-stock product),
+   but in --color-danger rather than the warm offer gradient: this one is a
+   blocker, not a promotion, and needs to read as a stop rather than a deal. */
+.cbor-oos-ribbon {
+    position: absolute;
+    top: 16px; left: 16px;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    color: #FFF6E6;
+    background: var(--color-danger);
+    box-shadow: 0 2px 8px rgba(217, 56, 56, 0.35);
+}
+
 /* ── The cart drawer's money block ──────────────────────────── */
 /* The drawer used to print one line, the basket total, straight from
    cart_handler.php. With an offer running that figure is no longer what the
@@ -1735,6 +1771,7 @@ body.about-page .cbab-social-icon > svg { font-size: 0.5em; width: 1em; height: 
 
 @media (max-width: 480px) {
     .cbof-badge { top: 12px; left: 12px; max-width: calc(100% - 96px); }
+    .cbor-oos-ribbon { top: 12px; left: 12px; }
     .cbof-gift-row { padding: 8px 10px; }
 }
 

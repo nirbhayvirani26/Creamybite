@@ -8,7 +8,10 @@ if (!isset($adminNav)) {
 $cbSidebarCurrent = $cbSidebarCurrent ?? ($tab ?? '');
 ?>
 <aside class="admin-sidebar" id="adminSidebar">
-    <a href="../index.php" class="sb-brand" target="_blank" title="<?= SHOP_NAME ?> — open the shop">
+    <button class="sb-close" id="sbClose" aria-label="Close menu">
+        <i class="fa-solid fa-xmark"></i>
+    </button>
+    <a href="../" class="sb-brand" target="_blank" title="<?= SHOP_NAME ?> — open the shop">
         <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>">
     </a>
 
@@ -58,10 +61,16 @@ $cbSidebarCurrent = $cbSidebarCurrent ?? ($tab ?? '');
 // The drawer, for phones. It travels WITH the markup: leaving it behind in
 // admin/index.php's script block is how the other pages would have ended up
 // with a hamburger button that did nothing at all.
-(function () {
+//
+// This require happens before each page's own #sbToggle button markup, so
+// the lookups below must wait for DOMContentLoaded — done at parse time,
+// getElementById('sbToggle') would always return null and the guard below
+// would silently skip binding on every admin page.
+document.addEventListener('DOMContentLoaded', function () {
     var sidebar  = document.getElementById('adminSidebar');
     var backdrop = document.getElementById('sidebarBackdrop');
     var toggle   = document.getElementById('sbToggle');
+    var closeBtn = document.getElementById('sbClose');
     if (!sidebar || !backdrop || !toggle) { return; }
     if (sidebar.dataset.cbBound === '1') { return; }   // never bind twice
     sidebar.dataset.cbBound = '1';
@@ -75,9 +84,10 @@ $cbSidebarCurrent = $cbSidebarCurrent ?? ($tab ?? '');
     toggle.addEventListener('click', function () {
         setOpen(!sidebar.classList.contains('open'));
     });
+    if (closeBtn) { closeBtn.addEventListener('click', function () { setOpen(false); }); }
     backdrop.addEventListener('click', function () { setOpen(false); });
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { setOpen(false); }
     });
-})();
+});
 </script>

@@ -50,19 +50,19 @@
 ============================================================ */
 :root {
     /* ── Backgrounds (Warm Vanilla & Cream) ──────────────── */
-    --bg-main:             #FFF7EF;
+    --bg-main:             #FFF2E4;  /* exact cream from Brand Guidelines 2026 */
     --bg-surface:          #FFFFFF;
     --bg-surface-soft:     #FDF1E3;
     --bg-hero:             #FAF0E4;
 
     /* ── Brand Colors (Deep Chocolate & Warm Gold) ──────── */
-    --color-primary:       #5C1D24;  /* Deep Creamy Bite Chocolate */
+    --color-primary:       #5C1C22;  /* Deep Creamy Bite Chocolate — exact hex from Brand Guidelines 2026 */
     /* The same colour as bare channels, for rgba() tints.
        admin.css writes rgba(var(--color-primary-rgb), 0.15) in two places, and
        without this the whole declaration is invalid — not faint, but dropped
        entirely, which left the progress-bar tracks with no visible track at
        all. Keep in step with --color-primary above. */
-    --color-primary-rgb:   92, 29, 36;
+    --color-primary-rgb:   92, 28, 34;
     --color-primary-dark:  #431318;  /* Dark Chocolate */
     --color-primary-light: #8C3A43;  /* Warm Cocoa */
     --color-primary-bg:    #F8ECE9;  /* Chocolate Tint */
@@ -469,22 +469,46 @@ h1, h2, h3, h4, h5 {
     animation: floatBubble 6s infinite ease-in-out;
 }
 
-/* Stats strip */
+/* Stats strip — four trust badges on the brand gradient, same colour as
+   .landing-cta-section further down. The curved bottom edge reuses the
+   exact technique .landing-hero::after already uses above: an absolutely
+   positioned ellipse in the next section's colour, not an SVG. */
 .hero-stats {
     display: flex; gap: 0;
-    background: var(--bg-surface);
-    border-bottom: 1px solid var(--border-light);
-    padding: 20px 0;
+    background: var(--grad-primary);
+    padding: 44px 0 78px;
+    position: relative;
+    overflow: hidden;
+}
+.hero-stats::after {
+    content: '';
+    position: absolute; bottom: -2px; left: 0; right: 0;
+    height: 60px; background: var(--bg-main);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
 }
 .hero-stat {
     flex: 1;
     text-align: center;
-    padding: 0 24px;
-    border-right: 1px solid var(--border-light);
+    padding: 0 20px;
+    position: relative; z-index: 1;
 }
-.hero-stat:last-child { border-right: none; }
-.hero-stat-value { font-size: 26px; font-weight: 800; font-family: var(--font-heading); color: var(--color-primary); }
-.hero-stat-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.hero-stat-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 52px; height: 52px;
+    margin-bottom: 14px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.35);
+    font-size: 21px;
+    color: #FFFFFF;
+}
+.hero-stat-value {
+    font-size: 17px; font-weight: 800;
+    font-family: var(--font-heading);
+    color: #FFFFFF;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.hero-stat-label { font-size: 12px; color: rgba(255,255,255,0.78); margin-top: 4px; }
 
 /* ── Section Helpers ───────────────────────────────────────── */
 .section-label {
@@ -1026,6 +1050,19 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
     display: block;
 }
 /* The hover zoom on this image is in animations.css — one value, one rule. */
+
+/* Out of stock. The .cbor-oos-ribbon (components.css) marks it; this dims
+   the photo so the whole card reads as unavailable at a glance instead of
+   only the small button down in the footer. Name/price stay full-strength
+   so the card is still readable, not just greyed out. */
+.product-card.out-of-stock .product-image-wrap img,
+.product-card.out-of-stock .product-image-placeholder {
+    filter: grayscale(0.9);
+    opacity: 0.5;
+}
+.product-card.out-of-stock .product-image-wrap::before {
+    opacity: 0.3;
+}
 .product-image-placeholder {
     font-size: 72px; line-height: 1;
     filter: drop-shadow(0 4px 12px rgba(0,0,0,0.10));
@@ -1332,6 +1369,14 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
     box-shadow: var(--shadow-sm);
     transition: var(--transition);
     text-align: center;
+    /* .flavour-cards-grid is CSS Grid, which stretches every card in a row
+       to match the tallest one. Without this, .flavour-card-body stayed at
+       its own content height and the stretched extra space showed up as a
+       blank white gap below it — invisible before the card had a colour
+       tint, obvious once it did. Same fix .product-card/.product-body
+       already use on the order page. */
+    display: flex;
+    flex-direction: column;
 }
 .flavour-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-card); border-color: var(--border-color); }
 .flavour-card-img {
@@ -1341,9 +1386,55 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
     font-size: 80px;
 }
 .flavour-card-img img { width: 100%; height: 100%; object-fit: cover; }
-.flavour-card-body { padding: 18px 20px; }
+.flavour-card-body { padding: 18px 20px; flex-grow: 1; }
 .flavour-card-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
 .flavour-card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+
+/* Flavour card colour, take two — each card's OWN official brand colour
+   (Brand Guidelines 2026, Secondary Colours) rather than a made-up
+   rotation. The class is chosen in PHP by matching the product name; a
+   flavour not in the guideline gets no class and the card stays plain.
+   Kept light (12% mix) on purpose: these are proper mid-saturation brand
+   colours, not pastels, and a full-strength wash was already too much
+   with lighter made-up ones. One block, easy to revert again. */
+.flavour-card-img { position: relative; background: var(--flavour-tint, var(--bg-surface-soft)); }
+.flavour-card-body { background: var(--flavour-tint, transparent); }
+.flavour-card-img::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    z-index: 1;
+    background: var(--flavour-accent, transparent);
+}
+.flavour-card-img:not(:has(img)) {
+    background: color-mix(in srgb, var(--flavour-tint, var(--bg-surface-soft)) 30%, var(--bg-surface));
+}
+
+/* Same treatment on the full menu (pages/order.php) — .product-image-wrap
+   already has its own coloured top line driven by --card-gradient (see
+   "Product Image on Cards" below), falling back to the plain brand
+   gradient, so a flavour class just needs to feed it --flavour-accent
+   instead of adding a second accent-line mechanism. */
+[class*="cbhm-flavour-"] { --card-gradient: var(--flavour-accent); }
+.product-body { background: var(--flavour-tint, transparent); }
+.product-image-wrap { background: var(--flavour-tint, var(--bg-surface-soft)); }
+.product-image-wrap:not(:has(img)) {
+    background: color-mix(in srgb, var(--flavour-tint, var(--bg-surface-soft)) 30%, var(--bg-surface));
+}
+
+.cbhm-flavour-afghan-meva         { --flavour-tint: color-mix(in srgb, #B13952 12%, var(--bg-surface)); --flavour-accent: #B13952; }
+.cbhm-flavour-rajbhog             { --flavour-tint: color-mix(in srgb, #3F5EA8 12%, var(--bg-surface)); --flavour-accent: #3F5EA8; }
+.cbhm-flavour-mava-malai          { --flavour-tint: color-mix(in srgb, #24635E 12%, var(--bg-surface)); --flavour-accent: #24635E; }
+.cbhm-flavour-american-dry-fruits { --flavour-tint: color-mix(in srgb, #D4492D 12%, var(--bg-surface)); --flavour-accent: #D4492D; }
+.cbhm-flavour-kesar-pista         { --flavour-tint: color-mix(in srgb, #EC8A00 12%, var(--bg-surface)); --flavour-accent: #EC8A00; }
+.cbhm-flavour-cookies-cream       { --flavour-tint: color-mix(in srgb, #613113 12%, var(--bg-surface)); --flavour-accent: #613113; }
+.cbhm-flavour-roasted-almond      { --flavour-tint: color-mix(in srgb, #308780 12%, var(--bg-surface)); --flavour-accent: #308780; }
+.cbhm-flavour-pan-masala          { --flavour-tint: color-mix(in srgb, #70974E 12%, var(--bg-surface)); --flavour-accent: #70974E; }
+.cbhm-flavour-kaju-gulkand        { --flavour-tint: color-mix(in srgb, #C07086 12%, var(--bg-surface)); --flavour-accent: #C07086; }
+.cbhm-flavour-naked-coconut       { --flavour-tint: color-mix(in srgb, #589A3D 12%, var(--bg-surface)); --flavour-accent: #589A3D; }
+.cbhm-flavour-fresh-sitafal       { --flavour-tint: color-mix(in srgb, #74578C 12%, var(--bg-surface)); --flavour-accent: #74578C; }
+.cbhm-flavour-kaju-draksh         { --flavour-tint: color-mix(in srgb, #48789A 12%, var(--bg-surface)); --flavour-accent: #48789A; }
 
 /* Story section */
 .story-section {

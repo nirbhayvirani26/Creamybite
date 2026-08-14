@@ -494,19 +494,21 @@ img.cb-img-loading {
 .cb-sprinkle--vanilla  { background: #F4E3C7; }
 .cb-sprinkle--amber    { background: #C78829; }
 
-/* ── Jelly wobble on product emojis when you hover ──────── */
-@keyframes cbWobble {
-    0%, 100% { transform: scale(1) rotate(0deg); }
-    25%      { transform: scale(1.12, .92) rotate(-3deg); }
-    50%      { transform: scale(.94, 1.08) rotate(2deg); }
-    75%      { transform: scale(1.06, .96) rotate(-1deg); }
+/* ── Flavour card photo, on hover ──────────────────────── */
+/* Used to be a jelly wobble (scale + rotate) on the whole image box — the
+   product card used to do the same and moved away from it because the
+   squash read as cartoonish next to the rest of the card (see the
+   product-image-wrap hover system above). This now matches that system
+   instead: the same slow, subtle zoom, on the image itself rather than
+   its box, and pointer-only for the same reason — a touch device has no
+   hover to get stuck in. */
+.flavour-card-img img {
+    transition: transform .7s cubic-bezier(.16, 1, .3, 1);
 }
-/* Home-page flavour cards only. The product card used to wobble here too,
-   but the jelly squash read as cartoonish next to the rest of the card;
-   its placeholder now gets the restrained lift defined in the product
-   card hover system above. */
-.flavour-card:hover .flavour-card-img {
-    animation: cbWobble .55s cubic-bezier(.4, 0, .2, 1);
+@media (hover: hover) and (pointer: fine) {
+    .flavour-card:hover .flavour-card-img img {
+        transform: scale(1.06);
+    }
 }
 
 /* ── Sprinkle burst on add-to-cart ──────────────────────── */
@@ -596,7 +598,7 @@ img.cb-img-loading {
     .cb-drip-line,
     .cb-conf-emoji { display: none !important; }
     .cb-scoop-pop { animation: none; }
-    .flavour-card:hover .flavour-card-img { animation: none; }
+    .flavour-card-img img { transition: none; }
 }
 
 /* ── Scoop-stacking loader (checkout button) ─────────────── */

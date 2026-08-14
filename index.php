@@ -5,6 +5,7 @@
 session_start();
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/flavour_colours.php';
 
 // Load a few featured products for the flavour showcase
 $featured = [];
@@ -79,50 +80,20 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
 <body>
 
 <!-- ══ Navbar ══════════════════════════════════════════════ -->
-<header class="navbar">
-    <div class="container nav-container-centered">
-        <nav class="nav-left">
-            <ul class="nav-links">
-                <li><a href="index.php" class="active">Home</a></li>
-                <li><a href="pages/order.php">Order</a></li>
-                <li><a href="pages/gallery.php">Gallery</a></li>
-                <li><a href="pages/about.php">About Us</a></li>
-            </ul>
-        </nav>
-
-        <a href="index.php" class="logo logo-center">
-            <img src="assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
-        </a>
-
-        <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/includes/trade_nav_button.php'; ?>
-            <a href="pages/order.php" class="btn-primary cbhm-btn-nav">
-                <i class="fa-solid fa-bolt"></i> Order Now
-            </a>
-            <button class="nav-hamburger" id="navHamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
-        </div>
-    </div>
-</header>
-
-<!-- ══ Mobile Nav Drawer ══════════════════════════════════ -->
-<div class="mobile-drawer" id="mobileDrawer">
-    <div class="mobile-nav-panel">
-        <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Close menu">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-        <ul class="mobile-nav-links">
-            <li><a href="index.php" class="active">Home</a></li>
-            <li><a href="pages/order.php">Order</a></li>
-            <li><a href="pages/gallery.php">Gallery</a></li>
-            <li><a href="pages/about.php">About Us</a></li>
-        </ul>
-        <div class="mobile-nav-actions">
-            <a href="pages/order.php" class="btn-primary cbhm-btn-drawer">
-                <i class="fa-solid fa-bolt"></i> Order Now
-            </a>
-        </div>
-    </div>
-</div>
+<?php
+$cbNavActive = 'home';
+ob_start(); ?>
+<a href="pages/order.php" class="btn-primary cbhm-btn-nav">
+    <i class="fa-solid fa-bolt"></i> Order Now
+</a>
+<?php $cbNavRight = ob_get_clean();
+ob_start(); ?>
+<a href="pages/order.php" class="btn-primary cbhm-btn-drawer">
+    <i class="fa-solid fa-bolt"></i> Order Now
+</a>
+<?php $cbNavDrawerRight = ob_get_clean();
+require __DIR__ . '/includes/site_header.php';
+?>
 
 <!-- ══ Hero ════════════════════════════════════════════════ -->
 <?php if (!empty($banners)): ?>
@@ -154,7 +125,9 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
                  alt="<?= htmlspecialchars($b['headline'] ?: 'Creamy Bite offer') ?>"
                  <?= $i === 0 ? '' : 'loading="lazy"' ?>>
             <?php if (trim((string)$b['headline']) !== '' || trim((string)$b['subtext']) !== ''): ?>
-            <div class="cbbn-caption">
+            <?php // Defensive default: a live database that has not run the
+                  // migration yet has no text_position column at all. ?>
+            <div class="cbbn-caption<?= ($b['text_position'] ?? 'left') === 'right' ? ' cbbn-caption--right' : '' ?>">
                 <?php if (trim((string)$b['headline']) !== ''): ?>
                 <h2 class="cbbn-headline"><?= htmlspecialchars($b['headline']) ?></h2>
                 <?php endif; ?>
@@ -319,23 +292,34 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
 <?php endif; ?>
 
 <!-- ══ Stats Strip ═════════════════════════════════════════ -->
+<?php // Trust badges — real product claims (palm-oil-free is printed on the
+      // tub itself), not generic marketing copy. ?>
 <div class="hero-stats">
     <div class="container cbhm-stats-row">
         <div class="hero-stat">
-            <div class="hero-stat-value">10+</div>
-            <div class="hero-stat-label">Unique Flavours</div>
+            <span class="hero-stat-icon"><i class="fa-solid fa-egg" aria-hidden="true"></i></span>
+            <div class="hero-stat-value">Eggless</div>
+            <div class="hero-stat-label">No eggs, ever</div>
         </div>
         <div class="hero-stat">
-            <div class="hero-stat-value">100%</div>
-            <div class="hero-stat-label">Fresh Ingredients</div>
+            <span class="hero-stat-icon"><i class="fa-solid fa-seedling" aria-hidden="true"></i></span>
+            <div class="hero-stat-value">Vegetarian</div>
+            <div class="hero-stat-label">100% vegetarian recipe</div>
         </div>
         <div class="hero-stat">
-            <div class="hero-stat-value">Daily</div>
-            <div class="hero-stat-label">Made Fresh</div>
+            <span class="hero-stat-icon"><i class="fa-solid fa-ice-cream" aria-hidden="true"></i></span>
+            <div class="hero-stat-value">10+ Flavours</div>
+            <div class="hero-stat-label">Something for every mood</div>
         </div>
         <div class="hero-stat">
-            <div class="hero-stat-value">Free</div>
-            <div class="hero-stat-label">Local Delivery</div>
+            <span class="hero-stat-icon"><i class="fa-solid fa-leaf" aria-hidden="true"></i></span>
+            <div class="hero-stat-value">100% Fresh</div>
+            <div class="hero-stat-label">Quality ingredients only</div>
+        </div>
+        <div class="hero-stat">
+            <span class="hero-stat-icon"><i class="fa-solid fa-tree" aria-hidden="true"></i></span>
+            <div class="hero-stat-value">Palm Oil Free</div>
+            <div class="hero-stat-label">Better for you and the planet</div>
         </div>
     </div>
 </div>
@@ -357,8 +341,9 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
         <div class="flavour-cards-grid">
             <?php foreach ($featured as $p):
                 $imgSrc = !empty($p['image']) ? 'assets/images/products/' . htmlspecialchars($p['image']) : '';
+                $cbFlavourClass = cbFlavourCardClass($p['name']);
             ?>
-            <div class="flavour-card">
+            <div class="flavour-card<?= $cbFlavourClass !== '' ? ' ' . $cbFlavourClass : '' ?>">
                 <div class="flavour-card-img">
                     <?php if ($imgSrc): ?>
                     <img src="<?= $imgSrc ?>" alt="<?= htmlspecialchars($p['name']) ?>" loading="lazy">
@@ -753,18 +738,6 @@ unset($_SESSION['review_status'], $_SESSION['review_form']);
       // link meant editing all five and hoping none were missed. ?>
 <?php require __DIR__ . '/includes/site_footer.php'; ?>
 
-<script>
-// ── Mobile nav ──────────────────────────────────────────────
-const ham = document.getElementById('navHamburger');
-const drawer = document.getElementById('mobileDrawer');
-const drawerClose = document.getElementById('mobileDrawerClose');
-function openMobileMenu()  { ham.classList.add('open'); drawer.classList.add('open'); document.body.style.overflow='hidden'; }
-function closeMobileMenu() { ham.classList.remove('open'); drawer.classList.remove('open'); document.body.style.overflow=''; }
-ham.addEventListener('click', openMobileMenu);
-drawerClose.addEventListener('click', closeMobileMenu);
-drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMobileMenu(); });
-</script>
 <script src="<?= cbAsset('assets/js/modal.js') ?>" defer></script>
 <script src="<?= cbAsset('assets/js/animations.js') ?>" defer></script>
 </body>

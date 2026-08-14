@@ -96,27 +96,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="trade-page">
 
 <!-- Navbar -->
-<header class="navbar">
-    <div class="container nav-container-centered">
-        <nav class="nav-left">
-            <ul class="nav-links">
-                <li><a href="../index.php">Home</a></li>
-                <li><a href="order.php">Order</a></li>
-                <li><a href="gallery.php">Gallery</a></li>
-                <li><a href="about.php">About Us</a></li>
-            </ul>
-        </nav>
-        <a href="../index.php" class="logo logo-center">
-            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
-        </a>
-        <div class="nav-actions nav-right">
-            <a href="trade_register.php" class="btn-secondary cbtl-nav-apply-btn">
-                <i class="fa-solid fa-user-plus"></i> Apply for Trade
-            </a>
-            <button class="nav-hamburger" id="navHamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
-        </div>
-    </div>
-</header>
+<?php
+$cbNavActive = '';
+$cbNavShowTrade = false; // already on the login page — showing a trade-account pill too would be redundant
+ob_start(); ?>
+<a href="trade_register.php" class="btn-secondary cbtl-nav-apply-btn">
+    <i class="fa-solid fa-user-plus"></i> Apply for Trade
+</a>
+<?php $cbNavRight = ob_get_clean();
+require __DIR__ . '/../includes/site_header.php';
+?>
 
 <main class="cbtl-login-main">
     <div class="container cbtl-login-container">

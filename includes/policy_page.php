@@ -50,24 +50,13 @@ $policyUpdated = $policyUpdated ?? date('F Y');
 </head>
 <body>
 
-<header class="navbar">
-    <div class="container nav-container-centered">
-        <nav class="nav-left">
-            <ul class="nav-links">
-                <li><a href="../index.php">Home</a></li>
-                <li><a href="order.php">Order</a></li>
-                <li><a href="gallery.php">Gallery</a></li>
-                <li><a href="about.php">About Us</a></li>
-            </ul>
-        </nav>
-        <a href="../index.php" class="logo logo-center">
-            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
-        </a>
-        <div class="nav-actions nav-right">
-            <a href="order.php" class="btn-primary cbpol-nav-btn">Order Now</a>
-        </div>
-    </div>
-</header>
+<?php
+$cbNavActive = '';
+ob_start(); ?>
+<a href="order.php" class="btn-primary cbpol-nav-btn">Order Now</a>
+<?php $cbNavRight = ob_get_clean();
+require __DIR__ . '/site_header.php';
+?>
 
 <main class="cbpol-page">
     <div class="container cbpol-shell">

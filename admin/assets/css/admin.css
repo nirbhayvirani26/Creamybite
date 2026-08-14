@@ -166,6 +166,30 @@ body.admin-wrapper.has-sidebar {
     font-size: 19px; color: var(--color-primary, #c78829); padding: 4px 8px;
 }
 
+/* Only reachable while the sidebar is an off-canvas drawer (see the mobile
+   media query below) — the open sidebar sits above the topbar, so #sbToggle
+   itself is covered and can't be tapped again to close. Without this the
+   only way out was the backdrop or Escape, neither of which is visible. */
+.sb-close {
+    display: none;
+    position: absolute; top: 14px; right: 14px;
+    width: 32px; height: 32px;
+    align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, .12); border: none; border-radius: 50%;
+    color: #fff; font-size: 15px; cursor: pointer;
+}
+.sb-close:hover { background: rgba(255, 255, 255, .22); }
+
+/* Five pages (allergens_bulk, invoice_edit, product_form, trade_report,
+   store) build their own page header instead of using .admin-topbar, so
+   they never got a place to put the sidebar toggle — on mobile there was
+   no way to open the sidebar at all. Rather than rework five different
+   bespoke headers, each gets this bar-with-only-the-button placed right
+   after <div class="admin-shell">. Hidden on desktop by default so it
+   never shows as an empty strip above the page's real header; revealed
+   in the same breakpoint .sb-toggle itself already uses below. */
+.cbat-toggle-only { display: none; }
+
 .admin-content { flex: 1 1 auto; padding: 26px 0 60px; }
 .admin-wrapper.has-sidebar .admin-content > .container { max-width: 1240px; padding: 0 26px; }
 
@@ -194,6 +218,8 @@ body.admin-wrapper.has-sidebar {
     .admin-sidebar.open { transform: none; }
     .admin-shell { margin-left: 0; }
     .sb-toggle { display: inline-flex; }
+    .cbat-toggle-only { display: flex; }
+    .sb-close { display: flex; }
     .admin-sidebar-backdrop.show { opacity: 1; visibility: visible; }
     .admin-wrapper.has-sidebar .admin-content > .container { padding: 0 16px; }
     .admin-topbar { padding: 10px 14px; }

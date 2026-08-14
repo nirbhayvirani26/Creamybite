@@ -51,6 +51,12 @@ function bannerStoreUpload(array $file, string $dir, ?string &$error): string
     return $name;
 }
 
+/** Only 'left' or 'right' are real positions; anything else means 'left'. */
+function bannerCleanTextPosition(string $pos): string
+{
+    return $pos === 'right' ? 'right' : 'left';
+}
+
 /** A link must stay on this site, or be a plain http(s) address. */
 function bannerCleanUrl(string $url): string
 {
@@ -76,13 +82,14 @@ try {
         $max = (int)$pdo->query("SELECT COALESCE(MAX(sort_order), 0) FROM banners")->fetchColumn();
 
         $st = $pdo->prepare(
-            "INSERT INTO banners (image, headline, subtext, link_url, link_text, sort_order, active, starts_on, ends_on)
-             VALUES (:i, :h, :s, :lu, :lt, :so, 1, :sd, :ed)"
+            "INSERT INTO banners (image, headline, subtext, text_position, link_url, link_text, sort_order, active, starts_on, ends_on)
+             VALUES (:i, :h, :s, :tp, :lu, :lt, :so, 1, :sd, :ed)"
         );
         $st->execute([
             'i'  => $image,
             'h'  => mb_substr(trim($_POST['headline']  ?? ''), 0, 120),
             's'  => mb_substr(trim($_POST['subtext']   ?? ''), 0, 255),
+            'tp' => bannerCleanTextPosition($_POST['text_position'] ?? ''),
             'lu' => bannerCleanUrl($_POST['link_url']  ?? ''),
             'lt' => mb_substr(trim($_POST['link_text'] ?? ''), 0, 60),
             'so' => $max + 1,
@@ -103,11 +110,12 @@ try {
         $newImage = bannerStoreUpload($_FILES['banner_image'] ?? [], $BANNER_DIR, $err);
         if ($err) { echo json_encode(['success' => false, 'message' => $err]); exit; }
 
-        $sql = "UPDATE banners SET headline=:h, subtext=:s, link_url=:lu, link_text=:lt,
+        $sql = "UPDATE banners SET headline=:h, subtext=:s, text_position=:tp, link_url=:lu, link_text=:lt,
                        starts_on=:sd, ends_on=:ed";
         $args = [
             'h'  => mb_substr(trim($_POST['headline']  ?? ''), 0, 120),
             's'  => mb_substr(trim($_POST['subtext']   ?? ''), 0, 255),
+            'tp' => bannerCleanTextPosition($_POST['text_position'] ?? ''),
             'lu' => bannerCleanUrl($_POST['link_url']  ?? ''),
             'lt' => mb_substr(trim($_POST['link_text'] ?? ''), 0, 60),
             'sd' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $_POST['starts_on'] ?? '') ? $_POST['starts_on'] : null,

@@ -300,9 +300,10 @@ $tables = [
     // neither date.
     'banners' => "CREATE TABLE IF NOT EXISTS `banners` (
         `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
-        `image`      VARCHAR(255) NOT NULL DEFAULT '',
-        `headline`   VARCHAR(120) NOT NULL DEFAULT '',
-        `subtext`    VARCHAR(255) NOT NULL DEFAULT '',
+        `image`         VARCHAR(255) NOT NULL DEFAULT '',
+        `headline`      VARCHAR(120) NOT NULL DEFAULT '',
+        `subtext`       VARCHAR(255) NOT NULL DEFAULT '',
+        `text_position` ENUM('left','right') NOT NULL DEFAULT 'left',
         `link_url`   VARCHAR(255) NOT NULL DEFAULT '',
         `link_text`  VARCHAR(60)  NOT NULL DEFAULT '',
         `sort_order` INT          NOT NULL DEFAULT 0,
@@ -797,6 +798,12 @@ $columns = [
     ['store_settings', 'collection_open',        "ALTER TABLE `store_settings` ADD COLUMN `collection_open`        TINYINT(1)   NOT NULL DEFAULT 1 AFTER `delivery_open`"],
     ['store_settings', 'delivery_closed_note',   "ALTER TABLE `store_settings` ADD COLUMN `delivery_closed_note`   VARCHAR(255) NULL DEFAULT NULL AFTER `collection_open`"],
     ['store_settings', 'collection_closed_note', "ALTER TABLE `store_settings` ADD COLUMN `collection_closed_note` VARCHAR(255) NULL DEFAULT NULL AFTER `delivery_closed_note`"],
+
+    // Which side of the banner photo the caption sits on. Some banner photos
+    // have their product on the left, some on the right, and a caption
+    // pinned to one side forever will eventually sit on top of the product
+    // instead of the empty space beside it.
+    ['banners', 'text_position', "ALTER TABLE `banners` ADD COLUMN `text_position` ENUM('left','right') NOT NULL DEFAULT 'left' AFTER `subtext`"],
 ];
 
 foreach ($columns as [$table, $col, $sql]) {
@@ -1269,9 +1276,9 @@ $allOk    = ($failures === []);
         <p class="su-build">
             This file was last changed <strong><?= $selfDate ? date('d M Y, H:i', $selfDate) : 'unknown' ?></strong>
             and is checking <strong><?= $stepCount ?></strong> things.
-            <?php if ($stepCount < 78): ?>
+            <?php if ($stepCount < 79): ?>
             <br><span class="su-build-warn">
-                An older copy — the current one checks 78. If you have just uploaded,
+                An older copy — the current one checks 79. If you have just uploaded,
                 PHP may still be running the previous version: restart PHP in hPanel,
                 or wait two minutes and reload.
             </span>

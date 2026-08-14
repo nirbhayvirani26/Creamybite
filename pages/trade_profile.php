@@ -184,30 +184,19 @@ foreach ($orders as $o) {
 </head>
 <body class="trade-page">
 
-<header class="navbar">
-    <div class="container nav-container-centered">
-        <nav class="nav-left">
-            <ul class="nav-links">
-                <li><a href="../index.php">Home</a></li>
-                <li><a href="order.php">Order Menu</a></li>
-                <li><a href="gallery.php">Gallery</a></li>
-                <li><a href="about.php">About Us</a></li>
-            </ul>
-        </nav>
-        <a href="../index.php" class="logo logo-center">
-            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
-        </a>
-        <div class="nav-actions nav-right">
-            <a href="order.php" class="btn-primary cbtp-nav-btn">
-                <i class="fa-solid fa-basket-shopping"></i> Place Order
-            </a>
-            <a href="trade_logout.php" class="btn-secondary cbtp-nav-btn-out">
-                <i class="fa-solid fa-right-from-bracket"></i> Logout
-            </a>
-            <button class="nav-hamburger" id="navHamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
-        </div>
-    </div>
-</header>
+<?php
+$cbNavActive = '';
+$cbNavShowTrade = false; // already on the trade account page — the pill would just point at itself
+ob_start(); ?>
+<a href="order.php" class="btn-primary cbtp-nav-btn">
+    <i class="fa-solid fa-basket-shopping"></i> Place Order
+</a>
+<a href="trade_logout.php" class="btn-secondary cbtp-nav-btn-out">
+    <i class="fa-solid fa-right-from-bracket"></i> Logout
+</a>
+<?php $cbNavRight = ob_get_clean();
+require __DIR__ . '/../includes/site_header.php';
+?>
 
 <main class="cbtp-main">
     <div class="container cbtp-shell">

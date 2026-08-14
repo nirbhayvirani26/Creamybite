@@ -75,6 +75,11 @@ require __DIR__ . '/_sidebar.php';
 ?>
 
 <div class="admin-shell">
+<header class="admin-topbar cbat-toggle-only">
+    <button class="sb-toggle" id="sbToggle" aria-label="Open menu" aria-controls="adminSidebar" aria-expanded="false">
+        <i class="fa-solid fa-bars"></i>
+    </button>
+</header>
 <div class="container cbie-shell">
 
     <div class="cbie-page-head">

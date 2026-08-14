@@ -6,6 +6,7 @@ session_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/flavour_colours.php';
 
 require_once __DIR__ . '/../includes/trade_cart.php';
 // The offers a customer is shown and the money they are charged come from the
@@ -518,54 +519,24 @@ if (empty($_SESSION['trade_user'])) {
 <body>
 
 <!-- ══ Navbar ══════════════════════════════════════════════ -->
-<header class="navbar">
-    <div class="container nav-container-centered">
-        <nav class="nav-left">
-            <ul class="nav-links">
-                <li><a href="../index.php">Home</a></li>
-                <li><a href="order.php" class="active">Order</a></li>
-                <li><a href="gallery.php">Gallery</a></li>
-                <li><a href="about.php">About Us</a></li>
-            </ul>
-        </nav>
-
-        <a href="../index.php" class="logo logo-center">
-            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
-        </a>
-
-        <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/../includes/trade_nav_button.php'; ?>
-            <button class="btn-view-cart" id="cartToggle" onclick="openCart()" aria-label="View cart">
-                <i class="fa-solid fa-bag-shopping"></i> <span class="cart-btn-text">View Cart</span>
-                <span class="cart-badge" id="cartBadge">0</span>
-            </button>
-            <button class="nav-hamburger" id="navHamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
-        </div>
-    </div>
-</header>
-
-<!-- ══ Mobile Nav Drawer ══════════════════════════════════ -->
-<div class="mobile-drawer" id="mobileDrawer">
-    <div class="mobile-nav-panel">
-        <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Close menu">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-        <ul class="mobile-nav-links">
-            <li><a href="../index.php">Home</a></li>
-            <li><a href="order.php" class="active">Order</a></li>
-            <li><a href="gallery.php">Gallery</a></li>
-            <li><a href="about.php">About Us</a></li>
-        </ul>
-        <div class="mobile-nav-actions">
-            <button class="btn-view-cart cbor-drawer-action-btn" onclick="closeMobileMenu(); openCart();">
-                <i class="fa-solid fa-bag-shopping"></i> View Cart
-            </button>
-            <a href="checkout.php" class="btn-primary cbor-drawer-action-btn">
-                <i class="fa-solid fa-bolt"></i> Order Now
-            </a>
-        </div>
-    </div>
-</div>
+<?php
+$cbNavActive = 'order';
+ob_start(); ?>
+<button class="btn-view-cart" id="cartToggle" onclick="openCart()" aria-label="View cart">
+    <i class="fa-solid fa-bag-shopping"></i> <span class="cart-btn-text">View Cart</span>
+    <span class="cart-badge" id="cartBadge">0</span>
+</button>
+<?php $cbNavRight = ob_get_clean();
+ob_start(); ?>
+<button class="btn-view-cart cbor-drawer-action-btn" onclick="closeMobileMenu(); openCart();">
+    <i class="fa-solid fa-bag-shopping"></i> View Cart
+</button>
+<a href="checkout.php" class="btn-primary cbor-drawer-action-btn">
+    <i class="fa-solid fa-bolt"></i> Order Now
+</a>
+<?php $cbNavDrawerRight = ob_get_clean();
+require __DIR__ . '/../includes/site_header.php';
+?>
 
 <!-- ══ Variant Picker Modal ════════════════════════════════ -->
 <div class="variant-picker-overlay" id="variantPicker">
@@ -710,8 +681,13 @@ if (empty($_SESSION['trade_user'])) {
 
                 // Nothing to advertise on something we cannot sell today.
                 $offerBadge = $isOutOfStock ? '' : cbOrderOfferBadge($product, $pageOffers);
+
+                // Same per-flavour brand colour as the home page teaser —
+                // shared logic in includes/flavour_colours.php so the two
+                // pages can't disagree about what colour a flavour is.
+                $cbFlavourClass = cbFlavourCardClass($product['name']);
             ?>
-            <article class="product-card glass-panel<?php if ($isOutOfStock): ?> out-of-stock<?php endif; ?>"
+            <article class="product-card glass-panel<?php if ($isOutOfStock): ?> out-of-stock<?php endif; ?><?= $cbFlavourClass !== '' ? ' ' . $cbFlavourClass : '' ?>"
                      data-category="<?= htmlspecialchars($product['category']) ?>"
                      id="pcard-<?= $product['id'] ?>"
                      <?php if ($isOutOfStock): ?>data-available="0"<?php endif; ?>>
@@ -725,6 +701,13 @@ if (empty($_SESSION['trade_user'])) {
                       // without either covering the other. ?>
                 <?php if ($offerBadge !== ''): ?>
                 <span class="cbof-badge"><i class="fa-solid fa-tag" aria-hidden="true"></i> <?= htmlspecialchars($offerBadge) ?></span>
+                <?php endif; ?>
+
+                <?php // Same top-left slot as the offer badge — never both at
+                      // once, since $offerBadge is forced empty for an
+                      // out-of-stock product above. ?>
+                <?php if ($isOutOfStock): ?>
+                <span class="cbor-oos-ribbon"><i class="fa-solid fa-ban" aria-hidden="true"></i> Out of Stock</span>
                 <?php endif; ?>
 
                 <!-- Product Image -->
@@ -1220,15 +1203,9 @@ function cbIconHtml(value) {
         : escHtml(raw);
 }
 
-// ── Mobile nav ──────────────────────────────────────────────
-const ham = document.getElementById('navHamburger');
-const drawer = document.getElementById('mobileDrawer');
-const drawerClose = document.getElementById('mobileDrawerClose');
-function openMobileMenu()  { ham.classList.add('open'); drawer.classList.add('open'); document.body.style.overflow='hidden'; }
-function closeMobileMenu() { ham.classList.remove('open'); drawer.classList.remove('open'); document.body.style.overflow=''; }
-ham.addEventListener('click', openMobileMenu);
-drawerClose.addEventListener('click', closeMobileMenu);
-drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
+// closeMobileMenu() (used above in the Escape handler and in the drawer's
+// View Cart button) now lives in includes/site_header.php, shared by
+// every page instead of defined here on its own.
 
 // ── Load cart on page start ──────────────────────────────────
 fetch('../cart_handler.php?action=get')

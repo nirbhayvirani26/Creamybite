@@ -2377,6 +2377,14 @@ $pageTitles = [
                                placeholder="Every Friday through August">
                     </div>
                     <div class="form-group">
+                        <label class="form-label" for="bnPos">Text position</label>
+                        <select id="bnPos" name="text_position" class="form-control">
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                        </select>
+                        <small class="cbi-bn-hint">Put the text on the empty side of the photo — whichever side the product isn't on.</small>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label" for="bnUrl">Links to</label>
                         <input type="text" id="bnUrl" name="link_url" class="form-control" maxlength="255"
                                placeholder="pages/order.php">
@@ -2502,6 +2510,13 @@ $pageTitles = [
                                 <label class="form-label">Sub text</label>
                                 <input type="text" name="subtext" class="form-control" maxlength="255"
                                        value="<?= htmlspecialchars($b['subtext']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Text position</label>
+                                <select name="text_position" class="form-control">
+                                    <option value="left"  <?= ($b['text_position'] ?? 'left') === 'left'  ? 'selected' : '' ?>>Left</option>
+                                    <option value="right" <?= ($b['text_position'] ?? 'left') === 'right' ? 'selected' : '' ?>>Right</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Links to</label>

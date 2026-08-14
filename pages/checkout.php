@@ -502,50 +502,20 @@ if ($summaryJson) {
 <body>
 
 <!-- Navbar -->
-<header class="navbar">
-    <div class="container nav-container-centered">
-        <nav class="nav-left">
-            <ul class="nav-links">
-                <li><a href="../index.php">Home</a></li>
-                <li><a href="order.php">Order</a></li>
-                <li><a href="gallery.php">Gallery</a></li>
-                <li><a href="about.php">About Us</a></li>
-            </ul>
-        </nav>
-
-        <a href="../index.php" class="logo logo-center">
-            <img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img">
-        </a>
-
-        <div class="nav-actions nav-right">
-            <?php include __DIR__ . '/../includes/trade_nav_button.php'; ?>
-            <a href="order.php" class="btn-secondary cbco-nav-back-btn">
-                <i class="fa-solid fa-arrow-left"></i> Back to Menu
-            </a>
-            <button class="nav-hamburger" id="navHamburger" aria-label="Open menu"><span></span><span></span><span></span></button>
-        </div>
-    </div>
-</header>
-
-<!-- ══ Mobile Nav Drawer ══════════════════════════════════ -->
-<div class="mobile-drawer" id="mobileDrawer">
-    <div class="mobile-nav-panel">
-        <button class="mobile-drawer-close" id="mobileDrawerClose" aria-label="Close menu">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-        <ul class="mobile-nav-links">
-            <li><a href="../index.php">Home</a></li>
-            <li><a href="order.php">Order</a></li>
-            <li><a href="gallery.php">Gallery</a></li>
-            <li><a href="about.php">About Us</a></li>
-        </ul>
-        <div class="mobile-nav-actions">
-            <a href="order.php" class="btn-secondary cbco-drawer-back-btn">
-                <i class="fa-solid fa-arrow-left"></i> Back to Menu
-            </a>
-        </div>
-    </div>
-</div>
+<?php
+$cbNavActive = '';
+ob_start(); ?>
+<a href="order.php" class="btn-secondary cbco-nav-back-btn">
+    <i class="fa-solid fa-arrow-left"></i> Back to Menu
+</a>
+<?php $cbNavRight = ob_get_clean();
+ob_start(); ?>
+<a href="order.php" class="btn-secondary cbco-drawer-back-btn">
+    <i class="fa-solid fa-arrow-left"></i> Back to Menu
+</a>
+<?php $cbNavDrawerRight = ob_get_clean();
+require __DIR__ . '/../includes/site_header.php';
+?>
 
 <!-- Checkout Content -->
 <main class="checkout-page">
@@ -1302,19 +1272,6 @@ function summaryRemoveItem(cartKey, domKey) {
         if (data.items.length === 0) window.location.href = 'order.php';
     });
 }
-</script>
-
-<script>
-// ── Mobile nav ─────────────────────────────────────────────
-const ham = document.getElementById('navHamburger');
-const drawer = document.getElementById('mobileDrawer');
-const drawerClose = document.getElementById('mobileDrawerClose');
-function openMobileMenu()  { ham.classList.add('open'); drawer.classList.add('open'); document.body.style.overflow='hidden'; }
-function closeMobileMenu() { ham.classList.remove('open'); drawer.classList.remove('open'); document.body.style.overflow=''; }
-ham.addEventListener('click', openMobileMenu);
-drawerClose.addEventListener('click', closeMobileMenu);
-drawer.addEventListener('click', e => { if (e.target === drawer) closeMobileMenu(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMobileMenu(); });
 </script>
 
 <script>

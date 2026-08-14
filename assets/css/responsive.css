@@ -196,7 +196,7 @@
     /* Stats strip */
     .hero-stats { gap: 0; }
     .hero-stat  { min-width: 50%; padding: 18px 12px; }
-    .hero-stat-value { font-size: 26px; }
+    .hero-stat-value { font-size: 15px; }
 
     /* Sections */
     .flavours-section,
@@ -249,7 +249,8 @@
     .landing-subtitle    { font-size: 14px; }
 
     /* Stats: 2 cols still but smaller */
-    .hero-stat-value     { font-size: 24px; }
+    .hero-stat-icon      { width: 44px; height: 44px; font-size: 18px; margin-bottom: 10px; }
+    .hero-stat-value     { font-size: 14px; }
     .hero-stat-label     { font-size: 11px; }
 
     /* Checkout sticky no longer sticky on small */
