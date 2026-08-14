@@ -2164,6 +2164,7 @@ $pageTitles = [
                             <option value="payments">Payments — how it was paid</option>
                             <option value="invoices">Invoices — issued and outstanding</option>
                             <option value="reps">Sales reps — sold, stores and commission</option>
+                            <option value="production">Production — batches, yield and problems</option>
                         </select>
                     </div>
 

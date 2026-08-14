@@ -55,3 +55,19 @@
 
 /* Per-rep store breakdown headings. */
 .rep-stores-head { font-size: 14px; font-weight: 800; margin: 26px 0 8px; color: #5C1D24; }
+
+/* Production report: sortable headers, and the wrapped detail rows that carry
+   what went wrong. Kept legible on screen and sensible on paper — the sort
+   links lose their underline when printed, since a printed page cannot be
+   clicked and an underline just reads as noise. */
+.rp-sort        { color: inherit; text-decoration: none; border-bottom: 1px dotted #999; }
+.rp-sort:hover  { color: #5C1D24; }
+.rp-batch       { font-family: "Menlo", "Consolas", monospace; font-size: 11px; }
+.rp-sub         { display: block; font-size: 10.5px; color: #777; }
+.rp-low         { color: #b3261e; font-weight: 700; }
+.rp-detail td   { font-size: 11px; color: #555; padding-top: 0; border-top: none; }
+.rp-note        { font-size: 11.5px; color: #555; margin-top: 10px; }
+
+@media print {
+    .rp-sort { border-bottom: none; }
+}

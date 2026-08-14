@@ -5,7 +5,10 @@
 //
 //  Periods : this_month | last_month | this_quarter | this_year |
 //            last_year | all_time | custom (with from/to)
-//  Types   : summary | sales | clients | products | payments | invoices
+//  Types   : summary | sales | clients | products | payments | invoices |
+//            reps | production
+//  Sort    : production accepts &sort=date|batch|product|planned|output|reject|yield
+//            and &dir=asc|desc
 //  Formats : html  – print-ready page; use the browser's "Save as PDF"
 //            csv   – opens straight in Excel / Numbers / Sheets
 //
@@ -79,7 +82,7 @@ switch ($period) {
 
 $type   = $_GET['type']   ?? 'summary';
 $format = ($_GET['format'] ?? 'html') === 'csv' ? 'csv' : 'html';
-$validTypes = ['summary', 'sales', 'clients', 'products', 'payments', 'invoices', 'reps'];
+$validTypes = ['summary', 'sales', 'clients', 'products', 'payments', 'invoices', 'reps', 'production'];
 if (!in_array($type, $validTypes, true)) {
     $type = 'summary';
 }
@@ -292,6 +295,77 @@ foreach ($orders as $o) {
 }
 uasort($payments, fn($a, $b) => $b['total'] <=> $a['total']);
 
+// ── Production runs for the period ──────────────────────────
+//
+// Read here rather than in the template so the CSV and the printed page are
+// built from the same rows, sorted the same way. The table is not assumed to
+// exist: a server that has not run the migration shows an empty report with a
+// line saying why, not a fatal.
+$production    = [];
+$prodTotals    = ['runs' => 0, 'planned' => 0, 'output' => 0, 'reject' => 0, 'problems' => 0];
+$prodAvailable = false;
+
+try {
+    $prodAvailable = (int)$pdo->query(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'production_runs'"
+    )->fetchColumn() > 0;
+} catch (Throwable $e) {
+    $prodAvailable = false;
+}
+
+if ($prodAvailable) {
+    try {
+        $ps = $pdo->prepare(
+            "SELECT * FROM production_runs
+             WHERE produced_on BETWEEN :f AND :t
+             ORDER BY produced_on DESC, id DESC"
+        );
+        $ps->execute(['f' => $from, 't' => $to]);
+        $production = $ps->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        error_log('Production report query failed: ' . $e->getMessage());
+        $production = [];
+    }
+
+    foreach ($production as &$r) {
+        // Yield is computed once, here, so the column and the sort agree.
+        $r['_yield'] = ((int)$r['planned_qty'] > 0)
+            ? round(((int)$r['output_qty'] / (int)$r['planned_qty']) * 100, 1)
+            : null;
+        $prodTotals['runs']++;
+        $prodTotals['planned'] += (int)$r['planned_qty'];
+        $prodTotals['output']  += (int)$r['output_qty'];
+        $prodTotals['reject']  += (int)$r['reject_qty'];
+        if (trim((string)($r['problems'] ?? '')) !== '') { $prodTotals['problems']++; }
+    }
+    unset($r);
+
+    // Sorting. Whitelisted: the key names a comparator, never a column name
+    // that reaches SQL.
+    $prodSort = (string)($_GET['sort'] ?? 'date');
+    $prodDir  = ((string)($_GET['dir'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
+    $cmp = [
+        'date'    => fn($a, $b) => [$a['produced_on'], $a['id']] <=> [$b['produced_on'], $b['id']],
+        'batch'   => fn($a, $b) => strcmp((string)$a['batch_code'], (string)$b['batch_code']),
+        'product' => fn($a, $b) => strcasecmp((string)$a['product_name'], (string)$b['product_name']),
+        'planned' => fn($a, $b) => (int)$a['planned_qty'] <=> (int)$b['planned_qty'],
+        'output'  => fn($a, $b) => (int)$a['output_qty']  <=> (int)$b['output_qty'],
+        'reject'  => fn($a, $b) => (int)$a['reject_qty']  <=> (int)$b['reject_qty'],
+        // Runs with no plan have no yield; park them at the end either way
+        // rather than letting null sort as zero and look like a total failure.
+        'yield'   => fn($a, $b) => [$a['_yield'] === null, $a['_yield']] <=> [$b['_yield'] === null, $b['_yield']],
+        'status'  => fn($a, $b) => strcmp((string)$a['status'], (string)$b['status']),
+    ];
+    if (!isset($cmp[$prodSort])) { $prodSort = 'date'; }
+    usort($production, $cmp[$prodSort]);
+    if ($prodDir === 'desc') { $production = array_reverse($production); }
+
+    $prodTotals['yield'] = $prodTotals['planned'] > 0
+        ? round(($prodTotals['output'] / $prodTotals['planned']) * 100, 1)
+        : null;
+}
+
 $money = fn($n) => '£' . number_format((float)$n, 2);
 
 // ============================================================
@@ -395,6 +469,40 @@ if ($format === 'csv') {
             cbCsv($out, ['Product','Qty sold','Revenue','Times ordered']);
             foreach ($products as $name => $p) {
                 cbCsv($out, [$name, $p['qty'], number_format($p['revenue'], 2), $p['orders']]);
+            }
+            break;
+
+        case 'production':
+            cbCsv($out, ['Batch','Date','Product','Size','Status','Planned','Output',
+                         'Rejected','Yield %','Unit','Best before','Made by',
+                         'Used','Changed','Problems','Notes']);
+            foreach ($production as $r) {
+                cbCsv($out, [
+                    $r['batch_code'],
+                    $r['produced_on'],
+                    $r['product_name'],
+                    $r['variant_name'] ?? '',
+                    $r['status'],
+                    (int)$r['planned_qty'],
+                    (int)$r['output_qty'],
+                    (int)$r['reject_qty'],
+                    $r['_yield'] !== null ? $r['_yield'] : '',
+                    $r['unit_label'],
+                    $r['best_before'] ?? '',
+                    $r['operator'] ?? '',
+                    // Newlines flattened: a spreadsheet cell holding a line
+                    // break splits the row in most importers.
+                    str_replace(["\r\n", "\n"], ' / ', (string)($r['materials_used'] ?? '')),
+                    str_replace(["\r\n", "\n"], ' / ', (string)($r['changes_made'] ?? '')),
+                    str_replace(["\r\n", "\n"], ' / ', (string)($r['problems'] ?? '')),
+                    str_replace(["\r\n", "\n"], ' / ', (string)($r['notes'] ?? '')),
+                ]);
+            }
+            if ($production) {
+                cbCsv($out, []);
+                cbCsv($out, ['Totals', '', '', '', $prodTotals['runs'] . ' runs',
+                             $prodTotals['planned'], $prodTotals['output'], $prodTotals['reject'],
+                             $prodTotals['yield'] ?? '']);
             }
             break;
 
@@ -576,6 +684,100 @@ if ($format === 'csv') {
         </tbody>
         <?php if ($products): ?><tfoot><tr><td>Total</td><td class="r"><?= $tq ?></td><td class="r"><?= $money($tr2) ?></td><td></td></tr></tfoot><?php endif; ?>
     </table>
+
+<?php elseif ($type === 'production'): ?>
+    <?php if (!$prodAvailable): ?>
+        <p class="empty">
+            Production is not set up on this server yet. Run the database update
+            once, record a batch or two, and this report fills itself in.
+        </p>
+    <?php else: ?>
+        <?php
+        // Column headers link back to this same report with a sort key. Clicking
+        // the column you are already on flips the direction, which is what
+        // everyone expects and costs nothing to support.
+        $sortLink = function (string $key, string $label) use ($prodSort, $prodDir, $period, $from, $to) {
+            $nextDir = ($prodSort === $key && $prodDir === 'asc') ? 'desc' : 'asc';
+            $q = http_build_query([
+                'type' => 'production', 'period' => $period,
+                'from' => $from, 'to' => $to, 'sort' => $key, 'dir' => $nextDir,
+            ]);
+            $arrow = $prodSort === $key ? ($prodDir === 'asc' ? ' &uarr;' : ' &darr;') : '';
+            return '<a href="?' . htmlspecialchars($q) . '" class="rp-sort">'
+                 . htmlspecialchars($label) . $arrow . '</a>';
+        };
+        ?>
+        <table>
+            <thead>
+                <tr>
+                    <th><?= $sortLink('batch',   'Batch') ?></th>
+                    <th><?= $sortLink('date',    'Date') ?></th>
+                    <th><?= $sortLink('product', 'Product') ?></th>
+                    <th><?= $sortLink('status',  'Status') ?></th>
+                    <th class="r"><?= $sortLink('planned', 'Planned') ?></th>
+                    <th class="r"><?= $sortLink('output',  'Output') ?></th>
+                    <th class="r"><?= $sortLink('reject',  'Rejected') ?></th>
+                    <th class="r"><?= $sortLink('yield',   'Yield') ?></th>
+                    <th>Made by</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($production as $r): ?>
+                <tr>
+                    <td class="rp-batch"><?= htmlspecialchars($r['batch_code']) ?></td>
+                    <td><?= htmlspecialchars(date('j M Y', strtotime((string)$r['produced_on']))) ?></td>
+                    <td>
+                        <?= htmlspecialchars($r['product_name']) ?><?php if (!empty($r['variant_name'])): ?>
+                        <span class="rp-sub"><?= htmlspecialchars($r['variant_name']) ?></span><?php endif; ?>
+                    </td>
+                    <td><?= htmlspecialchars(ucfirst(str_replace('_', ' ', (string)$r['status']))) ?></td>
+                    <td class="r"><?= (int)$r['planned_qty'] ?></td>
+                    <td class="r"><?= (int)$r['output_qty'] ?></td>
+                    <td class="r"><?= (int)$r['reject_qty'] ?: '' ?></td>
+                    <td class="r<?= ($r['_yield'] !== null && $r['_yield'] < 85) ? ' rp-low' : '' ?>">
+                        <?= $r['_yield'] !== null ? htmlspecialchars($r['_yield']) . '%' : '—' ?>
+                    </td>
+                    <td><?= htmlspecialchars((string)($r['operator'] ?? '')) ?></td>
+                </tr>
+                <?php if (trim((string)($r['problems'] ?? '')) !== ''): ?>
+                <tr class="rp-detail">
+                    <td></td>
+                    <td colspan="8"><strong>Problem:</strong> <?= htmlspecialchars($r['problems']) ?></td>
+                </tr>
+                <?php endif; ?>
+                <?php if (trim((string)($r['changes_made'] ?? '')) !== ''): ?>
+                <tr class="rp-detail">
+                    <td></td>
+                    <td colspan="8"><strong>Changed:</strong> <?= htmlspecialchars($r['changes_made']) ?></td>
+                </tr>
+                <?php endif; ?>
+            <?php endforeach; ?>
+            <?php if (!$production): ?>
+                <tr><td colspan="9" class="empty">No production runs recorded in this period.</td></tr>
+            <?php endif; ?>
+            </tbody>
+            <?php if ($production): ?>
+            <tfoot>
+                <tr>
+                    <td colspan="4">Total — <?= (int)$prodTotals['runs'] ?> run<?= $prodTotals['runs'] === 1 ? '' : 's' ?></td>
+                    <td class="r"><?= (int)$prodTotals['planned'] ?></td>
+                    <td class="r"><?= (int)$prodTotals['output'] ?></td>
+                    <td class="r"><?= (int)$prodTotals['reject'] ?: '' ?></td>
+                    <td class="r"><?= $prodTotals['yield'] !== null ? htmlspecialchars($prodTotals['yield']) . '%' : '—' ?></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+            <?php endif; ?>
+        </table>
+
+        <?php if ($prodTotals['problems'] > 0): ?>
+        <p class="rp-note">
+            <?= (int)$prodTotals['problems'] ?> of these <?= (int)$prodTotals['runs'] ?> runs
+            recorded a problem. The detail is on each row above, and in full on the
+            Production page.
+        </p>
+        <?php endif; ?>
+    <?php endif; ?>
 
 <?php elseif ($type === 'payments'): ?>
     <table>
