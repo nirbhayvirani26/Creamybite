@@ -112,3 +112,17 @@ INSERT INTO `products` (`name`, `emoji`, `description`, `price`, `category`, `im
 ('Cookies & Cream Tub', '🍪', 'Velvety vanilla ice cream swirled with crunchy chocolate cookie crumbles.', 5.99, 'Classics', 'Cookies-&-Cream.jpg', 1, 1, 45, 45),
 ('Choco Chips Ice Cream Tub', '🍫', 'Creamy chocolate ice cream studded with rich dark chocolate chips.', 5.99, 'Classics', 'Choco-Chips.jpg', 1, 1, 40, 40),
 ('Pan Masala Ice Cream Tub', '🍃', 'Authentic Meetha Paan infused ice cream with fennel seeds & sweet spices.', 6.49, 'Exotic Speciality', 'Pan-Masala.jpg', 1, 1, 30, 30);
+
+-- 7. SETTINGS TABLE (order taking switches)
+CREATE TABLE IF NOT EXISTS `settings` (
+  `setting_key`   VARCHAR(64)  NOT NULL PRIMARY KEY,
+  `setting_value` VARCHAR(255) NOT NULL DEFAULT '',
+  `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Delivery / collection are accepted by default for both customer types
+INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`) VALUES
+('taking_retail_delivery',   '1'),
+('taking_retail_collection', '1'),
+('taking_trade_delivery',    '1'),
+('taking_trade_collection',  '1');

@@ -5,6 +5,62 @@
 session_start();
 require_once 'config.php';
 require_once 'db.php';
+require_once 'order_settings.php';
+
+// Which fulfilment methods are being accepted for this kind of customer
+$orderAudience   = currentOrderAudience();
+$allowDelivery   = isOrderMethodEnabled($pdo, $orderAudience, 'delivery');
+$allowCollection = isOrderMethodEnabled($pdo, $orderAudience, 'collection');
+$defaultOrderType = $allowDelivery ? 'delivery' : ($allowCollection ? 'collection' : '');
+
+/**
+ * Order type selector, showing only the methods currently being accepted.
+ * With one method left it stays visible but pre-selected, so the customer
+ * can still see how the order will reach them.
+ */
+function renderOrderTypeSelector(
+    bool $allowDelivery,
+    bool $allowCollection,
+    string $heading,
+    string $deliveryLabel,
+    string $collectionLabel
+): void {
+    $default = $allowDelivery ? 'delivery' : 'collection';
+    ?>
+    <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" style="font-weight: 600; display: block; margin-bottom: 8px;"><?= htmlspecialchars($heading) ?> *</label>
+        <?php if (!$allowDelivery && !$allowCollection): ?>
+        <div style="background:rgba(239,68,68,0.10); border:1px solid rgba(239,68,68,0.35); color:#b91c1c; padding:14px 16px; border-radius:var(--radius-sm); font-size:13px; font-weight:600;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            We have paused new orders for now. Please check back soon or get in touch with us.
+        </div>
+        <?php else: ?>
+        <div style="display: grid; grid-template-columns: <?= ($allowDelivery && $allowCollection) ? '1fr 1fr' : '1fr' ?>; gap: 12px;">
+            <?php if ($allowDelivery): ?>
+            <label id="type_delivery_label" style="cursor: pointer; border: <?= $default === 'delivery' ? '2px solid var(--color-primary)' : '1px solid var(--border-light)' ?>; padding: 14px 10px; border-radius: var(--radius-sm); text-align: center; display: block; transition: all 0.2s ease; background: <?= $default === 'delivery' ? 'var(--color-primary-bg)' : 'var(--bg-surface)' ?>;">
+                <input type="radio" name="order_type" value="delivery" <?= $default === 'delivery' ? 'checked' : '' ?> style="display: none;" onchange="toggleOrderType('delivery')">
+                <i class="fa-solid fa-truck-fast" style="font-size: 20px; display: block; margin-bottom: 8px; color: <?= $default === 'delivery' ? 'var(--color-primary)' : 'var(--text-secondary)' ?>;"></i>
+                <span style="font-weight: 700; font-size: 14px; color: <?= $default === 'delivery' ? 'var(--text-primary)' : 'var(--text-secondary)' ?>; display: block;"><?= htmlspecialchars($deliveryLabel) ?></span>
+            </label>
+            <?php endif; ?>
+            <?php if ($allowCollection): ?>
+            <label id="type_collection_label" style="cursor: pointer; border: <?= $default === 'collection' ? '2px solid var(--color-primary)' : '1px solid var(--border-light)' ?>; padding: 14px 10px; border-radius: var(--radius-sm); text-align: center; display: block; transition: all 0.2s ease; background: <?= $default === 'collection' ? 'var(--color-primary-bg)' : 'var(--bg-surface)' ?>;">
+                <input type="radio" name="order_type" value="collection" <?= $default === 'collection' ? 'checked' : '' ?> style="display: none;" onchange="toggleOrderType('collection')">
+                <i class="fa-solid fa-store" style="font-size: 20px; display: block; margin-bottom: 8px; color: <?= $default === 'collection' ? 'var(--color-primary)' : 'var(--text-secondary)' ?>;"></i>
+                <span style="font-weight: 700; font-size: 14px; color: <?= $default === 'collection' ? 'var(--text-primary)' : 'var(--text-secondary)' ?>; display: block;"><?= htmlspecialchars($collectionLabel) ?></span>
+            </label>
+            <?php endif; ?>
+        </div>
+        <?php if (!$allowDelivery || !$allowCollection): ?>
+        <small style="font-size:12px; color:var(--text-muted); margin-top:8px; display:block;">
+            <i class="fa-solid fa-circle-info"></i>
+            <?= $allowDelivery ? 'Collection is paused at the moment.' : 'Delivery is paused at the moment.' ?>
+        </small>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
+    <?php
+}
 
 // Load cart
 $cart = $_SESSION['cart'] ?? [];
@@ -166,21 +222,7 @@ $grandTotal    = max(0, $cartTotal - $discountAmount);
                         </div>
 
                         <!-- Order Type Selector (Collection / Delivery) -->
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label class="form-label" style="font-weight: 600; display: block; margin-bottom: 8px;">Order Delivery Method *</label>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <label id="type_delivery_label" style="cursor: pointer; border: 2px solid var(--color-primary); padding: 14px 10px; border-radius: var(--radius-sm); text-align: center; display: block; transition: all 0.2s ease; background: var(--color-primary-bg);">
-                                    <input type="radio" name="order_type" value="delivery" checked style="display: none;" onchange="toggleOrderType('delivery')">
-                                    <i class="fa-solid fa-truck-fast" style="font-size: 20px; display: block; margin-bottom: 8px; color: var(--color-primary);"></i>
-                                    <span style="font-weight: 700; font-size: 14px; color: var(--text-primary); display: block;">Store Delivery</span>
-                                </label>
-                                <label id="type_collection_label" style="cursor: pointer; border: 1px solid var(--border-light); padding: 14px 10px; border-radius: var(--radius-sm); text-align: center; display: block; transition: all 0.2s ease; background: var(--bg-surface);">
-                                    <input type="radio" name="order_type" value="collection" style="display: none;" onchange="toggleOrderType('collection')">
-                                    <i class="fa-solid fa-store" style="font-size: 20px; display: block; margin-bottom: 8px; color: var(--text-secondary);"></i>
-                                    <span style="font-weight: 700; font-size: 14px; color: var(--text-secondary); display: block;">Warehouse Collection</span>
-                                </label>
-                            </div>
-                        </div>
+                        <?php renderOrderTypeSelector($allowDelivery, $allowCollection, 'Order Delivery Method', 'Store Delivery', 'Warehouse Collection'); ?>
 
                         <!-- B2B Trade Delivery Instructions (Opening Hours & Delivery Place) -->
                         <div class="form-group" style="margin-bottom:20px;">
@@ -235,21 +277,7 @@ $grandTotal    = max(0, $cartTotal - $discountAmount);
                         </div>
 
                         <!-- Order Type Selector (Collection / Delivery) -->
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label class="form-label" style="font-weight: 600; display: block; margin-bottom: 8px;">Order Type *</label>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                <label id="type_delivery_label" style="cursor: pointer; border: 2px solid var(--color-primary); padding: 14px 10px; border-radius: var(--radius-sm); text-align: center; display: block; transition: all 0.2s ease; background: var(--color-primary-bg);">
-                                    <input type="radio" name="order_type" value="delivery" checked style="display: none;" onchange="toggleOrderType('delivery')">
-                                    <i class="fa-solid fa-truck-fast" style="font-size: 20px; display: block; margin-bottom: 8px; color: var(--color-primary);"></i>
-                                    <span style="font-weight: 700; font-size: 14px; color: var(--text-primary); display: block;">Delivery</span>
-                                </label>
-                                <label id="type_collection_label" style="cursor: pointer; border: 1px solid var(--border-light); padding: 14px 10px; border-radius: var(--radius-sm); text-align: center; display: block; transition: all 0.2s ease; background: var(--bg-surface);">
-                                    <input type="radio" name="order_type" value="collection" style="display: none;" onchange="toggleOrderType('collection')">
-                                    <i class="fa-solid fa-store" style="font-size: 20px; display: block; margin-bottom: 8px; color: var(--text-secondary);"></i>
-                                    <span style="font-weight: 700; font-size: 14px; color: var(--text-secondary); display: block;">Collection</span>
-                                </label>
-                            </div>
-                        </div>
+                        <?php renderOrderTypeSelector($allowDelivery, $allowCollection, 'Order Type', 'Delivery', 'Collection'); ?>
 
                         <!-- Postcode field group -->
                         <div class="form-group" id="postcode_field_group">
@@ -370,9 +398,10 @@ $grandTotal    = max(0, $cartTotal - $discountAmount);
                             </div>
                         </div>
 
-                        <button type="button" id="placeOrderBtn" onclick="handleCheckout()" class="btn-primary" style="width:100%; justify-content:center; font-size:16px; padding:16px;">
-                            <i class="fa-solid fa-credit-card" id="btnIcon"></i>
-                            <span id="btnText">Pay Now</span>
+                        <?php $ordersPaused = (!$allowDelivery && !$allowCollection); ?>
+                        <button type="button" id="placeOrderBtn" onclick="handleCheckout()" class="btn-primary" style="width:100%; justify-content:center; font-size:16px; padding:16px;<?= $ordersPaused ? ' opacity:0.55; cursor:not-allowed;' : '' ?>"<?= $ordersPaused ? ' disabled' : '' ?>>
+                            <i class="fa-solid fa-<?= $ordersPaused ? 'ban' : 'credit-card' ?>" id="btnIcon"></i>
+                            <span id="btnText"><?= $ordersPaused ? 'Orders paused' : 'Pay Now' ?></span>
                         </button>
 
                     </form>
@@ -1142,6 +1171,11 @@ function triggerStripeAmountUpdate() {
 
 // Attach event listeners
 document.addEventListener('DOMContentLoaded', () => {
+    // When one method is paused the other is pre-selected, so sync the
+    // postcode / delivery-charge UI to whichever one that is.
+    const defaultOrderType = <?= json_encode($defaultOrderType) ?>;
+    if (defaultOrderType) toggleOrderType(defaultOrderType);
+
     const pcInput = document.getElementById('delivery_postcode');
     if (pcInput) {
         pcInput.addEventListener('input', onPostcodeInput);

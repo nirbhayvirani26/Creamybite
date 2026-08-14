@@ -6,6 +6,7 @@ session_start();
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/order_settings.php';
 require_once __DIR__ . '/mailer.php';
 // Only load vendor if fully installed (autoload.php alone is not enough)
 if (file_exists(__DIR__ . '/vendor/composer/autoload_real.php')) {
@@ -85,6 +86,20 @@ $notes   = trim($_POST['notes']          ?? '');
 $postcode     = strtoupper(trim($_POST['delivery_postcode'] ?? ''));
 $clientCharge = round((float)($_POST['delivery_charge'] ?? 0), 2);
 $orderType    = trim($_POST['order_type'] ?? 'delivery');
+
+// ── Is this method still being accepted for this customer? ───
+// Hiding the option at checkout is not enough on its own — a stale page
+// or a hand-made POST would otherwise slip through.
+if (!in_array($orderType, ORDER_METHODS, true)) {
+    $orderType = 'delivery';
+}
+if (!isOrderMethodEnabled($pdo, currentOrderAudience(), $orderType)) {
+    $_SESSION['checkout_errors'] = [
+        'Sorry, we are not taking ' . $orderType . ' orders at the moment. Please choose another option.'
+    ];
+    header('Location: checkout.php');
+    exit;
+}
 
 if ($orderType === 'collection') {
     $postcode = 'HA1 2SP';

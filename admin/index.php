@@ -10,6 +10,9 @@ if (empty($_SESSION['admin_logged_in'])) {
 
 require_once '../config.php';
 require_once '../db.php';
+require_once '../order_settings.php';
+
+$orderSettings = getOrderSettings($pdo);
 
 $successMsg = '';
 $errorMsg   = '';
@@ -60,7 +63,7 @@ $totalProducts = $pdo->query("SELECT COUNT(*) FROM products")->fetchColumn();
 
 // ── Active tab ────────────────────────────────────────────
 $activeTab = $_GET['tab'] ?? 'orders';
-$validTabs = ['orders','products','gallery','categories','promos','stock','revenue','inquiries','trade'];
+$validTabs = ['orders','products','gallery','categories','promos','stock','revenue','inquiries','trade','taking'];
 if (!in_array($activeTab, $validTabs)) $activeTab = 'orders';
 
 // ── Load Trade Accounts ───────────────────────────────────
@@ -147,7 +150,7 @@ try { $promoCodes = $pdo->query("SELECT * FROM promo_codes ORDER BY created_at D
 
 // ── Active tab ────────────────────────────────────────────
 $activeTab = $_GET['tab'] ?? 'orders';
-$validTabs = ['orders','products','gallery','categories','promos','stock','revenue','inquiries','trade'];
+$validTabs = ['orders','products','gallery','categories','promos','stock','revenue','inquiries','trade','taking'];
 if (!in_array($activeTab, $validTabs)) $activeTab = 'orders';
 
 // ── Load inquiries ──────────────────────────────────────
@@ -285,6 +288,7 @@ if ($activeTab === 'revenue') {
                 <li><a href="index.php?tab=gallery"    class="<?= $activeTab==='gallery'    ? 'active' : '' ?>"><i class="fa-solid fa-images"></i> Gallery</a></li>
                 <li><a href="index.php?tab=categories" class="<?= $activeTab==='categories' ? 'active' : '' ?>"><i class="fa-solid fa-tags"></i> Categories</a></li>
                 <li><a href="index.php?tab=promos"     class="<?= $activeTab==='promos'     ? 'active' : '' ?>"><i class="fa-solid fa-ticket"></i> Promos</a></li>
+                <li><a href="index.php?tab=taking"     class="<?= $activeTab==='taking'     ? 'active' : '' ?>"><i class="fa-solid fa-power-off"></i> Taking Orders</a></li>
                 <li><a href="../index.php" target="_blank"><i class="fa-solid fa-globe"></i> View Shop</a></li>
             </ul>
         </nav>
@@ -389,6 +393,20 @@ if ($activeTab === 'revenue') {
                 <i class="fa-solid fa-clipboard-list"></i> Orders
                 <?php if ($pendingOrders > 0): ?>
                 <span style="background:var(--color-primary); color:white; font-size:10px; padding:2px 7px; border-radius:20px;"><?= $pendingOrders ?></span>
+                <?php endif; ?>
+            </a>
+            <?php
+                $takingOff = 0;
+                foreach (ORDER_AUDIENCES as $a) {
+                    foreach (ORDER_METHODS as $m) {
+                        if (empty($orderSettings[$a][$m])) $takingOff++;
+                    }
+                }
+            ?>
+            <a class="admin-tab <?= $activeTab==='taking'     ? 'active' : '' ?>" href="index.php?tab=taking">
+                <i class="fa-solid fa-power-off"></i> Taking Orders
+                <?php if ($takingOff > 0): ?>
+                <span style="background:#ef4444; color:white; font-size:10px; padding:2px 7px; border-radius:20px;"><?= $takingOff ?> off</span>
                 <?php endif; ?>
             </a>
             <a class="admin-tab <?= $activeTab==='trade'      ? 'active' : '' ?>" href="index.php?tab=trade">
@@ -1464,6 +1482,65 @@ if ($activeTab === 'revenue') {
         <?php endif; ?>
 
         <!-- ═══════════════════ PROMOS TAB ════════════════════ -->
+        <?php if ($activeTab === 'taking'): ?>
+        <div class="glass-panel" style="padding:28px;">
+            <div class="admin-page-header" style="margin-bottom:24px;">
+                <div>
+                    <h2 class="admin-page-title" style="margin:0;">🔌 Taking Orders</h2>
+                    <p class="admin-page-subtitle" style="margin-top:4px;">
+                        Turn delivery and collection on or off, separately for trade and normal customers.
+                        Switching one off hides it at checkout straight away &mdash; the other stays open.
+                    </p>
+                </div>
+            </div>
+
+            <?php foreach (ORDER_AUDIENCES as $audience): ?>
+            <div style="background:var(--bg-main); border-radius:var(--radius-md); padding:24px; border:1px solid var(--border-light); margin-bottom:20px;">
+                <h3 style="margin:0 0 4px; font-size:15px; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-<?= $audience === 'trade' ? 'store' : 'user' ?>" style="color:var(--color-secondary);"></i>
+                    <?= orderAudienceLabel($audience) ?>
+                </h3>
+                <p style="margin:0 0 18px; font-size:12px; color:var(--text-muted);">
+                    <?= $audience === 'trade'
+                        ? 'Shops, cafes and restaurants ordering with a trade account.'
+                        : 'Everyone ordering from the public shop.' ?>
+                </p>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px;">
+                    <?php foreach (ORDER_METHODS as $method): ?>
+                    <?php $on = !empty($orderSettings[$audience][$method]); ?>
+                    <div style="background:var(--bg-surface); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                        <div>
+                            <div style="font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-<?= $method === 'delivery' ? 'truck-fast' : 'bag-shopping' ?>" style="color:var(--color-primary);"></i>
+                                <?= ucfirst($method) ?>
+                            </div>
+                            <span id="taking-badge-<?= $audience ?>-<?= $method ?>"
+                                  style="display:inline-block; margin-top:6px; font-size:11px; font-weight:700; padding:2px 10px; border-radius:20px;
+                                         background:<?= $on ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' ?>;
+                                         color:<?= $on ? '#10b981' : '#ef4444' ?>;">
+                                <?= $on ? 'Taking orders' : 'Stopped' ?>
+                            </span>
+                        </div>
+                        <button id="taking-toggle-<?= $audience ?>-<?= $method ?>"
+                                class="btn-secondary" style="padding:6px 12px; font-size:12px; white-space:nowrap;"
+                                onclick="toggleTaking('<?= $audience ?>', '<?= $method ?>')">
+                            <i class="fa-solid fa-toggle-<?= $on ? 'on' : 'off' ?>"></i>
+                            <?= $on ? 'Stop' : 'Start' ?>
+                        </button>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+
+            <p style="font-size:12px; color:var(--text-muted); margin:0;">
+                <i class="fa-solid fa-circle-info"></i>
+                If both options are switched off for a group, that group sees a notice at checkout and cannot place an order.
+            </p>
+        </div>
+        <?php endif; ?>
+
         <?php if ($activeTab === 'promos'): ?>
         <div class="glass-panel" style="padding:28px;">
             <div class="admin-page-header" style="margin-bottom:24px;">
@@ -1976,6 +2053,39 @@ function createPromo() {
     .then(data => {
         if (!data.success) { alert(data.message || 'Error'); return; }
         location.reload();
+    });
+}
+
+function toggleTaking(audience, method) {
+    const btn = document.getElementById(`taking-toggle-${audience}-${method}`);
+    if (btn) btn.disabled = true;
+
+    fetch('settings_handler.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: `action=toggle&audience=${encodeURIComponent(audience)}&method=${encodeURIComponent(method)}`,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (btn) btn.disabled = false;
+        if (!data.success) { alert(data.message || 'Could not save setting'); return; }
+
+        const badge = document.getElementById(`taking-badge-${audience}-${method}`);
+        if (data.enabled) {
+            badge.textContent = 'Taking orders';
+            badge.style.background = 'rgba(16,185,129,0.15)';
+            badge.style.color = '#10b981';
+            btn.innerHTML = '<i class="fa-solid fa-toggle-on"></i> Stop';
+        } else {
+            badge.textContent = 'Stopped';
+            badge.style.background = 'rgba(239,68,68,0.15)';
+            badge.style.color = '#ef4444';
+            btn.innerHTML = '<i class="fa-solid fa-toggle-off"></i> Start';
+        }
+    })
+    .catch(() => {
+        if (btn) btn.disabled = false;
+        alert('Could not save setting');
     });
 }
 
