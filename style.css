@@ -962,7 +962,7 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 
 /* ── Product Image on Cards ──────────────────────────────── */
 .product-image-wrap {
-    height: 200px;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
     position: relative;
     background: var(--bg-surface-soft);
@@ -971,6 +971,10 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .product-image-wrap img {
     width: 100%; height: 100%;
     object-fit: cover;
+    /* Product shots are a wide band inside a taller canvas — the tub sits
+       between 29% and 75% of the image height. Framing on that band trims
+       the empty space instead of showing it as padding. */
+    object-position: center 55%;
     transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
     display: block;
 }
