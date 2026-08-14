@@ -1547,26 +1547,32 @@ tr.is-confirmed   .cbab-col-product { border-left: 3px solid var(--color-success
    like-for-like swap made every one of them look oversized — a 72px
    product placeholder became a 72px solid shape.
 
+   Half the box, but never below 14px. A flat 0.5em is right for a 72px
+   product placeholder and far too small for an 18px inline slot — it was
+   producing 7.5px icons on the Products and Stock tabs, which read as
+   specks. max() keeps the proportion where there is room and puts a floor
+   under it where there is not.
+
    0.5em is relative to each box's own font-size, so one rule keeps every
    slot proportional: half of 72px, half of 26px, and so on. Anything that
    sits inline next to text is handled separately at 0.8em, because half
    the text size would be too small to read on paper. */
 .cbco-order-type-icon > i,
-.cbco-order-type-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbco-order-type-icon > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 .trade-page .cbtp-empty-icon > i,
-.trade-page .cbtp-empty-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.trade-page .cbtp-empty-icon > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 .cbor-trade-banner-icon > i,
-.cbor-trade-banner-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbor-trade-banner-icon > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 .cbor-delivery-popup-emoji > i,
-.cbor-delivery-popup-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cbor-delivery-popup-emoji > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 .trade-page .cbtr-alert-icon > i,
-.trade-page .cbtr-alert-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.trade-page .cbtr-alert-icon > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 body.about-page .cbab-social-icon > i,
-body.about-page .cbab-social-icon > svg { font-size: 0.5em; width: 1em; height: 1em; }
+body.about-page .cbab-social-icon > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 .cboc-collect-emoji > i,
-.cboc-collect-emoji > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.cboc-collect-emoji > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 .flavour-card-img > i,
-.flavour-card-img > svg { font-size: 0.5em; width: 1em; height: 1em; }
+.flavour-card-img > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 
 /* ============================================================
    OFFERS, GIFTS AND CART MESSAGES  (cbof-)
