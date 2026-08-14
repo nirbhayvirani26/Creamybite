@@ -57,18 +57,27 @@ function cbTradeOrderingReady(PDO $pdo): bool
         'trade_collection_closed_note' => "VARCHAR(255) NOT NULL DEFAULT ''",
     ];
 
+    // ASKS, it does not alter. This used to add the columns itself with an
+    // ALTER TABLE the first time it ran, which works on a laptop but needs
+    // ALTER rights at request time — shared hosting often refuses, and the
+    // failure is silent: the switches just never save and nobody is told why.
+    // The columns now come from admin/migrations/update_db.php with every
+    // other schema change. Until that has been run this simply reports "not
+    // ready", and cbTradeOrderingOpen() answers OPEN, so a shop that has not
+    // migrated yet keeps taking trade orders rather than quietly stopping.
     try {
         $check = $pdo->prepare(
             "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'store_settings' AND COLUMN_NAME = ?"
         );
-        foreach ($columns as $name => $ddl) {
+        $ready = true;
+        foreach (array_keys($columns) as $name) {
             $check->execute([$name]);
             if (!(int)$check->fetchColumn()) {
-                $pdo->exec("ALTER TABLE `store_settings` ADD COLUMN `{$name}` {$ddl}");
+                $ready = false;
+                break;
             }
         }
-        $ready = true;
     } catch (PDOException $e) {
         error_log('Trade ordering columns unavailable: ' . $e->getMessage());
         $ready = false;

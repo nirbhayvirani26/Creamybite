@@ -799,6 +799,16 @@ $columns = [
     ['store_settings', 'delivery_closed_note',   "ALTER TABLE `store_settings` ADD COLUMN `delivery_closed_note`   VARCHAR(255) NULL DEFAULT NULL AFTER `collection_open`"],
     ['store_settings', 'collection_closed_note', "ALTER TABLE `store_settings` ADD COLUMN `collection_closed_note` VARCHAR(255) NULL DEFAULT NULL AFTER `delivery_closed_note`"],
 
+    // The trade half of the same pair. These were being added by an ALTER TABLE
+    // that ran on a page load, which works locally but needs ALTER rights at
+    // request time — shared hosting does not always grant that, and a failure
+    // there is silent: the switches simply never save. They belong here with
+    // every other schema change, applied when the owner runs the migration.
+    ['store_settings', 'trade_delivery_open',          "ALTER TABLE `store_settings` ADD COLUMN `trade_delivery_open`          TINYINT(1)   NOT NULL DEFAULT 1  AFTER `collection_closed_note`"],
+    ['store_settings', 'trade_collection_open',        "ALTER TABLE `store_settings` ADD COLUMN `trade_collection_open`        TINYINT(1)   NOT NULL DEFAULT 1  AFTER `trade_delivery_open`"],
+    ['store_settings', 'trade_delivery_closed_note',   "ALTER TABLE `store_settings` ADD COLUMN `trade_delivery_closed_note`   VARCHAR(255) NOT NULL DEFAULT '' AFTER `trade_collection_open`"],
+    ['store_settings', 'trade_collection_closed_note', "ALTER TABLE `store_settings` ADD COLUMN `trade_collection_closed_note` VARCHAR(255) NOT NULL DEFAULT '' AFTER `trade_delivery_closed_note`"],
+
     // Which side of the banner photo the caption sits on. Some banner photos
     // have their product on the left, some on the right, and a caption
     // pinned to one side forever will eventually sit on top of the product
