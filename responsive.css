@@ -338,8 +338,10 @@ a, button { touch-action: manipulation; }
         font-size: 13px !important;
     }
 
-    /* Admin glass panel padding */
-    .glass-panel { padding: 16px !important; }
+    /* Admin glass panel padding.
+       Product cards share .glass-panel but manage their own spacing via
+       .product-body — padding here would inset their full-bleed image. */
+    .glass-panel:not(.product-card) { padding: 16px !important; }
 
     /* Admin data table min-width for scrolling */
     .data-table { min-width: 700px; }
@@ -375,8 +377,8 @@ a, button { touch-action: manipulation; }
     /* Data table even smaller min-width */
     .data-table { min-width: 580px; }
 
-    /* Admin glass panel minimal padding */
-    .glass-panel { padding: 12px !important; }
+    /* Admin glass panel minimal padding (product cards exempt, as above) */
+    .glass-panel:not(.product-card) { padding: 12px !important; }
 
     /* Filter/sort bars wrap */
     .filter-sort-bar {
