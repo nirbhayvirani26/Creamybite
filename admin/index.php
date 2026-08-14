@@ -1057,7 +1057,7 @@ $pageTitles = [
             <div class="cbi-empty-state">
                 <div class="cbi-empty-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>
                 <p class="cbi-empty-text">No orders yet. Share your shop and orders will appear here!</p>
-                <a href="../order.php" target="_blank" class="btn-primary cbi-empty-cta">
+                <a href="../pages/order.php" target="_blank" class="btn-primary cbi-empty-cta">
                     <i class="fa-solid fa-globe"></i> Open Shop
                 </a>
             </div>
@@ -1476,7 +1476,7 @@ $pageTitles = [
                     </h2>
                     <p class="cbi-trade-subtitle">Review, approve, or reject retail store applications for wholesale access.</p>
                 </div>
-                <a href="../trade_register.php" target="_blank" class="btn-secondary cbi-trade-register-btn">
+                <a href="../pages/trade_register.php" target="_blank" class="btn-secondary cbi-trade-register-btn">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Registration Form
                 </a>
             </div>
@@ -1525,7 +1525,7 @@ $pageTitles = [
                 <h3 class="cbi-trade-empty-title">No trade applications yet</h3>
                 <p class="cbi-trade-empty-text">
                     Store owners can apply for wholesale pricing at <br>
-                    <a href="../trade_register.php" target="_blank" class="cbi-trade-empty-link">orders.creamybite.com/trade_register.php</a>
+                    <a href="../pages/trade_register.php" target="_blank" class="cbi-trade-empty-link">orders.creamybite.com/pages/trade_register.php</a>
                 </p>
             </div>
             <?php else: ?>
