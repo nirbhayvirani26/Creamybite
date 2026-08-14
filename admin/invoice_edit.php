@@ -221,7 +221,9 @@ require __DIR__ . '/_sidebar.php';
                 </div>
                 <div class="cbie-picker-qty">
                     <label class="form-label cbie-label-tight">Qty</label>
-                    <input type="number" id="productQty" class="form-control" value="1" step="0.001" min="0">
+                    <?php // No min: a negative quantity is how a return or a correction goes
+                          // on an invoice. Ported from the phone. ?>
+                    <input type="number" id="productQty" class="form-control" value="1" step="0.001">
                 </div>
                 <button type="button" class="btn-primary cbie-btn-md" onclick="addPickedProduct()">
                     <i class="fa-solid fa-plus"></i> Add line
@@ -248,7 +250,7 @@ require __DIR__ . '/_sidebar.php';
                         <td><input type="text"   name="item_description[]" class="form-control line-desc" list="productList" autocomplete="off" value="<?= htmlspecialchars($it['description']) ?>"></td>
                         <td><input type="number" name="item_rate[]"        class="form-control line-rate" step="0.01" min="0" value="<?= htmlspecialchars(number_format((float)$it['rate'], 2, '.', '')) ?>"><small class="cbie-rate-hint"></small></td>
                         <td><input type="text"   name="item_rate_note[]"   class="form-control" value="<?= htmlspecialchars($it['rate_note']) ?>" placeholder="e.g. don't have 1L Tub"></td>
-                        <td><input type="number" name="item_qty[]"         class="form-control line-qty" step="0.001" min="0" value="<?= htmlspecialchars(rtrim(rtrim(number_format((float)$it['qty'], 3, '.', ''), '0'), '.')) ?>"></td>
+                        <td><input type="number" name="item_qty[]"         class="form-control line-qty" step="0.001" value="<?= htmlspecialchars(rtrim(rtrim(number_format((float)$it['qty'], 3, '.', ''), '0'), '.')) ?>"></td>
                         <td><input type="text"   name="item_qty_unit[]"    class="form-control" value="<?= htmlspecialchars($it['qty_unit']) ?>" placeholder="Litre"></td>
                         <td class="amt line-amount cbie-amount-cell">£<?= number_format((float)$it['amount'], 2) ?></td>
                         <td class="cbie-cell-pad-top">
@@ -653,7 +655,13 @@ document.addEventListener('change', function (e) {
     if (current === 0) {
         rate.value = info.p.toFixed(2);
         const qty = row.querySelector('.line-qty');
-        if (qty && !(parseFloat(qty.value) > 0)) qty.value = 1;
+        // Fill an empty quantity box with 1, but never touch one that already
+        // holds a figure — a negative is a deliberate return line, and the old
+        // "not greater than zero" test quietly turned it back into 1.
+        if (qty) {
+            const qtyNow = parseFloat(qty.value);
+            if (qty.value.trim() === '' || isNaN(qtyNow) || qtyNow === 0) qty.value = 1;
+        }
         recalc();
     }
 });
@@ -739,7 +747,7 @@ function addLine() {
         '<td><input type="text"   name="item_description[]" class="form-control line-desc" list="productList" autocomplete="off"></td>' +
         '<td><input type="number" name="item_rate[]" class="form-control line-rate" step="0.01" min="0" value="0.00"><small class="cbie-rate-hint"></small></td>' +
         '<td><input type="text"   name="item_rate_note[]" class="form-control" placeholder="e.g. don\'t have 1L Tub"></td>' +
-        '<td><input type="number" name="item_qty[]" class="form-control line-qty" step="0.001" min="0" value="1"></td>' +
+        '<td><input type="number" name="item_qty[]" class="form-control line-qty" step="0.001" value="1"></td>' +
         '<td><input type="text"   name="item_qty_unit[]" class="form-control" placeholder="Litre"></td>' +
         '<td class="amt line-amount">£0.00</td>' +
         '<td class="cbie-line-actions"><button type="button" class="btn-danger cbie-btn-xs" onclick="removeLine(this)"><i class="fa-solid fa-xmark"></i></button></td>';

@@ -92,7 +92,7 @@
 
     /* Products */
     .products-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
-    .product-image-wrap { height: 160px; }
+    .product-image-wrap { height: auto; }   /* the 2/1 aspect-ratio in style.css governs */
     .product-name  { font-size: 15px; }
     .product-price { font-size: 19px; }
     .product-body  { padding: 14px 16px 14px; }
@@ -179,7 +179,7 @@
 
     /* Products: still 2 cols but tighter */
     .products-grid   { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .product-image-wrap { height: 140px; }
+    .product-image-wrap { height: auto; }   /* the 2/1 aspect-ratio in style.css governs */
     .product-body    { padding: 12px 12px 10px; }
     .product-name    { font-size: 14px; }
     .product-desc    { font-size: 12px; margin-bottom: 10px; }
@@ -232,7 +232,7 @@
 @media (max-width: 480px) {
     /* Products: 1 column */
     .products-grid       { grid-template-columns: 1fr; gap: 14px; }
-    .product-image-wrap  { height: 200px; }
+    .product-image-wrap  { height: auto; }   /* the 2/1 aspect-ratio in style.css governs */
     .product-body        { padding: 16px 18px 14px; }
     .product-name        { font-size: 16px; }
     .product-price       { font-size: 20px; }
@@ -340,7 +340,9 @@ a, button { touch-action: manipulation; }
     }
 
     /* Admin glass panel padding */
-    .glass-panel { padding: 16px !important; }
+    /* Product cards share .glass-panel but space themselves through
+       .product-body — padding here would inset their full-bleed image. */
+    .glass-panel:not(.product-card) { padding: 16px !important; }
 
     /* Admin data table min-width for scrolling */
     .data-table { min-width: 700px; }
@@ -377,7 +379,7 @@ a, button { touch-action: manipulation; }
     .data-table { min-width: 580px; }
 
     /* Admin glass panel minimal padding */
-    .glass-panel { padding: 12px !important; }
+    .glass-panel:not(.product-card) { padding: 12px !important; }   /* product cards exempt, as above */
 
     /* Filter/sort bars wrap */
     .filter-sort-bar {

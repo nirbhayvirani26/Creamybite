@@ -1014,7 +1014,12 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
    The radius is the card's radius minus its 1.5px border, so the corner
    curve sits just inside the card's own instead of poking through it. */
 .product-image-wrap {
-    height: 200px;
+    /* Product shots are a wide band inside a taller canvas — the tub sits
+       between 29% and 75% of the image height, so more than half of each file
+       is empty white. A 2/1 frame plus the offset on the img below crops to
+       that band, leaving a little breathing room instead of a blank margin.
+       Ported from the work done on the phone. */
+    aspect-ratio: 2 / 1;
     overflow: hidden;
     position: relative;
     border-radius: calc(var(--radius-md) - 1.5px) calc(var(--radius-md) - 1.5px) 0 0;
@@ -1047,6 +1052,9 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .product-image-wrap img {
     width: 100%; height: 100%;
     object-fit: cover;
+    /* Centre the crop on the tub rather than the middle of the file, which
+       would cut its top off. Pairs with the 2/1 frame above. */
+    object-position: center 54.4%;
     display: block;
 }
 /* The hover zoom on this image is in animations.css — one value, one rule. */
