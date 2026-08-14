@@ -88,6 +88,40 @@ $productIdType = cb_column_type($pdo, 'products', 'id', 'INT UNSIGNED');
 
 // ── 1. Tables that must exist (CREATE TABLE IF NOT EXISTS is safe on its own) ──
 $tables = [
+    'production_runs' => "CREATE TABLE IF NOT EXISTS `production_runs` (
+        `id`               INT AUTO_INCREMENT PRIMARY KEY,
+        `batch_code`       VARCHAR(40)   NOT NULL,
+        `product_id`       INT           NULL,
+        `variant_id`       INT           NULL,
+        `product_name`     VARCHAR(180)  NOT NULL,
+        `variant_name`     VARCHAR(100)  NULL,
+        `produced_on`      DATE          NOT NULL,
+        `started_at`       TIME          NULL,
+        `finished_at`      TIME          NULL,
+        `planned_qty`      INT           NOT NULL DEFAULT 0,
+        `output_qty`       INT           NOT NULL DEFAULT 0,
+        `reject_qty`       INT           NOT NULL DEFAULT 0,
+        `unit_label`       VARCHAR(40)   NOT NULL DEFAULT 'tubs',
+        `best_before`      DATE          NULL,
+        `mix_temp_c`       DECIMAL(5,1)  NULL,
+        `pasteurise_temp_c` DECIMAL(5,1) NULL,
+        `pasteurise_mins`  INT           NULL,
+        `operator`         VARCHAR(120)  NULL,
+        `status`           ENUM('planned','in_progress','completed','on_hold','scrapped') NOT NULL DEFAULT 'in_progress',
+        `materials_used`   TEXT          NULL,
+        `changes_made`     TEXT          NULL,
+        `problems`         TEXT          NULL,
+        `notes`            TEXT          NULL,
+        `stock_added`      TINYINT(1)    NOT NULL DEFAULT 0,
+        `created_by`       VARCHAR(120)  NULL,
+        `created_at`       DATETIME      NOT NULL,
+        `updated_at`       DATETIME      NULL,
+        UNIQUE KEY `batch` (`batch_code`),
+        KEY `on_date` (`produced_on`),
+        KEY `prod` (`product_id`),
+        KEY `state` (`status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
     'documents' => "CREATE TABLE IF NOT EXISTS `documents` (
         `id`            INT AUTO_INCREMENT PRIMARY KEY,
         `title`         VARCHAR(180)  NOT NULL,

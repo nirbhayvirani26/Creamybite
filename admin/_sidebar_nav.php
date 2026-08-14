@@ -79,6 +79,9 @@ $adminNav = [
     ['href' => 'store.php',  'icon' => 'fa-truck-fast',        'label' => 'Delivery & Offers',
      'perm' => 'store'],
 
+    ['href' => 'production.php', 'icon' => 'fa-industry',      'label' => 'Production',
+     'perm' => 'production'],
+
     ['href' => 'documents.php', 'icon' => 'fa-folder-open',    'label' => 'Documents & SOPs',
      'perm' => 'documents'],
 
