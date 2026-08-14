@@ -1,0 +1,8 @@
+# These are the shop's own operating documents — SOPs, HACCP paperwork,
+# supplier agreements, training records. They are for staff, not the public,
+# and a filename is easy to guess.
+#
+# Nothing here is served directly. admin/document_download.php checks the
+# admin session first and then streams the file, so a document can only be
+# read by someone signed in.
+Require all denied

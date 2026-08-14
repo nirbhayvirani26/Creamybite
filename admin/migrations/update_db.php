@@ -88,6 +88,23 @@ $productIdType = cb_column_type($pdo, 'products', 'id', 'INT UNSIGNED');
 
 // ── 1. Tables that must exist (CREATE TABLE IF NOT EXISTS is safe on its own) ──
 $tables = [
+    'documents' => "CREATE TABLE IF NOT EXISTS `documents` (
+        `id`            INT AUTO_INCREMENT PRIMARY KEY,
+        `title`         VARCHAR(180)  NOT NULL,
+        `category`      VARCHAR(60)   NOT NULL DEFAULT 'General',
+        `description`   VARCHAR(500)  NULL,
+        `stored_name`   VARCHAR(255)  NOT NULL,
+        `original_name` VARCHAR(255)  NOT NULL,
+        `mime`          VARCHAR(100)  NOT NULL,
+        `size_bytes`    INT UNSIGNED  NOT NULL DEFAULT 0,
+        `review_due`    DATE          NULL,
+        `sort_order`    INT           NOT NULL DEFAULT 0,
+        `uploaded_by`   VARCHAR(120)  NULL,
+        `created_at`    DATETIME      NOT NULL,
+        KEY `cat` (`category`),
+        KEY `sort` (`sort_order`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
     'product_variants' => "CREATE TABLE IF NOT EXISTS `product_variants` (
         `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT,
         `product_id`      {$productIdType}  NOT NULL,
@@ -804,6 +821,7 @@ $columns = [
     // request time — shared hosting does not always grant that, and a failure
     // there is silent: the switches simply never save. They belong here with
     // every other schema change, applied when the owner runs the migration.
+
     ['store_settings', 'trade_delivery_open',          "ALTER TABLE `store_settings` ADD COLUMN `trade_delivery_open`          TINYINT(1)   NOT NULL DEFAULT 1  AFTER `collection_closed_note`"],
     ['store_settings', 'trade_collection_open',        "ALTER TABLE `store_settings` ADD COLUMN `trade_collection_open`        TINYINT(1)   NOT NULL DEFAULT 1  AFTER `trade_delivery_open`"],
     ['store_settings', 'trade_delivery_closed_note',   "ALTER TABLE `store_settings` ADD COLUMN `trade_delivery_closed_note`   VARCHAR(255) NOT NULL DEFAULT '' AFTER `trade_collection_open`"],

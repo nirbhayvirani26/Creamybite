@@ -53,7 +53,7 @@ if (!isset($invoiceOutstanding)) { $invoiceOutstanding = 0.0; }
 
 // Which entry is lit. index.php passes its current tab; a standalone page sets
 // $cbSidebarCurrent to its own key before including this.
-$cbSidebarCurrent = $cbSidebarCurrent ?? ($tab ?? '');
+$cbSidebarCurrent = $cbSidebarCurrent ?? ($activeTab ?? ($tab ?? ''));
 
 $adminNav = [
     ['group' => 'Sales'],
@@ -78,6 +78,9 @@ $adminNav = [
     // and in $cbiGrantableSections on the Staff tab, or it could not be ticked.
     ['href' => 'store.php',  'icon' => 'fa-truck-fast',        'label' => 'Delivery & Offers',
      'perm' => 'store'],
+
+    ['href' => 'documents.php', 'icon' => 'fa-folder-open',    'label' => 'Documents & SOPs',
+     'perm' => 'documents'],
 
     ['group' => 'Customers'],
     ['tab' => 'trade',      'icon' => 'fa-store',              'label' => 'Trade Accounts',

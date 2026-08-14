@@ -5,7 +5,11 @@
 if (!isset($adminNav)) {
     require_once __DIR__ . '/_sidebar_nav.php';
 }
-$cbSidebarCurrent = $cbSidebarCurrent ?? ($tab ?? '');
+// index.php tracks the open tab in $activeTab; a standalone page sets
+// $cbSidebarCurrent itself before including this. Accept either, and fall
+// back to '' rather than an undefined variable — the warning that produced
+// printed on every page that was not index.php.
+$cbSidebarCurrent = $cbSidebarCurrent ?? ($activeTab ?? ($tab ?? ''));
 ?>
 <aside class="admin-sidebar" id="adminSidebar">
     <button class="sb-close" id="sbClose" aria-label="Close menu">
@@ -31,7 +35,7 @@ $cbSidebarCurrent = $cbSidebarCurrent ?? ($tab ?? '');
                 <?php endif; ?>
             <?php else: ?>
                 <a href="index.php?tab=<?= $item['tab'] ?>"
-                   class="sb-link <?= $activeTab === $item['tab'] ? 'active' : '' ?>">
+                   class="sb-link <?= $cbSidebarCurrent === $item['tab'] ? 'active' : '' ?>">
                     <i class="fa-solid <?= $item['icon'] ?>"></i>
                     <span class="sb-label"><?= htmlspecialchars($item['label']) ?></span>
                     <?php if (!empty($item['badge'])): ?>
