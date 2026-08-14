@@ -107,7 +107,7 @@ define('ADMIN_EMAIL',    'princevir2610@gmail.com');
 //
 // hello@creamybite.com is taken from invoice_settings, which is the address
 // already going out on real paperwork.
-define('SHOP_EMAIL',     'hello@creamybite.com');
+define('SHOP_EMAIL',     'orders@creamybite.com');
 
 // Admin login credentials
 define('ADMIN_USERNAME', $secrets['admin']['username']);
@@ -118,7 +118,7 @@ define('ADMIN_PASSWORD', $secrets['admin']['password']);
 // from this, so getting it wrong sends staff to a domain that does not serve
 // the admin panel — the "view this order" and "print delivery note" buttons
 // in those emails simply fail.
-define('SITE_URL', 'https://orders.creamybite.com');
+define('SITE_URL', 'https://creamybite.com');
 
 // Order code prefix. Every order code customers ever see begins with this, so
 // it has to match what checkout_handler.php actually mints. It read 'SCO'

@@ -1,5 +1,21 @@
 <?php
 
+// Port decides the encryption, rather than it being hard-coded.
+//
+// 465 is implicit SSL (SMTPS): the connection is encrypted from the first byte.
+// 587 is STARTTLS: it opens in the clear and upgrades. Sending STARTTLS at a
+// 465 listener does not degrade gracefully — it hangs and then fails, which is
+// what happened when the mail host moved from Gmail on 587 to Hostinger on 465
+// while this file still said STARTTLS in all four places.
+if (!function_exists('cbMailEncryption')) {
+    function cbMailEncryption(): string
+    {
+        return ((int)SMTP_PORT === 465)
+            ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
+            : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+    }
+}
+
 // SMTP_* / SHOP_* constants come from config.php. Required explicitly so
 // this file works no matter which entry point pulled it in.
 require_once __DIR__ . '/config.php';
@@ -254,7 +270,7 @@ function sendOrderEmail(array $order): bool
         $mail->SMTPAuth   = true;
         $mail->Username   = SMTP_USER;
         $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->SMTPSecure = cbMailEncryption();
         $mail->Port       = SMTP_PORT;
         // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
         // so every emoji and every £ arrives as mojibake. See cbSendMail().
@@ -289,7 +305,7 @@ function sendGenericEmail(string $toEmail, string $subject, string $htmlBody): b
         $mail->SMTPAuth   = true;
         $mail->Username   = SMTP_USER;
         $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->SMTPSecure = cbMailEncryption();
         $mail->Port       = SMTP_PORT;
         // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
         // so every emoji and every £ arrives as mojibake. See cbSendMail().
@@ -568,7 +584,7 @@ function sendCustomerConfirmationEmail(array $order, string $customerEmail): boo
         $mail->SMTPAuth   = true;
         $mail->Username   = SMTP_USER;
         $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->SMTPSecure = cbMailEncryption();
         $mail->Port       = SMTP_PORT;
         // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
         // so every emoji and every £ arrives as mojibake. See cbSendMail().
@@ -796,7 +812,7 @@ function cbSendMail(string $to, string $subject, string $htmlBody, string $reply
         $mail->SMTPAuth   = true;
         $mail->Username   = SMTP_USER;
         $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->SMTPSecure = cbMailEncryption();
         $mail->Port       = SMTP_PORT;
         $mail->CharSet    = 'UTF-8';
         $mail->setFrom(SMTP_USER, SHOP_NAME);
