@@ -1,4 +1,4 @@
-# Creamy Bite — https://orders.creamybite.com
+# Creamy Bite — https://creamybite.com
 User-agent: *
 
 # Nothing here is useful to a search engine, and some of it should never be
@@ -21,4 +21,4 @@ Disallow: /pages/trade_invoice.php
 
 Allow: /
 
-Sitemap: https://orders.creamybite.com/sitemap.xml
+Sitemap: https://creamybite.com/sitemap.xml

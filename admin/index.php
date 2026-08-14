@@ -1525,7 +1525,7 @@ $pageTitles = [
                 <h3 class="cbi-trade-empty-title">No trade applications yet</h3>
                 <p class="cbi-trade-empty-text">
                     Store owners can apply for wholesale pricing at <br>
-                    <a href="../pages/trade_register.php" target="_blank" class="cbi-trade-empty-link">orders.creamybite.com/pages/trade_register.php</a>
+                    <a href="../pages/trade_register.php" target="_blank" class="cbi-trade-empty-link">creamybite.com/pages/trade_register.php</a>
                 </p>
             </div>
             <?php else: ?>

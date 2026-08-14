@@ -92,7 +92,7 @@ $shopName = defined('SHOP_NAME') ? SHOP_NAME : 'The shop';
 // Built from the request so the instructions are right on localhost and on the
 // live site without anybody editing this file.
 $scheme     = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
-$host       = (string)($_SERVER['HTTP_HOST'] ?? 'orders.creamybite.com');
+$host       = (string)($_SERVER['HTTP_HOST'] ?? 'creamybite.com');
 $path       = strtok((string)($_SERVER['REQUEST_URI'] ?? '/admin/print/station.php'), '?');
 $stationUrl = $scheme . '://' . $host . ($path !== false ? $path : '/admin/print/station.php');
 

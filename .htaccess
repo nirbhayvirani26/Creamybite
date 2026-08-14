@@ -38,6 +38,22 @@ Options -Indexes
 #  working whether the site is served from /orders/ or from the domain root.
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # ── CANONICAL HOST ───────────────────────────────────────
+    #  creamybite.com, www.creamybite.com and orders.creamybite.com all served
+    #  the site, so a search engine saw three identical copies and had to guess
+    #  which was real — splitting the ranking between them and, until the new
+    #  config went up, pointing every canonical tag at the subdomain.
+    #
+    #  One host wins and the other two send visitors to it. 301 rather than 302:
+    #  this is permanent, and only a permanent redirect passes on the ranking
+    #  the old address has already earned.
+    #
+    #  HTTPS only in the condition, so this cannot fight the host's own
+    #  http->https redirect and bounce a visitor between the two.
+    RewriteCond %{HTTP_HOST} !^creamybite\.com$ [NC]
+    RewriteCond %{HTTP_HOST} creamybite\.com$ [NC]
+    RewriteRule ^(.*)$ https://creamybite.com/$1 [R=301,L]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} ^(.*/)[^/]+\.php$

@@ -107,7 +107,7 @@ define('ADMIN_EMAIL',    'princevir2610@gmail.com');
 //
 // hello@creamybite.com is taken from invoice_settings, which is the address
 // already going out on real paperwork.
-define('SHOP_EMAIL',     'order@creamybite.com');
+define('SHOP_EMAIL',     'orders@creamybite.com');
 
 // Admin login credentials
 define('ADMIN_USERNAME', $secrets['admin']['username']);
