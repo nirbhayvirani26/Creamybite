@@ -8,3 +8,10 @@ admin/migrations/catalogue_data.php
 
 # Secrets live here and must never be committed or shipped.
 # .env.example carries the KEY NAMES only, and is safe to share.
+#
+# The line below was missing: the comment said secrets must never be committed
+# but nothing actually ignored the file, so includes/secrets.php was tracked
+# from the start and its live Stripe keys went into the history. GitHub's push
+# protection is what caught it.
+includes/secrets.php
+secrets.php
