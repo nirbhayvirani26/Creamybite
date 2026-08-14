@@ -58,6 +58,9 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/store_settings.php';
 require_once __DIR__ . '/../includes/offers.php';
+// The trade half of the switches below. Additive: it uses its own four
+// columns and never touches delivery_open / collection_open.
+require_once __DIR__ . '/../includes/store_ordering_trade.php';
 
 // ────────────────────────────────────────────────────────────
 //  Small helpers for showing figures
@@ -374,6 +377,38 @@ $cbstChannels = [
 
 $cbstAnyOpen = cbAnyOrderingOpen();
 
+// The same two ways of ordering again, for trade accounts. Kept in its own
+// array so the wording can say "wholesale" and "warehouse" where the public
+// shop says "delivery" and "collection".
+$cbstTradeChannels = [
+    'delivery' => [
+        'icon'        => 'fa-truck-fast',
+        'title'       => 'Wholesale delivery',
+        'openState'   => 'Open — taking trade delivery orders',
+        'shutState'   => 'Closed — not taking trade delivery orders',
+        'openBtn'     => 'Start taking trade delivery orders',
+        'shutBtn'     => 'Stop taking trade delivery orders',
+        'openBlurb'   => 'Trade accounts can have a wholesale order delivered to their premises.',
+        'shutBlurb'   => 'No trade account can order delivery. The public shop is unaffected.',
+        'placeholder' => 'Our wholesale round is full this week — warehouse collection is still running.',
+    ],
+    'collection' => [
+        'icon'        => 'fa-bag-shopping',
+        'title'       => 'Warehouse collection',
+        'openState'   => 'Open — taking trade collection orders',
+        'shutState'   => 'Closed — not taking trade collection orders',
+        'openBtn'     => 'Start taking trade collection orders',
+        'shutBtn'     => 'Stop taking trade collection orders',
+        'openBlurb'   => 'Trade accounts can order and collect from the warehouse.',
+        'shutBlurb'   => 'No trade account can order for collection. The public shop is unaffected.',
+        'placeholder' => 'The warehouse is closed to collections this week — we can still deliver.',
+    ],
+];
+
+// Can this database hold the trade switches yet? The include adds the columns
+// itself on first load, so this is only false when that could not be done.
+$cbstTradeReady = cbTradeOrderingReady($pdo);
+
 // Can this database actually STORE a switch?
 //
 // cbOrderingOpen() answers "open" on a server whose migration has not been run,
@@ -496,6 +531,19 @@ require __DIR__ . '/_sidebar.php';
             </div>
         </div>
 
+        <?php // Saved message from the trade switches below, which post and
+              // come back rather than saving in place like the two above. ?>
+        <?php $cbstTradeFlash = $_SESSION['trade_ordering_flash'] ?? null; unset($_SESSION['trade_ordering_flash']); ?>
+        <?php if ($cbstTradeFlash): ?>
+        <div class="cbst-banner <?= $cbstTradeFlash['type'] === 'error' ? 'is-warn' : '' ?>">
+            <i class="fa-solid <?= $cbstTradeFlash['type'] === 'error' ? 'fa-triangle-exclamation' : 'fa-check' ?>" aria-hidden="true"></i>
+            <div><?= htmlspecialchars($cbstTradeFlash['msg']) ?></div>
+        </div>
+        <?php endif; ?>
+
+        <h3 class="cbst-sub-title"><i class="fa-solid fa-user" aria-hidden="true"></i> Normal customers</h3>
+        <p class="cbst-note">Everybody ordering from the public shop.</p>
+
         <div class="cbst-channels" id="cbstChannels">
             <?php foreach ($cbstChannels as $cbstKey => $cbstCh): ?>
                 <?php $cbstIsOpen = cbOrderingOpen($cbstKey); ?>
@@ -569,6 +617,96 @@ require __DIR__ . '/_sidebar.php';
                             <div class="cbst-cart-strip">
                                 <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                                 <span><?= htmlspecialchars(cbOrderingClosedNote($cbstKey)) ?></span>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        </div>
+
+        <h3 class="cbst-sub-title"><i class="fa-solid fa-store" aria-hidden="true"></i> Trade customers</h3>
+        <p class="cbst-note">
+            Shops, cafes and restaurants ordering on a trade account. These two work
+            on their own and on their own again from the pair above — you can close
+            the wholesale round for the week and keep the public shop running as normal.
+        </p>
+
+        <?php if (!$cbstTradeReady): ?>
+        <div class="cbst-banner is-warn">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <div>
+                <strong>These two switches need four columns adding to store_settings.</strong>
+                The page tries to add them itself when it loads; if you are seeing this, the
+                database user cannot alter that table. Trade ordering carries on as normal
+                in the meantime.
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <div class="cbst-channels">
+            <?php foreach ($cbstTradeChannels as $cbstTKey => $cbstTCh): ?>
+                <?php $cbstTIsOpen = cbTradeOrderingOpen($pdo, $cbstTKey); ?>
+                <article class="cbst-channel <?= $cbstTIsOpen ? 'is-open' : 'is-shut' ?>"
+                         data-channel="trade_<?= htmlspecialchars($cbstTKey) ?>">
+
+                    <div class="cbst-channel-top">
+                        <span class="cbst-channel-icon">
+                            <i class="fa-solid <?= htmlspecialchars($cbstTCh['icon']) ?>" aria-hidden="true"></i>
+                        </span>
+                        <div class="cbst-channel-id">
+                            <h3 class="cbst-channel-name"><?= htmlspecialchars($cbstTCh['title']) ?></h3>
+                            <p class="cbst-channel-state" aria-live="polite">
+                                <i class="fa-solid <?= $cbstTIsOpen ? 'fa-circle-check' : 'fa-circle-xmark' ?>" aria-hidden="true"></i>
+                                <span><?= htmlspecialchars($cbstTIsOpen ? $cbstTCh['openState'] : $cbstTCh['shutState']) ?></span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <p class="cbst-channel-blurb">
+                        <?= htmlspecialchars($cbstTIsOpen ? $cbstTCh['openBlurb'] : $cbstTCh['shutBlurb']) ?>
+                    </p>
+
+                    <?php // A form rather than a scripted toggle: it uses only
+                          // csrfField(), which every admin page already has, and it
+                          // still works with scripting off. ?>
+                    <form method="POST" action="handlers/trade_ordering_handler.php" class="cbst-form-flat">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="toggle">
+                        <input type="hidden" name="method" value="<?= htmlspecialchars($cbstTKey) ?>">
+                        <button type="submit" class="cbst-channel-btn" <?= $cbstTradeReady ? '' : 'disabled' ?>>
+                            <i class="fa-solid <?= $cbstTIsOpen ? 'fa-toggle-on' : 'fa-toggle-off' ?>" aria-hidden="true"></i>
+                            <span><?= htmlspecialchars($cbstTIsOpen ? $cbstTCh['shutBtn'] : $cbstTCh['openBtn']) ?></span>
+                        </button>
+                    </form>
+
+                    <form method="POST" action="handlers/trade_ordering_handler.php" class="cbst-field cbst-channel-note">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="action" value="save_note">
+                        <input type="hidden" name="method" value="<?= htmlspecialchars($cbstTKey) ?>">
+                        <label class="cbst-label" for="cbstTradeNote_<?= htmlspecialchars($cbstTKey) ?>">
+                            What trade customers are told while this is closed
+                        </label>
+                        <textarea class="cbst-input cbst-textarea" rows="2" maxlength="255" name="note"
+                                  id="cbstTradeNote_<?= htmlspecialchars($cbstTKey) ?>"
+                                  placeholder="<?= htmlspecialchars($cbstTCh['placeholder']) ?>"><?=
+                            htmlspecialchars(cbTradeOrderingRawNote($pdo, $cbstTKey)) ?></textarea>
+                        <small class="cbst-hint">
+                            Optional. Leave it empty and we write a line that fits, including
+                            whether the other way of ordering is still open to them.
+                        </small>
+                        <button type="submit" class="cbst-btn is-ghost cbst-channel-save" <?= $cbstTradeReady ? '' : 'disabled' ?>>
+                            <i class="fa-solid fa-check" aria-hidden="true"></i> Save this message
+                        </button>
+                    </form>
+
+                    <?php if (!$cbstTIsOpen): ?>
+                    <div class="cbst-channel-seen">
+                        <span class="cbst-label">What a trade customer is reading right now</span>
+                        <div class="cbst-cart-preview">
+                            <div class="cbst-cart-strip">
+                                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                                <span><?= htmlspecialchars(cbTradeOrderingClosedNote($pdo, $cbstTKey)) ?></span>
                             </div>
                         </div>
                     </div>
