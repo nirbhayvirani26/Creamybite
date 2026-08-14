@@ -135,15 +135,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // anywhere the web user can write.
     $imageName = basename(trim($_POST['existing_image'] ?? ($product['image'] ?? '')));
 
+    // A photo larger than post_max_size never reaches PHP at all: $_POST and
+    // $_FILES both arrive EMPTY, so the block below simply does not run and the
+    // product saves with no image and nothing said about it. That is the most
+    // confusing failure of the lot — the form looks like it worked. Detect it
+    // by the one clue available: a POST whose body was thrown away.
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST) && empty($_FILES)) {
+        $limit = ini_get('post_max_size');
+        $errors[] = 'That photo was too large for the server to accept (the limit here is '
+                  . htmlspecialchars((string)$limit) . '). Nothing was saved. Please try a '
+                  . 'smaller image — a photo taken on a phone is often several times the limit.';
+    }
+
     // Handle image upload
     if (!empty($_FILES['product_image']['name'])) {
         $file    = $_FILES['product_image'];
         $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        $finfo   = finfo_open(FILEINFO_MIME_TYPE);
-        $mime    = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
 
-        if (!in_array($mime, $allowed)) {
+        // Did the upload actually arrive? An oversized file leaves tmp_name
+        // empty, and finfo_file('') is a FATAL error in PHP 8 — the page dies
+        // rather than telling anyone what went wrong. Check the error code
+        // first and say something useful.
+        $upErr = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($upErr !== UPLOAD_ERR_OK || $file['tmp_name'] === '' || !is_uploaded_file($file['tmp_name'])) {
+            $errors[] = match ($upErr) {
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE =>
+                    'That photo is too large for the server (limit ' . ini_get('upload_max_filesize')
+                    . '). Please use a smaller image.',
+                UPLOAD_ERR_PARTIAL   => 'The photo only partly uploaded. Please try again.',
+                UPLOAD_ERR_NO_TMP_DIR, UPLOAD_ERR_CANT_WRITE =>
+                    'The server could not save the photo. Please tell your developer — '
+                    . 'the uploads folder may not be writable.',
+                default              => 'The photo could not be uploaded. Please try again.',
+            };
+            $mime = null;
+        } else {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime  = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+        }
+
+        if ($mime === null) {
+            // Already explained above; fall through without a second message.
+        } elseif (!in_array($mime, $allowed)) {
             $errors[] = 'Image must be JPG, PNG, WebP, or GIF.';
         } elseif ($file['size'] > 8 * 1024 * 1024) {
             $errors[] = 'Image file too large (max 8MB).';
