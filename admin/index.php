@@ -250,6 +250,52 @@ try {
     }
 }
 
+// ── Hang each flavour's sizes off it, with their own stock ──
+//
+// For a flavour that has sizes these rows are the real figures and the
+// product row above is their sum, so the table shows the total first and the
+// sizes it is made of underneath. $stockBySizeReady stays false on a database
+// that has not had the update run yet, and the tab falls back to the old
+// flavour-level view rather than breaking.
+$stockBySizeReady = false;
+$stockNeedsSplit  = [];   // flavours holding stock with a live size still on zero
+try {
+    $vRows = $pdo->query(
+        "SELECT v.id, v.product_id, v.name, v.case_qty, v.price,
+                IFNULL(v.available,    0) AS available,
+                IFNULL(v.total_stock,  0) AS total_stock,
+                IFNULL(v.stock_qty,    0) AS stock_qty,
+                IFNULL(v.damage_stock, 0) AS damage_stock,
+                IFNULL(v.sold_offline, 0) AS sold_offline,
+                IFNULL(v.sold_online,  0) AS sold_online
+           FROM product_variants v
+          ORDER BY v.product_id, v.sort_order, v.id"
+    )->fetchAll();
+    $stockBySizeReady = true;
+
+    $byProduct = [];
+    foreach ($vRows as $v) { $byProduct[(int)$v['product_id']][] = $v; }
+
+    foreach ($stockProducts as &$sp) {
+        $sp['variants'] = $byProduct[(int)$sp['id']] ?? [];
+
+        // Worth saying out loud: a size that is on sale but has never had a
+        // figure entered reads as sold out to every customer, and the owner
+        // has no reason to look at a row they never touched.
+        if ((int)$sp['track_stock'] === 1 && $sp['variants'] && (int)$sp['total_stock'] > 0) {
+            foreach ($sp['variants'] as $v) {
+                if ((int)$v['available'] === 1 && (int)$v['total_stock'] === 0) {
+                    $stockNeedsSplit[] = $sp['name'] . ' ' . $v['name'];
+                }
+            }
+        }
+    }
+    unset($sp);
+} catch (PDOException $e) {
+    foreach ($stockProducts as &$sp) { $sp['variants'] = []; }
+    unset($sp);
+}
+
 
 // ── Load products ─────────────────────────────────────────
 $products = $pdo->query("SELECT * FROM products ORDER BY id DESC")->fetchAll();
@@ -1893,10 +1939,29 @@ $pageTitles = [
             </div>
             <?php endif; ?>
 
+            <?php /* A size that is on sale with nothing counted against it reads as
+                     sold out to every customer. That is invisible from the flavour
+                     row — whose total looks healthy — so it is worth naming the
+                     sizes rather than leaving the owner to open all thirteen. */ ?>
+            <?php if (!empty($stockNeedsSplit)): ?>
+            <div class="cbi-stock-setup-warning">
+                <div class="cbi-stock-warning-body">
+                    <i class="fa-solid fa-triangle-exclamation cbi-stock-warning-icon"></i>
+                    <div>
+                        <strong class="cbi-stock-warning-title">Some sizes have no stock counted against them</strong><br>
+                        These are on sale but show as sold out to customers:
+                        <?= htmlspecialchars(implode(', ', array_slice($stockNeedsSplit, 0, 8))) ?><?php
+                        if (count($stockNeedsSplit) > 8): ?> and <?= count($stockNeedsSplit) - 8 ?> more<?php endif; ?>.
+                        Open the flavour below and set the real figure for each size.
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Info note -->
             <div class="cbi-stock-info-note">
                 <i class="fa-solid fa-circle-info cbi-stock-info-icon"></i>
-                <span><strong>Click ‘Edit Stock’ to add new stock, damage, or offline sales.</strong> Grand Total, In Stock, Damage and Sold columns are all read-only — updated when you save via the Edit button. Sold Online auto-counts when an order is marked Delivered.</span>
+                <span><strong>Stock is counted per size.</strong> Open a flavour to see its sizes, then click ‘Edit Stock’ on the size to add new stock, damage, or offline sales. The flavour’s own row is the sizes added together, so it changes on its own. Sold Online counts up the moment an order is placed, and comes back if the order is cancelled.</span>
             </div>
 
             <div class="table-wrapper">
@@ -1925,11 +1990,22 @@ $pageTitles = [
                             $off = (int)($sp['sold_offline'] ?? 0);
                             $sol = (int)($sp['sold_online']  ?? 0);
                             $ins = max(0, $ts - $dmg - $off - $sol);
+                            $sizes    = $sp['variants'] ?? [];
+                            $hasSizes = !empty($sizes);
                         ?>
-                        <tr id="stock-row-<?= $sp['id'] ?>">
+                        <tr id="stock-row-<?= $sp['id'] ?>" class="<?= $hasSizes ? 'cbi-stock-parent-row' : '' ?>">
                             <!-- Product -->
                             <td>
                                 <div class="cbi-stock-product-cell">
+                                    <?php if ($hasSizes): ?>
+                                    <button type="button" class="cbi-stock-expand" id="stock-toggle-<?= $sp['id'] ?>"
+                                            onclick="toggleStockSizes(<?= $sp['id'] ?>)"
+                                            aria-expanded="false" aria-controls="stock-sizes-<?= $sp['id'] ?>"
+                                            title="Show the sizes this flavour is sold in">
+                                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                                        <span class="cbi-sr-only">Show sizes for <?= htmlspecialchars($sp['name']) ?></span>
+                                    </button>
+                                    <?php endif; ?>
                                     <?php if (!empty($sp['image'])): ?>
                                     <img src="../assets/images/products/<?= htmlspecialchars($sp['image']) ?>"
                                          class="cbi-stock-thumb">
@@ -1938,7 +2014,10 @@ $pageTitles = [
                                     <?php endif; ?>
                                     <div>
                                         <div class="cbi-stock-product-name"><?= htmlspecialchars($sp['name']) ?></div>
-                                        <div class="cbi-stock-product-cat"><?= htmlspecialchars($sp['category']) ?></div>
+                                        <div class="cbi-stock-product-cat">
+                                            <?= htmlspecialchars($sp['category']) ?><?php
+                                            if ($hasSizes): ?> &middot; <?= count($sizes) ?> size<?= count($sizes) === 1 ? '' : 's' ?><?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -1952,33 +2031,37 @@ $pageTitles = [
                             </td>
                             <!-- Grand Total (read-only) -->
                             <td class="cbi-stock-col-center">
-                                <span id="val-total_stock-<?= $sp['id'] ?>" class="cbi-stock-value-total"><?= $ts ?></span>
+                                <span id="val-total_stock-p<?= $sp['id'] ?>" class="cbi-stock-value-total"><?= $ts ?></span>
                             </td>
                             <!-- In Stock (auto, read-only) -->
                             <td class="cbi-stock-col-center">
                                 <?php if ($sp['track_stock']): ?>
-                                <span id="val-in_stock-<?= $sp['id'] ?>" class="cbi-stock-value-instock <?= $ins > 0 ? 'is-in' : 'is-out' ?>"><?= $ins ?></span>
+                                <span id="val-in_stock-p<?= $sp['id'] ?>" class="cbi-stock-value-instock <?= $ins > 0 ? 'is-in' : 'is-out' ?>"><?= $ins ?></span>
                                 <?php else: ?>
                                 <span class="cbi-muted-md">—</span>
                                 <?php endif; ?>
                             </td>
                             <!-- Damage (read-only) -->
                             <td class="cbi-stock-col-center">
-                                <span id="val-damage_stock-<?= $sp['id'] ?>" class="cbi-stock-value-damage"><?= $dmg ?></span>
+                                <span id="val-damage_stock-p<?= $sp['id'] ?>" class="cbi-stock-value-damage"><?= $dmg ?></span>
                             </td>
                             <!-- Sold Offline (read-only) -->
                             <td class="cbi-stock-col-center">
-                                <span id="val-sold_offline-<?= $sp['id'] ?>" class="cbi-stock-value-offline"><?= $off ?></span>
+                                <span id="val-sold_offline-p<?= $sp['id'] ?>" class="cbi-stock-value-offline"><?= $off ?></span>
                             </td>
                             <!-- Sold Online (auto, read-only) -->
                             <td class="cbi-stock-col-center">
-                                <span id="val-sold_online-<?= $sp['id'] ?>" class="cbi-stock-value-online"><?= $sol ?></span>
+                                <span id="val-sold_online-p<?= $sp['id'] ?>" class="cbi-stock-value-online"><?= $sol ?></span>
                             </td>
                             <!-- Actions -->
                             <td class="cbi-stock-col-center">
                                 <div class="cbi-stock-actions">
-                                    <?php if ($sp['track_stock']): ?>
-                                    <button class="btn-sm btn-primary cbi-stock-edit-btn" onclick="openStockEdit(<?= $sp['id'] ?>, '<?= htmlspecialchars($sp['name'], ENT_QUOTES) ?>', <?= $ts ?>, <?= $dmg ?>, <?= $off ?>)">
+                                    <?php if ($sp['track_stock'] && $hasSizes): ?>
+                                    <button class="btn-sm btn-sm-outline cbi-stock-edit-btn" onclick="toggleStockSizes(<?= $sp['id'] ?>)">
+                                        <i class="fa-solid fa-layer-group"></i> Edit by size
+                                    </button>
+                                    <?php elseif ($sp['track_stock']): ?>
+                                    <button class="btn-sm btn-primary cbi-stock-edit-btn" onclick="openStockEdit(<?= $sp['id'] ?>, 0, '<?= htmlspecialchars($sp['name'], ENT_QUOTES) ?>')">
                                         <i class="fa-solid fa-pen-to-square"></i> Edit Stock
                                     </button>
                                     <?php endif; ?>
@@ -1988,6 +2071,69 @@ $pageTitles = [
                                 </div>
                             </td>
                         </tr>
+
+                        <?php /* One row per size. Hidden until the flavour is opened, so the
+                                 table still reads as a list of flavours at a glance and the
+                                 detail is one click away rather than 27 rows deep. */ ?>
+                        <?php foreach ($sizes as $v):
+                            $vts  = (int)$v['total_stock'];
+                            $vdmg = (int)$v['damage_stock'];
+                            $voff = (int)$v['sold_offline'];
+                            $vsol = (int)$v['sold_online'];
+                            $vins = max(0, $vts - $vdmg - $voff - $vsol);
+                            $vLabel = $sp['name'] . ' — ' . $v['name'];
+                        ?>
+                        <tr class="cbi-stock-size-row" id="stock-sizes-<?= $sp['id'] ?>-<?= $v['id'] ?>" data-stock-parent="<?= $sp['id'] ?>">
+                            <td>
+                                <div class="cbi-stock-size-cell">
+                                    <i class="fa-solid fa-turn-up cbi-stock-size-arrow" aria-hidden="true"></i>
+                                    <div>
+                                        <div class="cbi-stock-size-name"><?= htmlspecialchars($v['name']) ?></div>
+                                        <div class="cbi-stock-size-meta">
+                                            <?php if ((int)$v['available'] !== 1): ?>
+                                            <span class="cbi-stock-size-off">Not on sale</span>
+                                            <?php elseif ((float)$v['price'] <= 0): ?>
+                                            <span class="cbi-stock-size-off">No price set</span>
+                                            <?php else: ?>
+                                            £<?= number_format((float)$v['price'], 2) ?>
+                                            <?php endif; ?>
+                                            <?php if ((int)$v['case_qty'] > 0): ?>
+                                            &middot; <?= (int)$v['case_qty'] ?> per case
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="cbi-stock-col-center"><span class="cbi-muted-md">—</span></td>
+                            <td class="cbi-stock-col-center">
+                                <span id="val-total_stock-v<?= $v['id'] ?>" class="cbi-stock-value-total"><?= $vts ?></span>
+                            </td>
+                            <td class="cbi-stock-col-center">
+                                <?php if ($sp['track_stock']): ?>
+                                <span id="val-in_stock-v<?= $v['id'] ?>" class="cbi-stock-value-instock <?= $vins > 0 ? 'is-in' : 'is-out' ?>"><?= $vins ?></span>
+                                <?php else: ?>
+                                <span class="cbi-muted-md">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="cbi-stock-col-center">
+                                <span id="val-damage_stock-v<?= $v['id'] ?>" class="cbi-stock-value-damage"><?= $vdmg ?></span>
+                            </td>
+                            <td class="cbi-stock-col-center">
+                                <span id="val-sold_offline-v<?= $v['id'] ?>" class="cbi-stock-value-offline"><?= $voff ?></span>
+                            </td>
+                            <td class="cbi-stock-col-center">
+                                <span id="val-sold_online-v<?= $v['id'] ?>" class="cbi-stock-value-online"><?= $vsol ?></span>
+                            </td>
+                            <td class="cbi-stock-col-center">
+                                <?php if ($sp['track_stock']): ?>
+                                <button class="btn-sm btn-primary cbi-stock-edit-btn"
+                                        onclick="openStockEdit(<?= $sp['id'] ?>, <?= $v['id'] ?>, '<?= htmlspecialchars($vLabel, ENT_QUOTES) ?>')">
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit Stock
+                                </button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -4249,11 +4395,41 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── Stock Tab JS (incremental edit modal) ────────────────────
 let stockEditProductId = null;
 
-function openStockEdit(productId, productName, curTotal, curDamage, curOffline) {
+// Which size the modal is editing. 0 means the flavour itself, which only
+// happens for a flavour sold without sizes — the handler refuses it otherwise.
+let stockEditVariantId = 0;
+
+// Show or hide one flavour's sizes.
+function toggleStockSizes(productId) {
+    const rows   = document.querySelectorAll('tr[data-stock-parent="' + productId + '"]');
+    const toggle = document.getElementById('stock-toggle-' + productId);
+    if (!rows.length) return;
+
+    const opening = !rows[0].classList.contains('is-open');
+    rows.forEach(r => r.classList.toggle('is-open', opening));
+
+    if (toggle) {
+        toggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        const icon = toggle.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('fa-chevron-right', !opening);
+            icon.classList.toggle('fa-chevron-down',   opening);
+        }
+    }
+}
+
+function openStockEdit(productId, variantId, label) {
     stockEditProductId = productId;
+    stockEditVariantId = variantId || 0;
     const stockTitleEl = document.getElementById('stockEditTitle');
     stockTitleEl.innerHTML = '<i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit Stock — ';
-    stockTitleEl.appendChild(document.createTextNode(productName));
+    stockTitleEl.appendChild(document.createTextNode(label));
+    const sub = document.getElementById('stockEditSubtitle');
+    if (sub) {
+        sub.textContent = stockEditVariantId
+            ? 'These figures are for this size only. All values are additive — enter 0 to skip a field.'
+            : 'All values are additive — enter 0 to skip a field.';
+    }
     document.getElementById('stockAddQty').value    = 0;
     document.getElementById('stockDamageQty').value = 0;
     document.getElementById('stockOfflineQty').value = 0;
@@ -4265,6 +4441,7 @@ function openStockEdit(productId, productName, curTotal, curDamage, curOffline) 
 function closeStockEdit() {
     document.getElementById('stockEditModal').style.display = 'none';
     stockEditProductId = null;
+    stockEditVariantId = 0;
 }
 
 function saveStockEdit() {
@@ -4282,23 +4459,52 @@ function saveStockEdit() {
     msgEl.textContent = 'Saving…';
     msgEl.style.color = 'var(--text-muted)';
 
+    // Paint one row's five figures. Used twice per save: once for the size
+    // that changed, once for the flavour total that changed with it — leaving
+    // the parent stale would show a total that disagrees with the sizes
+    // directly beneath it until the next reload.
+    const paintStockRow = (scope, figures) => {
+        if (!figures) return;
+        const set = (field, value) => {
+            const el = document.getElementById('val-' + field + '-' + scope);
+            if (el && value !== undefined) el.textContent = value;
+        };
+        set('total_stock',  figures.total_stock);
+        set('damage_stock', figures.damage_stock);
+        set('sold_offline', figures.sold_offline);
+        set('sold_online',  figures.sold_online);
+
+        const insEl = document.getElementById('val-in_stock-' + scope);
+        if (insEl && figures.in_stock !== undefined) {
+            insEl.textContent = figures.in_stock;
+            insEl.classList.toggle('is-in',  figures.in_stock > 0);
+            insEl.classList.toggle('is-out', figures.in_stock <= 0);
+        }
+    };
+
+    const body = new URLSearchParams({
+        action:      'increment_stock',
+        product_id:  stockEditProductId,
+        variant_id:  stockEditVariantId,
+        add_qty:     addQty,
+        damage_qty:  damageQty,
+        offline_qty: offlineQty,
+    });
+
     fetch('handlers/stock_handler.php', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `action=increment_stock&product_id=${stockEditProductId}&add_qty=${addQty}&damage_qty=${damageQty}&offline_qty=${offlineQty}`,
+        body: body.toString(),
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            const id = stockEditProductId;
-            const tsEl  = document.getElementById('val-total_stock-'  + id);
-            const insEl = document.getElementById('val-in_stock-'     + id);
-            const dmgEl = document.getElementById('val-damage_stock-' + id);
-            const offEl = document.getElementById('val-sold_offline-' + id);
-            if (tsEl)  tsEl.textContent  = data.total_stock;
-            if (insEl) { insEl.textContent = data.in_stock; insEl.style.color = data.in_stock > 0 ? '#10b981' : '#ef4444'; }
-            if (dmgEl) dmgEl.textContent = data.damage_stock;
-            if (offEl) offEl.textContent = data.sold_offline;
+            if (stockEditVariantId) {
+                paintStockRow('v' + stockEditVariantId, data);
+                paintStockRow('p' + stockEditProductId, data.product);
+            } else {
+                paintStockRow('p' + stockEditProductId, data);
+            }
             closeStockEdit();
         } else {
             msgEl.innerHTML = '<i class="fa-solid fa-circle-xmark" aria-hidden="true"></i> ';

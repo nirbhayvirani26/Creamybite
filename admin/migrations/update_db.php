@@ -866,6 +866,29 @@ $columns = [
     // pinned to one side forever will eventually sit on top of the product
     // instead of the empty space beside it.
     ['banners', 'text_position', "ALTER TABLE `banners` ADD COLUMN `text_position` ENUM('left','right') NOT NULL DEFAULT 'left' AFTER `subtext`"],
+
+    // Stock held per size, not per flavour.
+    //
+    // Until now product_variants had no stock of its own, so every size drew
+    // down the same product-level pool one unit at a time: a 500ml and a 1L
+    // cost the flavour exactly one unit each. Sell twenty 1L tubs and the
+    // screen said twenty gone, whichever sizes actually left the freezer — so
+    // the count on the shelf and the count on the screen could never agree,
+    // and one size could sell out while the system happily took more orders.
+    //
+    // The counters are the same five the products table already uses, so the
+    // invariant reads identically at both levels:
+    //   total_stock = stock_qty + sold_online + sold_offline + damage_stock
+    //
+    // Whether stock is tracked at all stays a product-level switch
+    // (products.track_stock). One flavour is either counted or it is not;
+    // a per-size toggle would only add a second place to look when something
+    // sells that should not have.
+    ['product_variants', 'total_stock',  "ALTER TABLE `product_variants` ADD COLUMN `total_stock`  INT NOT NULL DEFAULT 0 AFTER `available`"],
+    ['product_variants', 'stock_qty',    "ALTER TABLE `product_variants` ADD COLUMN `stock_qty`    INT NOT NULL DEFAULT 0 AFTER `total_stock`"],
+    ['product_variants', 'damage_stock', "ALTER TABLE `product_variants` ADD COLUMN `damage_stock` INT NOT NULL DEFAULT 0 AFTER `stock_qty`"],
+    ['product_variants', 'sold_offline', "ALTER TABLE `product_variants` ADD COLUMN `sold_offline` INT NOT NULL DEFAULT 0 AFTER `damage_stock`"],
+    ['product_variants', 'sold_online',  "ALTER TABLE `product_variants` ADD COLUMN `sold_online`  INT NOT NULL DEFAULT 0 AFTER `sold_offline`"],
 ];
 
 foreach ($columns as [$table, $col, $sql]) {
@@ -1004,6 +1027,89 @@ try {
     }
 } catch (PDOException $e) {
     $results[] = ['table' => 'product_variants', 'col' => '500ml + 1L', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
+}
+
+// ── 2d2. Move each flavour's opening stock onto one of its sizes ──
+//
+// The product-level figure has to go somewhere, and nothing in the data says
+// how it splits: "45 Kesar Pista" was counted the same whether it left as a
+// 500ml or a 1L, so the split it stands for was never recorded. Inventing one
+// — half each, say — would put numbers on the screen that nobody counted and
+// that the freezer will not match.
+//
+// So the whole balance moves onto ONE size, intact. Nothing is created and
+// nothing is lost: the flavour's total is the same after this step as before,
+// it is simply attributed to a size now. The owner then counts the freezer
+// once and sets the real figure per size on the Stock page, which is the only
+// way this can become true rather than plausible.
+//
+// The receiving size is the first one that is actually on sale, so the shop
+// keeps selling through the change rather than reading sold out on Monday
+// morning. Unpriced sizes seeded switched-off are skipped for that reason.
+//
+// Runs once by construction: it only fires where the sizes hold no stock at
+// all, so the second run finds the balance already moved and leaves it be.
+try {
+    if (cb_table_exists($pdo, 'product_variants') && cb_column_exists($pdo, 'product_variants', 'total_stock')) {
+
+        $pending = $pdo->query(
+            "SELECT p.id, p.name, p.total_stock, p.stock_qty, p.damage_stock,
+                    p.sold_offline, p.sold_online
+               FROM products p
+              WHERE p.total_stock > 0
+                AND EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id)
+                AND (SELECT COALESCE(SUM(v.total_stock), 0)
+                       FROM product_variants v WHERE v.product_id = p.id) = 0"
+        )->fetchAll(PDO::FETCH_ASSOC);
+
+        // On sale first, then whatever comes first — a flavour whose sizes are
+        // all switched off still needs its balance parked somewhere rather
+        // than silently dropped.
+        $pick = $pdo->prepare(
+            "SELECT id FROM product_variants
+              WHERE product_id = :pid
+              ORDER BY available DESC, sort_order ASC, id ASC
+              LIMIT 1"
+        );
+        $move = $pdo->prepare(
+            "UPDATE product_variants
+                SET total_stock  = :total, stock_qty    = :qty,
+                    damage_stock = :dmg,   sold_offline = :off,
+                    sold_online  = :on
+              WHERE id = :vid"
+        );
+
+        $moved = [];
+        foreach ($pending as $p) {
+            $pick->execute(['pid' => (int)$p['id']]);
+            $vid = (int)$pick->fetchColumn();
+            if ($vid <= 0) { continue; }
+
+            $move->execute([
+                'total' => (int)$p['total_stock'],
+                'qty'   => (int)$p['stock_qty'],
+                'dmg'   => (int)$p['damage_stock'],
+                'off'   => (int)$p['sold_offline'],
+                'on'    => (int)$p['sold_online'],
+                'vid'   => $vid,
+            ]);
+            $moved[] = $p['name'];
+        }
+
+        $results[] = [
+            'table'  => 'product_variants',
+            'col'    => 'opening stock per size',
+            'status' => $moved
+                ? '[warn] opening stock moved onto one size for ' . count($moved) . ' flavour(s): '
+                  . implode(', ', array_slice($moved, 0, 6))
+                  . (count($moved) > 6 ? ' and ' . (count($moved) - 6) . ' more' : '')
+                  . ' — count the freezer and set the real figure for each size on the Stock page'
+                : 'stock already held per size ✓',
+            'ok'     => true,
+        ];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'product_variants', 'col' => 'opening stock per size', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2d. Rescue gallery photos saved to the wrong folder ────

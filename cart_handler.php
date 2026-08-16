@@ -124,12 +124,16 @@ switch ($action) {
         // Cart key
         $cartKey = $variantId > 0 ? "{$productId}:{$variantId}" : (string)$productId;
 
-        // Don't let the basket exceed what is actually in stock. Variants draw
-        // on the parent product's stock, so count every line for this product.
-        $availableUnits = stockAvailableFor($pdo, $productId);
+        // Don't let the basket exceed what is actually in stock. Each size has
+        // its own stock, so only the lines for THIS size count against it — a
+        // basket holding six 1L tubs must not eat into what is left of the
+        // 500ml.
+        $availableUnits = stockAvailableFor($pdo, $productId, $variantId);
+        $stockLabel     = $product['name'] . ($variantName !== null ? ' (' . $variantName . ')' : '');
         $alreadyInCart  = 0;
         foreach ($_SESSION['cart'] as $line) {
-            if ((int)($line['product_id'] ?? 0) === $productId) {
+            if ((int)($line['product_id'] ?? 0) === $productId
+                && (int)($line['variant_id'] ?? 0) === $variantId) {
                 $alreadyInCart += (int)($line['quantity'] ?? 0);
             }
         }
@@ -139,11 +143,11 @@ switch ($action) {
             echo json_encode([
                 'success' => false,
                 'message' => $availableUnits <= 0
-                    ? $product['name'] . ' has sold out.'
+                    ? $stockLabel . ' has sold out.'
                     : ($step > 1
-                        ? 'Not enough stock for a full case of ' . $product['name']
+                        ? 'Not enough stock for a full case of ' . $stockLabel
                           . ' — ' . max(0, $availableUnits - $alreadyInCart) . ' left, a case is ' . $step . '.'
-                        : 'Only ' . $availableUnits . ' of ' . $product['name'] . ' left in stock.'),
+                        : 'Only ' . $availableUnits . ' of ' . $stockLabel . ' left in stock.'),
             ]);
             exit;
         }
@@ -200,17 +204,22 @@ switch ($action) {
             // the quantity far past what is actually in the freezer.
             $line      = $_SESSION['cart'][$cartKey];
             $productId = (int)($line['product_id'] ?? 0);
-            $available = stockAvailableFor($pdo, $productId);
+            $variantId = (int)($line['variant_id'] ?? 0);
+            $available = stockAvailableFor($pdo, $productId, $variantId);
 
-            // Units of this product already committed on OTHER cart lines
-            // (a different size of the same product draws on the same stock).
-            // Compare as strings: PHP turns a numeric array key like "8" into
-            // int 8, so a strict !== against the posted string "8" counted
-            // this very line as an "other" line and made the last unit of
-            // every product unsellable.
+            // Units of THIS SIZE already committed on other cart lines. Sizes
+            // hold their own stock now, so a 1L line places no claim on the
+            // 500ml and must not be counted here.
+            //
+            // Compare the keys as strings: PHP turns a numeric array key like
+            // "8" into int 8, so a strict !== against the posted string "8"
+            // counted this very line as an "other" line and made the last unit
+            // of every product unsellable.
             $otherLines = 0;
             foreach ($_SESSION['cart'] as $k => $l) {
-                if ((string)$k !== (string)$cartKey && (int)($l['product_id'] ?? 0) === $productId) {
+                if ((string)$k !== (string)$cartKey
+                    && (int)($l['product_id'] ?? 0) === $productId
+                    && (int)($l['variant_id'] ?? 0) === $variantId) {
                     $otherLines += (int)($l['quantity'] ?? 0);
                 }
             }

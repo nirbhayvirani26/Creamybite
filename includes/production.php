@@ -227,6 +227,26 @@ if (!function_exists('cbProdAddToStock')) {
         if ((int)$run['output_qty'] <= 0)   { return ['ok' => false, 'message' => 'There is no output on this run to add.']; }
         if (empty($run['product_id']))      { return ['ok' => false, 'message' => 'This run is not linked to a product, so there is nothing to add it to.']; }
 
+        require_once __DIR__ . '/stock.php';
+
+        $productId = (int)$run['product_id'];
+        $variantId = (int)($run['variant_id'] ?? 0);
+        $bySize    = cbStockVariantsReady($pdo);
+
+        // Stock lives on the size for any flavour that has sizes. A run that
+        // does not say which size it made has nowhere to go: written to the
+        // flavour it would be wiped by the next re-sum from the sizes, so the
+        // stock would appear to arrive and then quietly vanish. Better to ask
+        // for the size than to lose a day's production to a rounding of the
+        // model.
+        if ($bySize && $variantId <= 0 && cbStockHasVariants($pdo, $productId)) {
+            return [
+                'ok'      => false,
+                'message' => 'This run does not say which size was made, and ' . $run['product_name']
+                           . ' is sold in sizes. Edit the run, choose the size, then add it to stock.',
+            ];
+        }
+
         $qty = (int)$run['output_qty'];
 
         try {
@@ -244,12 +264,25 @@ if (!function_exists('cbProdAddToStock')) {
                 return ['ok' => false, 'message' => 'This run has already been added to stock.'];
             }
 
-            $pdo->prepare(
-                "UPDATE products
-                 SET stock_qty   = stock_qty   + :q,
-                     total_stock = total_stock + :q2
-                 WHERE id = :pid"
-            )->execute(['q' => $qty, 'q2' => $qty, 'pid' => (int)$run['product_id']]);
+            if ($bySize && $variantId > 0) {
+                // Onto the size it was made in, then the flavour's row is the
+                // sum of its sizes again.
+                $pdo->prepare(
+                    "UPDATE product_variants
+                     SET stock_qty   = stock_qty   + :q,
+                         total_stock = total_stock + :q2
+                     WHERE id = :vid AND product_id = :pid"
+                )->execute(['q' => $qty, 'q2' => $qty, 'vid' => $variantId, 'pid' => $productId]);
+
+                cbStockResyncProduct($pdo, $productId);
+            } else {
+                $pdo->prepare(
+                    "UPDATE products
+                     SET stock_qty   = stock_qty   + :q,
+                         total_stock = total_stock + :q2
+                     WHERE id = :pid"
+                )->execute(['q' => $qty, 'q2' => $qty, 'pid' => $productId]);
+            }
 
             $pdo->commit();
         } catch (Throwable $e) {

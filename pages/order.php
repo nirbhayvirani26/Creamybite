@@ -422,6 +422,17 @@ if (!empty($products)) {
             if ($isTradeUser && (float)($v['wholesale_price'] ?? 0) > 0) {
                 $v['price'] = (float)$v['wholesale_price'];
             }
+
+            // Each size has its own stock, so one can run out while the others
+            // are still on the shelf — and the flavour's card, showing every
+            // size added together, gives no hint of it. The picker has to say
+            // which size is gone, or the customer picks it and is refused at
+            // the basket for reasons the page never showed them.
+            $tracked = (int)($products[$v['product_id']]['track_stock'] ?? 0) === 1;
+            $left    = (int)($v['stock_qty'] ?? 0);
+            $v['soldout'] = ($tracked && $left <= 0) ? 1 : 0;
+            $v['left']    = $tracked ? $left : null;
+
             $variantsByProduct[$v['product_id']][] = $v;
         }
     } catch (PDOException $e) { }
@@ -896,19 +907,36 @@ function openVariantPicker(productId, name, emoji, imgSrc, variants, fromEl) {
     pillsEl.innerHTML = '';
     variants.forEach(v => {
         const btn = document.createElement('button');
-        btn.className = 'variant-pill';
+        const soldOut = Number(v.soldout) === 1;
+        // A handful left is worth saying — it is what turns "I'll come back to
+        // it" into "I'll take it now", and it is honest either way.
+        const low = !soldOut && v.left !== null && v.left !== undefined && v.left > 0 && v.left <= 5;
+
+        btn.className = 'variant-pill' + (soldOut ? ' is-soldout' : '');
         btn.setAttribute('data-variant-id', v.id);
-        btn.innerHTML = `<span class="variant-pill-name">${escHtml(v.name)}</span><span class="variant-pill-price">£${parseFloat(v.price).toFixed(2)}</span>`;
-        btn.addEventListener('click', () => {
-            // Highlight selected
-            pillsEl.querySelectorAll('.variant-pill').forEach(p => p.classList.remove('selected'));
-            btn.classList.add('selected');
-            // Short delay then add and close
-            setTimeout(() => {
-                addToCart(productId, v.id, name, emoji, v.name, v.price, currentPickerData ? currentPickerData.fromEl : null);
-                closeVariantPicker();
-            }, 180);
-        });
+        btn.disabled = soldOut;
+        if (soldOut) btn.setAttribute('aria-disabled', 'true');
+
+        let note = '';
+        if (soldOut)  note = '<span class="variant-pill-note">Sold out</span>';
+        else if (low) note = `<span class="variant-pill-note is-low">Only ${parseInt(v.left, 10)} left</span>`;
+
+        btn.innerHTML = `<span class="variant-pill-name">${escHtml(v.name)}</span>`
+                      + `<span class="variant-pill-price">£${parseFloat(v.price).toFixed(2)}</span>`
+                      + note;
+
+        if (!soldOut) {
+            btn.addEventListener('click', () => {
+                // Highlight selected
+                pillsEl.querySelectorAll('.variant-pill').forEach(p => p.classList.remove('selected'));
+                btn.classList.add('selected');
+                // Short delay then add and close
+                setTimeout(() => {
+                    addToCart(productId, v.id, name, emoji, v.name, v.price, currentPickerData ? currentPickerData.fromEl : null);
+                    closeVariantPicker();
+                }, 180);
+            });
+        }
         pillsEl.appendChild(btn);
     });
 

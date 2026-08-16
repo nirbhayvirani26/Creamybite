@@ -1688,6 +1688,29 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .variant-pill:hover .variant-pill-price { color: var(--color-primary); }
 .variant-pill.selected .variant-pill-price { color: white; }
 
+/* A size that has run out. Still shown, and still shows its price — taking
+   it off the list entirely just reads as "we never made that one", and a
+   customer who came for the 1L deserves to see it exists and is coming back.
+   The hover lift is cancelled so it cannot look pressable. */
+.variant-pill.is-soldout {
+    cursor: not-allowed;
+    opacity: 0.55;
+    border-style: dashed;
+}
+.variant-pill.is-soldout:hover {
+    border-color: var(--border-color);
+    background: var(--bg-main);
+    transform: none;
+    box-shadow: none;
+}
+.variant-pill-note {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+.variant-pill-note.is-low { color: #d97706; }
+.variant-pill.selected .variant-pill-note { color: white; }
+
 .variant-picker-close {
     position: absolute; top: 14px; right: 14px;
     width: 32px; height: 32px; border-radius: 50%;
