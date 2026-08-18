@@ -88,6 +88,44 @@ $productIdType = cb_column_type($pdo, 'products', 'id', 'INT UNSIGNED');
 
 // ── 1. Tables that must exist (CREATE TABLE IF NOT EXISTS is safe on its own) ──
 $tables = [
+    // Which production batch every sold item came from.
+    //
+    // Article 18 of assimilated Regulation (EC) No 178/2002 requires a food
+    // business to identify who it supplied a product to. The orders table says
+    // who bought what; production_runs says what was made. Neither on its own
+    // answers the only question that matters in a recall: "batch AD26081801 is
+    // contaminated - who has it?" This table is the join.
+    //
+    // One line of an order may draw on more than one batch, which is why the
+    // quantity lives here rather than being assumed from the order: a case of
+    // twelve made up from the tail of Monday's run and the start of Tuesday's
+    // has to be recorded as exactly that, or the recall list is wrong.
+    //
+    // cart_key ("19:11" = product 19, size 11) identifies WHICH line of the
+    // order this is, because order items are held as JSON rather than rows.
+    'order_batches' => "CREATE TABLE IF NOT EXISTS `order_batches` (
+        `id`                INT AUTO_INCREMENT PRIMARY KEY,
+        `order_id`          INT           NOT NULL,
+        `cart_key`          VARCHAR(40)   NOT NULL,
+        `product_id`        INT           NOT NULL,
+        `variant_id`        INT           NULL,
+        `product_name`      VARCHAR(180)  NOT NULL,
+        `variant_name`      VARCHAR(100)  NULL,
+        `production_run_id` INT           NULL,
+        `batch_code`        VARCHAR(40)   NOT NULL,
+        `external_batch`    VARCHAR(40)   NULL,
+        `qty`               INT           NOT NULL DEFAULT 0,
+        `assigned_by`       VARCHAR(120)  NULL,
+        `assigned_at`       DATETIME      NOT NULL,
+        `notes`             VARCHAR(255)  NULL,
+        UNIQUE KEY `line_batch` (`order_id`, `cart_key`, `batch_code`),
+        KEY `by_order`  (`order_id`),
+        KEY `by_run`    (`production_run_id`),
+        KEY `by_batch`  (`batch_code`),
+        KEY `by_ext`    (`external_batch`),
+        KEY `by_product`(`product_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
     'production_runs' => "CREATE TABLE IF NOT EXISTS `production_runs` (
         `id`               INT AUTO_INCREMENT PRIMARY KEY,
         `batch_code`       VARCHAR(40)   NOT NULL,
@@ -889,6 +927,15 @@ $columns = [
     ['product_variants', 'damage_stock', "ALTER TABLE `product_variants` ADD COLUMN `damage_stock` INT NOT NULL DEFAULT 0 AFTER `stock_qty`"],
     ['product_variants', 'sold_offline', "ALTER TABLE `product_variants` ADD COLUMN `sold_offline` INT NOT NULL DEFAULT 0 AFTER `damage_stock`"],
     ['product_variants', 'sold_online',  "ALTER TABLE `product_variants` ADD COLUMN `sold_online`  INT NOT NULL DEFAULT 0 AFTER `sold_offline`"],
+    // A second, human-facing batch number alongside the PR- code.
+    //
+    // PR-260818-01 is generated and sequential, which is what a system wants.
+    // What goes on the tub, on a customer's complaint email and on a supplier
+    // spec sheet is the trade's own shape: initials of the flavour, the date,
+    // then a run number - AD26081801. Both are kept: the PR- code is the
+    // internal key and never changes, the external one is what the world says
+    // back to you.
+    ['production_runs', 'external_batch', "ALTER TABLE `production_runs` ADD COLUMN `external_batch` VARCHAR(40) NULL AFTER `batch_code`"],
 ];
 
 foreach ($columns as [$table, $col, $sql]) {
@@ -902,6 +949,44 @@ foreach ($columns as [$table, $col, $sql]) {
     } catch (PDOException $e) {
         $results[] = ['table' => $table, 'col' => $col, 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
     }
+}
+
+// ── 2h. One external batch number can only mean one run ─────
+//
+// The suggested code is built from the flavour's initials and the date, and
+// two flavours can share initials - Cookies & Cream and Choco Chips are both
+// CC. The running number keeps the codes distinct, but only if nothing can
+// write the same one twice. Enforced in the database as well as in the form,
+// because a duplicate batch number makes a recall ambiguous at exactly the
+// moment ambiguity is most expensive.
+try {
+    if (cb_table_exists($pdo, 'production_runs') && cb_column_exists($pdo, 'production_runs', 'external_batch')) {
+        $has = $pdo->prepare(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+              WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'production_runs'
+                AND INDEX_NAME = 'external_batch_unique'"
+        );
+        $has->execute();
+        if ((int)$has->fetchColumn() === 0) {
+            $dupe = (int)$pdo->query(
+                "SELECT COUNT(*) FROM (SELECT external_batch FROM production_runs
+                  WHERE external_batch IS NOT NULL AND external_batch <> ''
+                  GROUP BY external_batch HAVING COUNT(*) > 1) d"
+            )->fetchColumn();
+            if ($dupe > 0) {
+                $results[] = ['table' => 'production_runs', 'col' => 'external_batch_unique',
+                    'status' => "[warn] {$dupe} batch number(s) are used more than once, so the uniqueness rule was not applied. Fix those runs on the Production page, then run this again.",
+                    'ok' => true];
+            } else {
+                $pdo->exec("ALTER TABLE `production_runs` ADD UNIQUE KEY `external_batch_unique` (`external_batch`)");
+                $results[] = ['table' => 'production_runs', 'col' => 'external_batch_unique', 'status' => '[ok] uniqueness rule added', 'ok' => true];
+            }
+        } else {
+            $results[] = ['table' => 'production_runs', 'col' => 'external_batch_unique', 'status' => 'already exists ✓', 'ok' => true];
+        }
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'production_runs', 'col' => 'external_batch_unique', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2b. Carry the old nuts_allergy flag into the allergen list ──

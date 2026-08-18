@@ -3269,6 +3269,11 @@ $pageTitles = [
                 'promos' => 'Promos', 'trade' => 'Trade Accounts', 'inquiries' => 'Inquiries',
                 'gallery' => 'Gallery', 'banners' => 'Home Banner', 'reviews' => 'Reviews',
                 'accounting' => 'VAT & Accounting', 'store' => 'Delivery & Offers',
+                // These three were missing, so the handler would accept them but
+                // there was no box to tick — Production and Documents could not be
+                // granted to a staff member at all.
+                'production' => 'Production', 'documents' => 'Documents & SOPs',
+                'traceability' => 'Traceability & Recall',
             ];
             ?>
 

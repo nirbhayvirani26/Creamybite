@@ -30,7 +30,40 @@
         });
         if (keep) { variant.value = keep; }
     }
-    prod.addEventListener('change', function () { fillSizes(null); });
+    prod.addEventListener('change', function () { fillSizes(null); suggestBatch(false); });
+
+    // ── The batch number that goes on the tub ────────────────
+    // Suggested from the flavour and the date, never imposed: once someone has
+    // typed their own it is left alone, because a code already printed on a tub
+    // outranks anything worked out here. The Suggest button overrides that.
+    var ext = $('prExternal'), extBtn = $('prExternalRefresh'), dateEl = $('prDate');
+    var extTouched = false;
+    if (ext) {
+        ext.addEventListener('input', function () { extTouched = true; });
+    }
+
+    function suggestBatch(force) {
+        if (!ext || !prod || !prod.value) { return; }
+        if (!force && extTouched && ext.value.trim() !== '') { return; }
+
+        var body = new FormData();
+        body.append('action', 'suggest_batch');
+        body.append('product_id', prod.value);
+        body.append('produced_on', dateEl ? dateEl.value : '');
+
+        fetch('handlers/production_handler.php', { method: 'POST', body: body })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d && d.success && d.external_batch) {
+                    ext.value = d.external_batch;
+                    if (force) { extTouched = false; }
+                }
+            })
+            .catch(function () { /* a suggestion failing must never block the form */ });
+    }
+
+    if (dateEl) { dateEl.addEventListener('change', function () { suggestBatch(false); }); }
+    if (extBtn) { extBtn.addEventListener('click', function () { suggestBatch(true); }); }
 
     // ── Yield, as it is typed ────────────────────────────────
     var planned = $('prPlanned'), output = $('prOutput'), hint = $('prYieldHint');
@@ -84,6 +117,7 @@
 
             form.querySelector('[name="action"]').value = 'update';
             $('prId').value = r.id;
+            if (ext) { ext.value = r.external_batch || ''; extTouched = true; }
             prod.value = r.product_id || '';
             fillSizes(r.variant_id || null);
 

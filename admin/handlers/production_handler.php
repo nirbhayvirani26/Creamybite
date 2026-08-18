@@ -74,6 +74,23 @@ function cbprText(string $key, int $max = 4000): ?string
 $action = trim((string)($_POST['action'] ?? ''));
 $user   = (string)($_SESSION['admin_username'] ?? ($_SESSION['staff_name'] ?? 'admin'));
 
+// ── What should the external batch number be? ────────────
+// Asked by the form whenever the flavour or the date changes. Read-only: it
+// suggests, it never reserves, so two people filling the form at once both see
+// the same suggestion and the unique key decides who keeps it.
+if ($action === 'suggest_batch') {
+    $productId = (int)($_POST['product_id'] ?? 0);
+    $date      = cbprDate('produced_on') ?? date('Y-m-d');
+    if ($productId <= 0) { cbprOut(['success' => false, 'message' => 'Choose a product first.'], 422); }
+
+    $st = $pdo->prepare("SELECT name FROM products WHERE id = :id");
+    $st->execute(['id' => $productId]);
+    $name = (string)$st->fetchColumn();
+    if ($name === '') { cbprOut(['success' => false, 'message' => 'That product is not here.'], 404); }
+
+    cbprOut(['success' => true, 'external_batch' => cbProdNextExternalBatch($pdo, $name, $date)]);
+}
+
 switch ($action) {
 
     // ── Record a run ─────────────────────────────────────────
@@ -107,6 +124,24 @@ switch ($action) {
             if ($variantName === null) { $variantId = 0; }   // size not on this product
         }
 
+        // The external batch number. Suggested by the form, but typed over
+        // freely — a code already printed on a tub outranks anything generated
+        // here, and refusing it would mean the record disagreeing with the
+        // physical stock.
+        $external = strtoupper(trim((string)($_POST['external_batch'] ?? '')));
+        if ($external !== '') {
+            if (!preg_match('/^[A-Z0-9][A-Z0-9\-\/]{2,39}$/', $external)) {
+                cbprOut(['success' => false, 'message' => 'A batch number can use letters, numbers, dashes and slashes only, and needs at least three characters.'], 422);
+            }
+            // Enforced here as well as by the unique key, so the owner gets a
+            // sentence rather than a database error.
+            $clash = $pdo->prepare("SELECT batch_code FROM production_runs WHERE external_batch = :e AND id <> :id");
+            $clash->execute(['e' => $external, 'id' => $id]);
+            if ($other = $clash->fetchColumn()) {
+                cbprOut(['success' => false, 'message' => 'Batch number ' . $external . ' is already used by run ' . $other . '. Two runs cannot share one number — a recall could not tell them apart.'], 422);
+            }
+        }
+
         $planned = cbprInt('planned_qty');
         $output  = cbprInt('output_qty');
         $reject  = cbprInt('reject_qty');
@@ -126,6 +161,7 @@ switch ($action) {
         }
 
         $fields = [
+            'external_batch'    => $external !== '' ? $external : null,
             'product_id'        => $productId ?: null,
             'variant_id'        => $variantId ?: null,
             'product_name'      => mb_substr($productName, 0, 180),

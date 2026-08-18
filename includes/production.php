@@ -297,3 +297,67 @@ if (!function_exists('cbProdAddToStock')) {
         ];
     }
 }
+
+if (!function_exists('cbProdExternalPrefix')) {
+    /**
+     * The two-letter stem of a flavour's external batch number.
+     *
+     * First letter of each of the first two WORDS — "American Dry Fruits Tub"
+     * gives AD, "Kesar Pista" gives KP. Only runs of letters count as words,
+     * so the ampersand in "Cookies & Cream" is skipped and it gives CC rather
+     * than C&.
+     *
+     * Two flavours can land on the same stem — Cookies & Cream and Choco Chips
+     * are both CC — so the stem alone does not identify a product. The running
+     * number is what keeps whole codes distinct, and the database enforces it.
+     */
+    function cbProdExternalPrefix(string $productName): string
+    {
+        preg_match_all('/([A-Za-z])[A-Za-z]*/', $productName, $m);
+        $initials = $m[1] ?? [];
+
+        if (count($initials) >= 2) {
+            return strtoupper($initials[0] . $initials[1]);
+        }
+        if (count($initials) === 1) {
+            // One word only: use its first two letters, doubling if it is a
+            // single character, so the stem is always two wide.
+            preg_match('/[A-Za-z]{1,2}/', $productName, $one);
+            $stem = strtoupper($one[0] ?? '');
+            return strlen($stem) === 2 ? $stem : str_repeat($stem !== '' ? $stem : 'X', 2);
+        }
+        return 'XX';
+    }
+}
+
+if (!function_exists('cbProdNextExternalBatch')) {
+    /**
+     * The next free external batch number, e.g. AD26081801.
+     *
+     * Stem + yymmdd + a two-digit run number counting up within that day.
+     * Suggested only: the field stays editable, because a code printed on a
+     * tub an hour ago outranks anything this can work out.
+     */
+    function cbProdNextExternalBatch(PDO $pdo, string $productName, string $date = ''): string
+    {
+        $d    = $date !== '' ? $date : date('Y-m-d');
+        $ts   = strtotime($d) ?: time();
+        $stem = cbProdExternalPrefix($productName) . date('ymd', $ts);
+
+        try {
+            $st = $pdo->prepare(
+                "SELECT external_batch FROM production_runs
+                  WHERE external_batch LIKE :s
+                  ORDER BY LENGTH(external_batch) DESC, external_batch DESC LIMIT 1"
+            );
+            $st->execute(['s' => $stem . '%']);
+            $last = (string)$st->fetchColumn();
+        } catch (Throwable $e) {
+            $last = '';
+        }
+
+        $n = $last !== '' ? ((int)substr($last, strlen($stem))) + 1 : 1;
+        if ($n < 1) { $n = 1; }
+        return $stem . str_pad((string)$n, 2, '0', STR_PAD_LEFT);
+    }
+}

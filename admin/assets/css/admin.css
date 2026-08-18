@@ -2140,6 +2140,15 @@ select.cbst-input { appearance: none; background-image:
                     padding: 14px 16px; background: var(--bg-surface-soft); }
 .cbpr-run-top     { display: flex; align-items: center; justify-content: space-between;
                     gap: 10px; flex-wrap: wrap; }
+/* The batch number printed on the tub. Weighted heavier than the PR- code
+   beside it: this is the one a customer reads out on the phone. */
+.cbpr-extcode     { font-family: "Menlo", "Consolas", monospace; font-size: 13px; font-weight: 800;
+                    background: rgba(139,92,246,0.14); color: #7c3aed; border: 1px solid rgba(139,92,246,0.35);
+                    padding: 2px 8px; border-radius: 6px; margin-left: 6px; letter-spacing: .4px; }
+/* Batch field + its Suggest button sit on one line. */
+.cbpr-batchrow    { display: flex; gap: 8px; align-items: stretch; }
+.cbpr-batchrow .cbpr-input { flex: 1; font-family: "Menlo", "Consolas", monospace; letter-spacing: .5px; text-transform: uppercase; }
+.cbpr-batchrow button { white-space: nowrap; flex-shrink: 0; }
 .cbpr-code        { font-family: "Menlo", "Consolas", monospace; font-size: 13px;
                     font-weight: 700; color: var(--color-primary); }
 .cbpr-state       { font-size: 11px; font-weight: 700; text-transform: uppercase;
@@ -2186,4 +2195,142 @@ select.cbst-input { appearance: none; background-image:
     .cbpr-form  { grid-template-columns: 1fr; }
     .cbpr-note  { flex-direction: column; gap: 2px; }
     .cbpr-note-lab { width: auto; }
+}
+
+/* ── Traceability & Recall ───────────────────────────────────
+   Deliberately plainer than the rest of the admin: the recall table is
+   printed and worked through on paper while phone calls are made, so it is
+   built to survive a photocopier rather than to look good on screen. */
+.cbtr-wrap        { max-width: 1240px; margin: 0 auto; padding: 24px 20px 60px; }
+.cbtr-head        { margin-bottom: 20px; }
+.cbtr-title       { font-size: 26px; font-weight: 800; color: var(--text-primary); margin: 0 0 4px; }
+.cbtr-title > i   { color: var(--color-primary); font-size: 0.7em; }
+.cbtr-sub         { color: var(--text-secondary); font-size: 14px; margin: 0; }
+.cbtr-tabs        { display: flex; gap: 8px; margin-bottom: 20px; }
+.cbtr-tab         { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px;
+                    border-radius: 10px; border: 1px solid var(--border-light); background: transparent;
+                    color: var(--text-secondary); font-weight: 700; font-size: 13px; text-decoration: none; }
+.cbtr-tab.is-on   { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.cbtr-tab i       { font-size: max(13px, 0.9em); }
+
+.cbtr-stats       { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+.cbtr-stat        { border-radius: 12px; padding: 14px 16px; border: 1px solid var(--border-light); }
+.cbtr-stat-n      { font-size: 26px; font-weight: 900; font-family: var(--font-heading); line-height: 1.1; }
+.cbtr-stat-l      { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.cbtr-stat.is-bad  { background: rgba(239,68,68,0.08); }
+.cbtr-stat.is-bad  .cbtr-stat-n { color: #b91c1c; }
+.cbtr-stat.is-warn { background: rgba(245,158,11,0.08); }
+.cbtr-stat.is-warn .cbtr-stat-n { color: #92400e; }
+.cbtr-stat.is-good { background: rgba(16,185,129,0.08); }
+.cbtr-stat.is-good .cbtr-stat-n { color: #047857; }
+
+.cbtr-filters     { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+                    padding: 14px 16px; margin-bottom: 18px; border-radius: 12px; }
+.cbtr-filter      { display: flex; flex-direction: column; gap: 4px; }
+.cbtr-grow        { flex: 1; min-width: 200px; }
+.cbtr-flabel      { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                    letter-spacing: .04em; color: var(--text-muted); }
+.cbtr-input       { padding: 8px 11px; border-radius: 8px; border: 1px solid var(--border-light);
+                    background: var(--bg-main); color: var(--text-primary); font-size: 13px; width: 100%; }
+.cbtr-mono        { font-family: "Menlo", "Consolas", monospace; }
+.cbtr-small       { font-size: 12px; }
+.cbtr-muted       { color: var(--text-muted); }
+.cbtr-c           { text-align: center; }
+.cbtr-h2          { font-size: 16px; margin: 26px 0 12px; }
+.cbtr-hint        { font-size: 11px; color: var(--text-muted); }
+
+.cbtr-note        { display: flex; gap: 10px; align-items: flex-start; padding: 13px 16px;
+                    border-radius: 10px; background: rgba(59,130,246,0.08);
+                    border: 1px solid rgba(59,130,246,0.25); font-size: 12.5px; margin-bottom: 18px; }
+.cbtr-note i      { color: #3b82f6; margin-top: 2px; flex-shrink: 0; font-size: max(14px, 0.9em); }
+
+.cbtr-orders      { display: flex; flex-direction: column; gap: 14px; }
+.cbtr-order       { padding: 16px 18px; border-radius: 12px; border-left: 4px solid var(--border-light); }
+.cbtr-order.is-none    { border-left-color: #ef4444; }
+.cbtr-order.is-partial { border-left-color: #f59e0b; }
+.cbtr-order.is-traced  { border-left-color: #10b981; }
+.cbtr-order.is-over    { border-left-color: #8b5cf6; }
+.cbtr-order-head  { display: flex; justify-content: space-between; align-items: baseline;
+                    gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.cbtr-ordercode   { font-family: "Menlo", "Consolas", monospace; font-weight: 800; font-size: 14px; }
+.cbtr-order-when  { font-size: 12px; color: var(--text-muted); }
+.cbtr-chan        { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+                    padding: 2px 8px; border-radius: 999px; margin-left: 8px; }
+.cbtr-chan.is-trade  { background: rgba(139,92,246,0.16); color: #5b21b6; }
+.cbtr-chan.is-retail { background: rgba(59,130,246,0.14); color: #1d4ed8; }
+.cbtr-state-pill  { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+                    padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+.cbtr-state-pill.is-none    { background: rgba(239,68,68,0.15);  color: #991b1b; }
+.cbtr-state-pill.is-partial { background: rgba(245,158,11,0.18); color: #7c2d12; }
+.cbtr-state-pill.is-traced  { background: rgba(16,185,129,0.15); color: #065f46; }
+.cbtr-state-pill.is-over    { background: rgba(139,92,246,0.16); color: #5b21b6; }
+
+.cbtr-cust        { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px;
+                    color: var(--text-secondary); margin-bottom: 12px; }
+.cbtr-cust i      { color: var(--text-muted); font-size: max(11px, 0.85em); margin-right: 3px; }
+
+.cbtr-lines       { width: 100%; border-collapse: collapse; }
+.cbtr-lines th    { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+                    color: var(--text-muted); text-align: left; padding: 6px 8px;
+                    border-bottom: 1px solid var(--border-light); }
+.cbtr-lines td    { padding: 9px 8px; border-bottom: 1px solid var(--border-light); font-size: 13px;
+                    vertical-align: middle; }
+.cbtr-item        { font-weight: 700; }
+.cbtr-size        { font-size: 11px; color: var(--text-secondary); }
+.cbtr-count       { font-weight: 800; font-size: 15px; font-family: var(--font-heading); }
+.cbtr-count.is-none    { color: #b91c1c; }
+.cbtr-count.is-partial { color: #92400e; }
+.cbtr-count.is-traced  { color: #047857; }
+.cbtr-count.is-over    { color: #5b21b6; }
+.cbtr-short       { font-size: 10.5px; color: #b91c1c; font-weight: 700; }
+.cbtr-nobatch     { color: var(--text-muted); }
+.cbtr-batchchip   { display: inline-flex; align-items: center; gap: 5px; padding: 3px 5px 3px 9px;
+                    border-radius: 999px; background: rgba(139,92,246,0.12);
+                    border: 1px solid rgba(139,92,246,0.3); margin: 2px 4px 2px 0;
+                    font-family: "Menlo", "Consolas", monospace; font-size: 11.5px; }
+.cbtr-chipqty     { color: var(--text-muted); }
+.cbtr-chipx       { border: 0; background: transparent; cursor: pointer; color: #b91c1c;
+                    font-size: 15px; line-height: 1; padding: 0 3px; }
+.cbtr-chipx:hover { color: #991b1b; }
+
+.cbtr-recall-head { display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+                    justify-content: space-between; padding: 16px 18px; border-radius: 12px; margin-bottom: 14px; }
+.cbtr-recall-batch{ font-family: "Menlo", "Consolas", monospace; font-size: 22px; font-weight: 900; }
+.cbtr-recall-figs { display: flex; gap: 22px; }
+.cbtr-recall-figs strong { display: block; font-size: 22px; font-family: var(--font-heading); line-height: 1.1; }
+.cbtr-recall-figs span   { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.cbtr-tick        { font-size: 17px; }
+.cbtr-signoff     { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--border-light); border-radius: 10px; }
+.cbtr-siglines    { display: flex; gap: 20px; margin-top: 24px; }
+.cbtr-siglines div{ flex: 1; border-top: 1px solid #555; padding-top: 5px; font-size: 11px; color: var(--text-muted); }
+
+.cbtr-modal       { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9000;
+                    display: flex; align-items: center; justify-content: center; padding: 20px; }
+.cbtr-modal[hidden] { display: none; }
+.cbtr-modal-box   { background: var(--bg-main); border-radius: 16px; padding: 24px; width: 100%;
+                    max-width: 460px; position: relative; box-shadow: 0 24px 60px rgba(0,0,0,0.3); }
+.cbtr-modal-x     { position: absolute; top: 12px; right: 14px; border: 0; background: transparent;
+                    font-size: 22px; cursor: pointer; color: var(--text-muted); line-height: 1; }
+.cbtr-modal-title { margin: 0 0 4px; font-size: 17px; }
+.cbtr-modal-sub   { margin: 0 0 18px; font-size: 12.5px; color: var(--text-muted); }
+.cbtr-modal .cbtr-field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 4px; }
+.cbtr-modal-msg   { font-size: 12.5px; min-height: 18px; margin-bottom: 10px; }
+.cbtr-modal-msg.is-warn { color: #b45309; }
+.cbtr-modal-msg.is-bad  { color: #dc2626; }
+.cbtr-modal-actions { display: flex; gap: 10px; }
+.cbtr-modal-actions button { flex: 1; }
+
+@media (max-width: 720px) {
+  .cbtr-wrap  { padding: 16px 14px 48px; }
+  .cbtr-stats { grid-template-columns: 1fr; }
+  .cbtr-recall-head { flex-direction: column; align-items: flex-start; }
+}
+
+/* Printing the recall list: drop the furniture, keep the evidence. */
+@media print {
+  .admin-sidebar, .cbtr-tabs, .cbtr-filters, .cbtr-note, .admin-page-sub,
+  .cbtr-recall-head button, .cbtr-recall-head a, .cbtr-h2 + .table-wrapper { display: none !important; }
+  .admin-content { margin: 0 !important; padding: 0 !important; }
+  .cbtr-recall-table { font-size: 10pt; }
+  .cbtr-recall-table th { background: #eee !important; }
 }

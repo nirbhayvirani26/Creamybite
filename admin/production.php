@@ -131,6 +131,24 @@ require __DIR__ . '/_sidebar.php';
             </div>
 
             <div class="cbpr-field">
+                <label class="cbpr-label" for="prExternal">Batch number (on the tub)</label>
+                <div class="cbpr-batchrow">
+                    <input type="text" id="prExternal" name="external_batch" class="cbpr-input"
+                           maxlength="40" autocomplete="off" spellcheck="false"
+                           placeholder="choose a flavour and date first">
+                    <button type="button" id="prExternalRefresh" class="btn-sm btn-sm-outline"
+                            title="Suggest the next number for this flavour and date">
+                        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Suggest
+                    </button>
+                </div>
+                <small class="cbpr-hint">
+                    Initials of the flavour, the date, then the run number — American Dry Fruits made
+                    on 18 Aug 2026 gives <strong>AD26081801</strong>. Suggested automatically, but type
+                    over it if the tubs are already coded. The <?= $h('PR-') ?> number below is kept as well.
+                </small>
+            </div>
+
+            <div class="cbpr-field">
                 <label class="cbpr-label" for="prStatus">How is it going</label>
                 <select id="prStatus" name="status" class="cbpr-input">
                     <?php foreach ($statuses as $k => $lab): ?>
@@ -254,6 +272,12 @@ require __DIR__ . '/_sidebar.php';
                 <div class="cbpr-run-top">
                     <div>
                         <span class="cbpr-code"><?= $h($r['batch_code']) ?></span>
+                        <?php /* The number the world quotes back at you. Shown first in
+                                 weight because it is what is printed on the tub and what a
+                                 customer or an EHO will read out. */ ?>
+                        <?php if (!empty($r['external_batch'])): ?>
+                        <span class="cbpr-extcode" title="Batch number printed on the tub"><?= $h($r['external_batch']) ?></span>
+                        <?php endif; ?>
                         <span class="cbpr-state is-<?= $h($r['status']) ?>"><?= $h(explode(' —', $statuses[$r['status']] ?? $r['status'])[0]) ?></span>
                         <?php if ((int)$r['stock_added'] === 1): ?>
                         <span class="cbpr-instock"><i class="fa-solid fa-box-open" aria-hidden="true"></i> in stock</span>

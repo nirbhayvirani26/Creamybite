@@ -85,6 +85,12 @@ $adminNav = [
     ['href' => 'documents.php', 'icon' => 'fa-folder-open',    'label' => 'Documents & SOPs',
      'perm' => 'documents'],
 
+    // Sits beside Production because it is the other half of the same record:
+    // Production says what was made, this says where it went. Same standalone
+    // treatment, same two-place permission registration.
+    ['href' => 'traceability.php', 'icon' => 'fa-diagram-project', 'label' => 'Traceability & Recall',
+     'perm' => 'traceability'],
+
     ['group' => 'Customers'],
     ['tab' => 'trade',      'icon' => 'fa-store',              'label' => 'Trade Accounts',
      'badge' => $pendingTradeCount > 0 ? (string)$pendingTradeCount : null, 'alert' => true],
