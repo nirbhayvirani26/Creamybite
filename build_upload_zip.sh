@@ -39,6 +39,7 @@ echo "Packaging the site…"
 # each machine keeps its own .env and nothing that travels can touch it.
 rsync -a \
     --exclude '.git' \
+    --exclude '.claude' \
     --exclude '.env' \
     --exclude '.env.local' \
     --exclude '.DS_Store' \
@@ -66,6 +67,16 @@ done
 
 if [ -d "$STAGE/$NAME/.git" ]; then
     echo "STOPPED: .git ended up in the package."
+    exit 1
+fi
+
+# .claude holds agent worktrees — complete duplicate copies of the site,
+# frozen at whatever the code looked like when that worktree was made. Shipped
+# to the server they are dead weight at best, and at worst a second, older set
+# of admin pages and handlers sitting at a guessable path, missing every
+# security fix made since. Never ship them.
+if [ -d "$STAGE/$NAME/.claude" ]; then
+    echo "STOPPED: .claude ended up in the package."
     exit 1
 fi
 
