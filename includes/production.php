@@ -120,24 +120,54 @@ if (!function_exists('cbProdCatalogue')) {
 }
 
 if (!function_exists('cbProdList')) {
-    /** Runs, newest first. */
-    function cbProdList(PDO $pdo, string $status = '', int $limit = 200): array
+    /**
+     * Runs, newest first, optionally narrowed.
+     *
+     * The log grows by a row a day and never shrinks, so after a season the
+     * batch you want is a long way down. Search covers both batch numbers, the
+     * flavour, and who ran it — the four things anyone actually has to hand
+     * when they go looking: a code off a tub, a code off a spreadsheet, "the
+     * pista we made in July", or "whatever Raj ran that week".
+     *
+     * @param string $search free text — batch code, batch number, flavour, operator
+     * @param string $from   YYYY-MM-DD, made on or after
+     * @param string $to     YYYY-MM-DD, made on or before
+     */
+    function cbProdList(PDO $pdo, string $status = '', int $limit = 200,
+                        string $search = '', string $from = '', string $to = ''): array
     {
         if (!cbProdReady($pdo)) { return []; }
-        try {
-            if ($status !== '' && isset(cbProdStatuses()[$status])) {
-                $st = $pdo->prepare(
-                    "SELECT * FROM production_runs WHERE status = :s
-                     ORDER BY produced_on DESC, id DESC LIMIT :l"
-                );
-                $st->bindValue('s', $status);
-                $st->bindValue('l', $limit, PDO::PARAM_INT);
-                $st->execute();
-                return $st->fetchAll(PDO::FETCH_ASSOC);
+
+        $where = [];
+        $args  = [];
+
+        if ($status !== '' && isset(cbProdStatuses()[$status])) {
+            $where[] = 'status = :s';
+            $args['s'] = $status;
+        }
+        if ($search !== '') {
+            // external_batch is guarded with a column check because a server
+            // that has not run the migration yet has no such column, and the
+            // whole log would fall over rather than simply not searching it.
+            $hasExternal = cbProdHasExternalBatch($pdo);
+            $parts = ['batch_code LIKE :q1', 'product_name LIKE :q2', 'variant_name LIKE :q3', 'operator LIKE :q4'];
+            $args['q1'] = $args['q2'] = $args['q3'] = $args['q4'] = '%' . $search . '%';
+            if ($hasExternal) {
+                $parts[] = 'external_batch LIKE :q5';
+                $args['q5'] = '%' . $search . '%';
             }
-            $st = $pdo->prepare(
-                "SELECT * FROM production_runs ORDER BY produced_on DESC, id DESC LIMIT :l"
-            );
+            $where[] = '(' . implode(' OR ', $parts) . ')';
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) { $where[] = 'produced_on >= :from'; $args['from'] = $from; }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))   { $where[] = 'produced_on <= :to';   $args['to']   = $to; }
+
+        $sql = 'SELECT * FROM production_runs'
+             . ($where ? ' WHERE ' . implode(' AND ', $where) : '')
+             . ' ORDER BY produced_on DESC, id DESC LIMIT :l';
+
+        try {
+            $st = $pdo->prepare($sql);
+            foreach ($args as $k => $v) { $st->bindValue($k, $v); }
             $st->bindValue('l', $limit, PDO::PARAM_INT);
             $st->execute();
             return $st->fetchAll(PDO::FETCH_ASSOC);
@@ -145,6 +175,25 @@ if (!function_exists('cbProdList')) {
             error_log('production list failed: ' . $e->getMessage());
             return [];
         }
+    }
+}
+
+if (!function_exists('cbProdHasExternalBatch')) {
+    /** Does this database carry the tub batch number yet? Asked once. */
+    function cbProdHasExternalBatch(PDO $pdo): bool
+    {
+        static $has = null;
+        if ($has !== null) { return $has; }
+        try {
+            $has = (int)$pdo->query(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                  WHERE TABLE_SCHEMA = DATABASE()
+                    AND TABLE_NAME = 'production_runs' AND COLUMN_NAME = 'external_batch'"
+            )->fetchColumn() > 0;
+        } catch (Throwable $e) {
+            $has = false;
+        }
+        return $has;
     }
 }
 

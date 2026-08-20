@@ -1972,3 +1972,13 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .cart-item-img-placeholder > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
 .variant-picker-emoji > i,
 .variant-picker-emoji > svg { font-size: max(14px, 0.5em); width: 1em; height: 1em; }
+
+/* A refused basket action. Same toast, unmistakably not a success — the happy
+   version and the "you cannot buy that" version used to be identical. */
+.toast.is-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+.toast.is-error .toast-icon { color: #b91c1c; }
+.toast.is-error .toast-text { color: #7f1d1d; }
+.toast.is-error .toast-sub  { color: #991b1b; }

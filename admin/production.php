@@ -22,7 +22,13 @@ $ready     = cbProdReady($pdo);
 $statuses  = cbProdStatuses();
 $catalogue = $ready ? cbProdCatalogue($pdo) : [];
 $filter    = (string)($_GET['status'] ?? '');
-$runs      = $ready ? cbProdList($pdo, isset($statuses[$filter]) ? $filter : '') : [];
+$qSearch   = trim((string)($_GET['q']    ?? ''));
+$qFrom     = (string)($_GET['from'] ?? '');
+$qTo       = (string)($_GET['to']   ?? '');
+if ($qFrom !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $qFrom)) { $qFrom = ''; }
+if ($qTo   !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $qTo))   { $qTo   = ''; }
+$runs      = $ready ? cbProdList($pdo, isset($statuses[$filter]) ? $filter : '', 200, $qSearch, $qFrom, $qTo) : [];
+$filtering = ($qSearch !== '' || $qFrom !== '' || $qTo !== '' || $filter !== '');
 $summary   = $ready ? cbProdSummary($pdo, 30) : [];
 $nextCode  = $ready ? cbProdNextBatchCode($pdo) : '';
 
@@ -57,9 +63,24 @@ require __DIR__ . '/_sidebar.php';
 
 <div class="cbpr-wrap">
 
-    <header class="cbpr-head">
-        <h1 class="cbpr-title"><i class="fa-solid fa-industry" aria-hidden="true"></i> <?= $h($pageTitle) ?></h1>
-        <p class="cbpr-sub"><?= $h($pageSub) ?></p>
+    <?php /* Production and Traceability are two halves of one record — what was
+             made, and where it went — so each links to the other. The sidebar
+             already lists both, but the sidebar is off-canvas on a phone and easy
+             to miss on a laptop, and the person who has just written down a batch
+             number is exactly the person who wants the other page next. */ ?>
+    <header class="cbpr-head cbpr-head-row">
+        <div>
+            <h1 class="cbpr-title"><i class="fa-solid fa-industry" aria-hidden="true"></i> <?= $h($pageTitle) ?></h1>
+            <p class="cbpr-sub"><?= $h($pageSub) ?></p>
+        </div>
+        <nav class="cbpr-head-links">
+            <a href="traceability.php" class="btn-primary cbpr-head-btn">
+                <i class="fa-solid fa-diagram-project" aria-hidden="true"></i> Assign batches to orders
+            </a>
+            <a href="traceability.php?view=recall" class="btn-sm btn-sm-outline cbpr-head-btn">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Recall &amp; trace
+            </a>
+        </nav>
     </header>
 
     <?php if (!$ready): ?>
@@ -253,10 +274,44 @@ require __DIR__ . '/_sidebar.php';
             </span>
         </h2>
 
+        <?php /* The log only grows. After a season the batch someone is asking about
+                 is a long way down, and the status pills above cannot find it — they
+                 narrow by state, not by which batch. */ ?>
+        <form method="get" action="production.php" class="cbpr-search">
+            <?php if ($filter !== ''): ?>
+            <input type="hidden" name="status" value="<?= $h($filter) ?>">
+            <?php endif; ?>
+            <div class="cbpr-search-field cbpr-search-grow">
+                <label class="cbpr-search-label" for="prQ">Find a batch</label>
+                <input type="search" id="prQ" name="q" value="<?= $h($qSearch) ?>" class="cbpr-input"
+                       placeholder="batch number, flavour, or who made it — e.g. AD26081801, pista, Raj">
+            </div>
+            <div class="cbpr-search-field">
+                <label class="cbpr-search-label" for="prFrom">Made from</label>
+                <input type="date" id="prFrom" name="from" value="<?= $h($qFrom) ?>" class="cbpr-input">
+            </div>
+            <div class="cbpr-search-field">
+                <label class="cbpr-search-label" for="prTo">to</label>
+                <input type="date" id="prTo" name="to" value="<?= $h($qTo) ?>" class="cbpr-input">
+            </div>
+            <div class="cbpr-search-field">
+                <button class="btn-primary"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Search</button>
+            </div>
+            <?php if ($filtering): ?>
+            <div class="cbpr-search-field">
+                <a href="production.php" class="btn-sm btn-sm-outline">Clear</a>
+            </div>
+            <?php endif; ?>
+        </form>
+
+        <?php if ($runs !== [] && $filtering): ?>
+        <p class="cbpr-search-count"><?= count($runs) ?> batch<?= count($runs) === 1 ? '' : 'es' ?> found</p>
+        <?php endif; ?>
+
         <?php if ($runs === []): ?>
         <div class="cbpr-empty">
             <div class="cbpr-empty-icon"><i class="fa-solid fa-industry" aria-hidden="true"></i></div>
-            <h3 class="cbpr-empty-title">No runs recorded yet</h3>
+            <h3 class="cbpr-empty-title"><?= $filtering ? 'Nothing matches that' : 'No runs recorded yet' ?></h3>
             <p class="cbpr-empty-note">
                 Record one above. Every batch gets a code like <strong><?= $h($nextCode) ?></strong>
                 — put it on the tub, and a customer question three months from now

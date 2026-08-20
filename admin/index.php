@@ -1099,6 +1099,24 @@ $pageTitles = [
                 </a>
             </div>
 
+            <?php /* Traceability belongs beside the orders, not only in the sidebar:
+                     the moment you need it you are already looking at an order, and
+                     hunting a menu is the last thing anyone wants mid-recall. */ ?>
+            <?php if (adminCan('traceability')): ?>
+            <div class="cbi-ord-filter-bar">
+                <i class="fa-solid fa-diagram-project cbi-muted-lg" aria-hidden="true"></i>
+                <span class="cbi-muted-xs">Record which production batch each order was filled from, so a recall can name every customer affected.</span>
+                <a href="traceability.php" class="btn-sm btn-sm-outline cbi-ord-print-btn"
+                   title="Link production batches to the products on each order">
+                    <i class="fa-solid fa-link" aria-hidden="true"></i> Assign batches
+                </a>
+                <a href="traceability.php?view=recall" class="btn-sm btn-sm-outline cbi-ord-print-btn"
+                   title="Given a batch, list every customer who received it">
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Recall &amp; trace
+                </a>
+            </div>
+            <?php endif; ?>
+
             <?php if (empty($orders)): ?>
             <div class="cbi-empty-state">
                 <div class="cbi-empty-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></div>

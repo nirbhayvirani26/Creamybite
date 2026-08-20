@@ -170,9 +170,19 @@ require __DIR__ . '/_sidebar.php';
 
 <div class="cbtr-wrap">
 
-    <header class="cbtr-head">
-        <h1 class="cbtr-title"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> <?= $h($pageTitle) ?></h1>
-        <p class="cbtr-sub"><?= $h($pageSub) ?></p>
+    <header class="cbtr-head cbtr-head-row">
+        <div>
+            <h1 class="cbtr-title"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i> <?= $h($pageTitle) ?></h1>
+            <p class="cbtr-sub"><?= $h($pageSub) ?></p>
+        </div>
+        <nav class="cbtr-head-links">
+            <a href="production.php" class="btn-sm btn-sm-outline cbtr-head-btn">
+                <i class="fa-solid fa-industry" aria-hidden="true"></i> Production &amp; batches
+            </a>
+            <a href="index.php?tab=orders" class="btn-sm btn-sm-outline cbtr-head-btn">
+                <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Orders
+            </a>
+        </nav>
     </header>
 
     <?php if (!$ready): ?>

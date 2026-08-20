@@ -852,7 +852,7 @@ require __DIR__ . '/../includes/site_header.php';
 
 <!-- ══ Toast ════════════════════════════════════════════════ -->
 <div class="toast" id="toast">
-    <span class="toast-icon"><i class="fa-solid fa-ice-cream"></i></span>
+    <span class="toast-icon" id="toastIcon"><i class="fa-solid fa-ice-cream"></i></span>
     <div>
         <div class="toast-text" id="toastText">Added to cart!</div>
         <div class="toast-sub" id="toastSub"></div>
@@ -993,10 +993,10 @@ function addToCart(productId, variantId, name, emoji, variantName, variantPrice,
             // The server refuses for real reasons — sold out, trade-only,
             // withdrawn. This branch used to be missing entirely, so the
             // click simply did nothing and the customer had no idea why.
-            showToast('Cannot add this item', data.message || 'That item is not available right now.');
+            showToast('Cannot add this item', data.message || 'That item is not available right now.', true);
         }
     })
-    .catch(() => showToast('Error', 'Could not add item, please try again.'));
+    .catch(() => showToast('Error', 'Could not add item, please try again.', true));
 }
 
 // ── Remove item ──────────────────────────────────────────────
@@ -1152,13 +1152,24 @@ function bumpBadge() {
 
 // ── Toast ────────────────────────────────────────────────────
 let toastTimeout;
-function showToast(title, sub) {
+// A refusal used to look exactly like a success — same ice cream, same colour,
+// gone in three seconds. Someone whose basket had just been declined saw a
+// cheerful pop and assumed it had worked, then wondered why the total never
+// moved. A refusal now says so, and stays up longer because it has to be read.
+function showToast(title, sub, isError) {
     const toast = document.getElementById('toast');
+    const icon  = document.getElementById('toastIcon');
     document.getElementById('toastText').textContent = title;
     document.getElementById('toastSub').textContent  = sub || '';
+    toast.classList.toggle('is-error', !!isError);
+    if (icon) {
+        icon.innerHTML = isError
+            ? '<i class="fa-solid fa-triangle-exclamation"></i>'
+            : '<i class="fa-solid fa-ice-cream"></i>';
+    }
     toast.classList.add('show');
     clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
+    toastTimeout = setTimeout(() => toast.classList.remove('show'), isError ? 6000 : 3000);
 }
 
 // ── Category filter ──────────────────────────────────────────
