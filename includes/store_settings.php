@@ -90,6 +90,8 @@ if (!function_exists('cbStoreSettingDefaults')) {
             // notice, so this file fails OPEN. Do not "harden" these to 0.
             'delivery_open'            => 1,
             'collection_open'          => 1,
+            'trade_delivery_open'      => 1,
+            'trade_collection_open'    => 1,
             // What customers are told when a channel is off. NULL means the
             // owner has not written their own wording, and
             // cbOrderingClosedNote() supplies a sentence that fits the
@@ -249,7 +251,12 @@ if (!function_exists('cbStoreSettings')) {
         // (int)null is 0, so a plain `(int)$row[$key] === 0` would read a NULL
         // as "closed" and shut the shop over a column that had merely never
         // been filled in. Closing a real business needs a real instruction.
-        foreach (['delivery_open', 'collection_open'] as $key) {
+        // The trade pair rides along on the same row, under the same rule.
+        // They were being fetched by the SELECT * and then dropped here, which
+        // is why the switches on the Delivery & Offers page saved, displayed,
+        // and changed nothing a trade customer ever met.
+        foreach (['delivery_open', 'collection_open',
+                  'trade_delivery_open', 'trade_collection_open'] as $key) {
             $settings[$key] = (isset($row[$key]) && (int)$row[$key] === 0) ? 0 : 1;
         }
 
@@ -257,7 +264,8 @@ if (!function_exists('cbStoreSettings')) {
         // cbOrderingClosedNote() knows to write the sentence itself rather
         // than showing a customer an empty space where an explanation
         // should be.
-        foreach (['delivery_closed_note', 'collection_closed_note'] as $key) {
+        foreach (['delivery_closed_note', 'collection_closed_note',
+                  'trade_delivery_closed_note', 'trade_collection_closed_note'] as $key) {
             $note = trim((string)($row[$key] ?? ''));
             $settings[$key] = $note === '' ? null : $note;
         }
@@ -286,6 +294,31 @@ if (!function_exists('cbStoreSettings')) {
 //  query, no second connection — the flags came down with the delivery charge
 //  on the same SELECT, and they are memoised for the request along with it.
 
+if (!function_exists('cbOrderingAudience')) {
+    /**
+     * Which pair of switches applies to the person currently browsing.
+     *
+     * A signed-in trade account is governed by trade_delivery_open /
+     * trade_collection_open; everybody else by the original pair. Passing the
+     * answer in explicitly overrides the session, which the admin's own
+     * Delivery & Offers page needs: it renders BOTH pairs, and must show the
+     * public switches as the public sees them even though an owner is the one
+     * looking at the screen.
+     */
+    function cbOrderingAudience(?bool $isTrade = null): string
+    {
+        if ($isTrade === null) {
+            // Guarded: this file is included by pages that have not started a
+            // session, and touching $_SESSION there is a warning printed into
+            // the middle of the shop. No session means nobody is signed in as
+            // trade, which is the right answer anyway.
+            $isTrade = (session_status() === PHP_SESSION_ACTIVE)
+                    && !empty($_SESSION['trade_user']);
+        }
+        return $isTrade ? 'trade_' : '';
+    }
+}
+
 if (!function_exists('cbOrderingOpen')) {
     /**
      * Is the shop taking orders on this channel right now?
@@ -294,7 +327,7 @@ if (!function_exists('cbOrderingOpen')) {
      *                     anything else is false. See below for why this is
      *                     strict when almost everything else here is forgiving.
      */
-    function cbOrderingOpen(string $type): bool
+    function cbOrderingOpen(string $type, ?bool $isTrade = null): bool
     {
         // No case-folding, no near-misses, no guessing. Every caller that
         // gates an order has ALREADY decided which channel that order is on —
@@ -318,10 +351,11 @@ if (!function_exists('cbOrderingOpen')) {
         }
 
         $settings = cbStoreSettings();
+        $prefix   = cbOrderingAudience($isTrade);
 
         // ?? 1 for the same reason the read in cbStoreSettings() leans this
         // way: if the key is somehow absent, the shop stays open.
-        return (int)($settings[$type . '_open'] ?? 1) === 1;
+        return (int)($settings[$prefix . $type . '_open'] ?? 1) === 1;
     }
 }
 
@@ -349,7 +383,7 @@ if (!function_exists('cbOrderingClosedNote')) {
      *
      * @param string $type 'delivery' or 'collection'.
      */
-    function cbOrderingClosedNote(string $type): string
+    function cbOrderingClosedNote(string $type, ?bool $isTrade = null): string
     {
         if ($type !== 'delivery' && $type !== 'collection') {
             return '';
@@ -359,19 +393,26 @@ if (!function_exists('cbOrderingClosedNote')) {
         // here means a page that calls this without checking first cannot
         // announce a closure to a customer of a shop that is wide open — the
         // one mistake in this whole feature that costs money silently.
-        if (cbOrderingOpen($type)) {
+        if (cbOrderingOpen($type, $isTrade)) {
             return '';
         }
 
         $settings = cbStoreSettings();
+        $prefix   = cbOrderingAudience($isTrade);
 
-        // What the owner wrote always wins. They know why they closed.
-        $own = trim((string)($settings[$type . '_closed_note'] ?? ''));
+        // What the owner wrote always wins. They know why they closed. A trade
+        // account gets the trade wording, and falls back to the public one if
+        // the owner only wrote that — better a sentence meant for someone else
+        // than a blank space where the reason should be.
+        $own = trim((string)($settings[$prefix . $type . '_closed_note'] ?? ''));
+        if ($own === '' && $prefix !== '') {
+            $own = trim((string)($settings[$type . '_closed_note'] ?? ''));
+        }
         if ($own !== '') {
             return $own;
         }
 
-        $otherOpen = cbOrderingOpen($type === 'delivery' ? 'collection' : 'delivery');
+        $otherOpen = cbOrderingOpen($type === 'delivery' ? 'collection' : 'delivery', $isTrade);
 
         // Warm and calm, and never shouted. A customer reading this was about
         // to give the shop money; they should come away thinking "fair enough,
@@ -394,9 +435,9 @@ if (!function_exists('cbAnyOrderingOpen')) {
      * which the checkout has nothing to offer and should say so plainly
      * instead of showing a customer a form that cannot be submitted.
      */
-    function cbAnyOrderingOpen(): bool
+    function cbAnyOrderingOpen(?bool $isTrade = null): bool
     {
-        return cbOrderingOpen('delivery') || cbOrderingOpen('collection');
+        return cbOrderingOpen('delivery', $isTrade) || cbOrderingOpen('collection', $isTrade);
     }
 }
 

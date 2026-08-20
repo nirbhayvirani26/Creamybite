@@ -375,7 +375,7 @@ $cbstChannels = [
     ],
 ];
 
-$cbstAnyOpen = cbAnyOrderingOpen();
+$cbstAnyOpen = cbAnyOrderingOpen(false);
 
 // The same two ways of ordering again, for trade accounts. Kept in its own
 // array so the wording can say "wholesale" and "warehouse" where the public
@@ -546,7 +546,7 @@ require __DIR__ . '/_sidebar.php';
 
         <div class="cbst-channels" id="cbstChannels">
             <?php foreach ($cbstChannels as $cbstKey => $cbstCh): ?>
-                <?php $cbstIsOpen = cbOrderingOpen($cbstKey); ?>
+                <?php $cbstIsOpen = cbOrderingOpen($cbstKey, false); ?>
                 <article class="cbst-channel <?= $cbstIsOpen ? 'is-open' : 'is-shut' ?>"
                          data-channel="<?= htmlspecialchars($cbstKey) ?>"
                          data-open-state="<?= htmlspecialchars($cbstCh['openState']) ?>"
@@ -616,7 +616,7 @@ require __DIR__ . '/_sidebar.php';
                         <div class="cbst-cart-preview">
                             <div class="cbst-cart-strip">
                                 <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-                                <span><?= htmlspecialchars(cbOrderingClosedNote($cbstKey)) ?></span>
+                                <span><?= htmlspecialchars(cbOrderingClosedNote($cbstKey, false)) ?></span>
                             </div>
                         </div>
                     </div>
