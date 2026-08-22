@@ -98,7 +98,7 @@ function cbTradeOrderingOpen(PDO $pdo, string $method): bool
 
     try {
         $col = cbTradeOrderingColumn($method);
-        $val = $pdo->query("SELECT `{$col}` FROM `store_settings` WHERE `id` = 1")->fetchColumn();
+        $val = $pdo->query("SELECT `{$col}` FROM `store_settings` ORDER BY `id` LIMIT 1")->fetchColumn();
         return $val === false ? true : ((int)$val === 1);
     } catch (PDOException $e) {
         error_log('Trade ordering read failed: ' . $e->getMessage());
@@ -125,7 +125,7 @@ function cbTradeOrderingRawNote(PDO $pdo, string $method): string
     }
     try {
         $col = cbTradeOrderingNoteColumn($method);
-        $val = $pdo->query("SELECT `{$col}` FROM `store_settings` WHERE `id` = 1")->fetchColumn();
+        $val = $pdo->query("SELECT `{$col}` FROM `store_settings` ORDER BY `id` LIMIT 1")->fetchColumn();
         return $val === false ? '' : trim((string)$val);
     } catch (PDOException $e) {
         return '';
@@ -161,8 +161,23 @@ function cbSetTradeOrdering(PDO $pdo, string $method, bool $open): bool
     }
     try {
         $col = cbTradeOrderingColumn($method);
-        return $pdo->prepare("UPDATE `store_settings` SET `{$col}` = :v WHERE `id` = 1")
-                   ->execute(['v' => $open ? 1 : 0]);
+        $val = $open ? 1 : 0;
+
+        // Targeted at the settings row WHATEVER its id. The old write said
+        // WHERE id = 1 and returned execute()'s own answer, which is true for
+        // a statement that ran perfectly and matched nothing — so on a
+        // database whose settings row is not id 1, the switch reported
+        // "Now taking trade delivery orders again" and changed nothing at all.
+        //
+        // rowCount() cannot stand in for success either: MySQL counts rows
+        // CHANGED, not matched, so switching something on that is already on
+        // returns 0 and would read as a failure. The only honest test is to
+        // write and then look.
+        $pdo->prepare("UPDATE `store_settings` SET `{$col}` = :v ORDER BY `id` LIMIT 1")
+            ->execute(['v' => $val]);
+
+        $now = $pdo->query("SELECT `{$col}` FROM `store_settings` ORDER BY `id` LIMIT 1")->fetchColumn();
+        return $now !== false && (int)$now === $val;
     } catch (PDOException $e) {
         error_log('Trade ordering write failed: ' . $e->getMessage());
         return false;
@@ -176,9 +191,16 @@ function cbSetTradeOrderingNote(PDO $pdo, string $method, string $note): bool
         return false;
     }
     try {
-        $col = cbTradeOrderingNoteColumn($method);
-        return $pdo->prepare("UPDATE `store_settings` SET `{$col}` = :n WHERE `id` = 1")
-                   ->execute(['n' => mb_substr(trim($note), 0, 255)]);
+        $col  = cbTradeOrderingNoteColumn($method);
+        $text = mb_substr(trim($note), 0, 255);
+
+        // Same treatment as the switch above: aim at the row that is there,
+        // then read it back rather than trusting the statement's own opinion.
+        $pdo->prepare("UPDATE `store_settings` SET `{$col}` = :n ORDER BY `id` LIMIT 1")
+            ->execute(['n' => $text]);
+
+        $now = $pdo->query("SELECT `{$col}` FROM `store_settings` ORDER BY `id` LIMIT 1")->fetchColumn();
+        return $now !== false && (string)$now === $text;
     } catch (PDOException $e) {
         error_log('Trade ordering note write failed: ' . $e->getMessage());
         return false;

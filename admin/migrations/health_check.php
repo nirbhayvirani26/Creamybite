@@ -115,9 +115,39 @@ foreach ([
         function_exists($fn) ? '' : 'Upload ' . $from . ' again.');
 }
 
-// ── Tables and columns the order path writes to ──────────────
-$needTables = ['orders', 'products', 'product_variants', 'trade_users', 'trade_carts',
-               'invoices', 'invoice_items', 'invoice_payments', 'invoice_settings', 'sales_reps'];
+// ── Tables and columns, read FROM THE MIGRATION ──────────────
+//
+// This list used to be typed out by hand, and it went stale the moment
+// anything new was built: Documents, Production and Traceability were all
+// added without it, so it cheerfully reported a clean bill of health on a
+// server missing three tables. A hand-kept copy of a list that lives
+// somewhere else is a list that will be wrong.
+//
+// So it is read out of update_db.php instead — the file that actually creates
+// them. Whatever the migration knows how to build, this page knows to look
+// for, and neither can drift from the other again.
+$cbMigration = @file_get_contents(__DIR__ . '/update_db.php') ?: '';
+
+$needTables = [];
+if (preg_match('/\$tables\s*=\s*\[(.*?)\n\];/s', $cbMigration, $m)
+    && preg_match_all("/^\s*'([a-z_]+)'\s*=>\s*\"CREATE TABLE/m", $m[1], $t)) {
+    $needTables = $t[1];
+}
+
+$needColsAuto = [];
+if (preg_match('/\$columns\s*=\s*\[(.*?)\n\];/s', $cbMigration, $m2)
+    && preg_match_all("/\[\s*'([a-z_]+)'\s*,\s*'([a-z_]+)'/", $m2[1], $c2, PREG_SET_ORDER)) {
+    foreach ($c2 as $pair) { $needColsAuto[] = [$pair[1], $pair[2]]; }
+}
+
+// If the migration could not be read, fall back to the core order path rather
+// than reporting nothing at all.
+if (!$needTables) {
+    $needTables = ['orders', 'products', 'product_variants', 'trade_users', 'trade_carts',
+                   'invoices', 'invoice_items', 'invoice_payments', 'invoice_settings', 'sales_reps'];
+    cbCheck('Tables', 'read migration list', false, 'could not read update_db.php',
+            'Checking the core tables only — upload admin/migrations/update_db.php.');
+}
 foreach ($needTables as $t) {
     $q = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
     $q->execute([$t]);
@@ -133,12 +163,73 @@ $needCols = [
     ['invoices', 'public_token'],  ['invoices', 'sent_at'],
     ['products', 'wholesale_price'], ['products', 'trade_only'],
 ];
+// Everything the migration adds, on top of the order-path ones named above.
+foreach ($needColsAuto as $pair) {
+    if (!in_array($pair, $needCols, true)) { $needCols[] = $pair; }
+}
 foreach ($needCols as [$t, $c]) {
     $q = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
     $q->execute([$t, $c]);
     $ok = (int)$q->fetchColumn() > 0;
     cbCheck('Columns', $t . '.' . $c, $ok, $ok ? 'present' : 'MISSING',
         $ok ? '' : 'Run update_db.php on this server.');
+}
+
+// ── Trade ────────────────────────────────────────────────────
+//
+// Its own section because trade is the part with the most moving pieces and
+// the least visible failure: a wholesale customer who cannot check out simply
+// goes away, and nothing on the owner's screen says why.
+require_once __DIR__ . '/../../includes/store_settings.php';
+
+// The four switches on the Delivery & Offers page. Without these columns the
+// trade toggles have nowhere to save to.
+foreach (['trade_delivery_open', 'trade_collection_open',
+          'trade_delivery_closed_note', 'trade_collection_closed_note'] as $col) {
+    $q = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'store_settings' AND COLUMN_NAME = ?");
+    $q->execute([$col]);
+    $ok = (int)$q->fetchColumn() > 0;
+    cbCheck('Trade', 'store_settings.' . $col, $ok, $ok ? 'present' : 'MISSING',
+        $ok ? '' : 'Run update_db.php — the trade open/closed switches cannot save without this.');
+}
+
+// Whether the FIX is on this server, not merely the columns. The switches
+// saved and displayed correctly for weeks while the checkout ignored them
+// entirely, because the checkout read the public columns for everybody. This
+// function only exists in the corrected includes/store_settings.php, so its
+// presence is the honest test of whether trade customers are really governed
+// by their own switches.
+$audienceFix = function_exists('cbOrderingAudience');
+cbCheck('Trade', 'trade switches reach the checkout', $audienceFix,
+    $audienceFix ? 'yes — trade reads its own switches' : 'NO — trade is gated by the PUBLIC switches',
+    $audienceFix ? '' : 'Upload includes/store_settings.php. Until you do, switching public delivery off blocks trade orders too.');
+
+// What the switches are actually set to, so the answer to "why can nobody
+// order?" is on the same screen as the question.
+if ($audienceFix) {
+    foreach (['delivery', 'collection'] as $method) {
+        foreach ([['public', false], ['trade', true]] as [$who, $isTrade]) {
+            $open = cbOrderingOpen($method, $isTrade);
+            cbCheck('Trade', ucfirst($who) . ' ' . $method, $open,
+                $open ? 'taking orders' : 'SWITCHED OFF',
+                $open ? '' : 'Turn it back on at Delivery & Offers if this is not deliberate.');
+        }
+    }
+}
+
+// Stock blocks orders regardless of any switch, and reads as "checkout is
+// broken" rather than as an empty freezer.
+try {
+    $sellable = (int)$pdo->query(
+        "SELECT COUNT(*) FROM products WHERE available = 1 AND (track_stock = 0 OR stock_qty > 0)"
+    )->fetchColumn();
+    $onSale = (int)$pdo->query("SELECT COUNT(*) FROM products WHERE available = 1")->fetchColumn();
+    cbCheck('Trade', 'products actually sellable', $sellable > 0,
+        $sellable . ' of ' . $onSale . ' on sale have stock',
+        $sellable > 0 ? '' : 'Every product is out of stock, so no order can complete — trade or retail. Set stock on the Stock page.');
+} catch (Throwable $e) {
+    cbCheck('Trade', 'products actually sellable', false, 'could not check', $e->getMessage());
 }
 
 // ── Secrets ──────────────────────────────────────────────────
