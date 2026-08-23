@@ -1389,8 +1389,91 @@ function selectPayment(method) {
 }
 
 // Main checkout handler
+/**
+ * Press Place Order. This wrapper is the whole reason the button can never
+ * again do nothing.
+ *
+ * The work is async, and an error inside an async function becomes a rejected
+ * promise. Nothing was catching it, so ANY fault — Stripe not loading, the
+ * modal helper not having arrived yet, a typo in a field name — vanished
+ * without a sound. The customer pressed the button, the page sat there, and
+ * there was nothing on screen and nothing to report. That is the single worst
+ * failure a checkout can have: it looks like the shop is ignoring you.
+ *
+ * Now every path ends in something the customer can see.
+ */
 async function handleCheckout() {
+    try {
+        await cbRunCheckout();
+    } catch (err) {
+        cbCheckoutFailed(err);
+    }
+}
+
+/**
+ * Say what went wrong, using whatever is actually available on the page.
+ *
+ * cbAlert lives in modal.js, which is loaded with defer at the very bottom —
+ * so it may not exist yet, and on a server where that file fails to load it
+ * never will. Depending on it to report an error is how the error itself
+ * disappeared. The card error box is plain markup that is always present, so
+ * that is the fallback, and alert() behind it as a last resort.
+ */
+function cbCheckoutFailed(err) {
+    const message = 'Something stopped the order going through. Please try again — '
+                  + 'and if it keeps happening, ring us and we will take it over the phone.';
+
+    // Put the button back so it can be pressed again.
     const btn = document.getElementById('placeOrderBtn');
+    if (btn) {
+        btn.disabled = false;
+        if (btn.dataset.cbLabel) { btn.innerHTML = btn.dataset.cbLabel; }
+    }
+
+    const errEl = document.getElementById('stripeError');
+    if (errEl) {
+        errEl.textContent = message;
+        errEl.style.display = 'block';
+        errEl.classList.add('cbco-stripe-error-loud');
+        errEl.setAttribute('role', 'alert');
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (typeof cbAlert === 'function') {
+        cbAlert(message, { title: 'Order not placed' });
+    } else {
+        window.alert(message);
+    }
+
+    // The detail goes to the console for whoever is debugging, never to the
+    // customer — "ReferenceError: cbAlert is not defined" helps nobody buying
+    // ice cream.
+    if (window.console && console.error) { console.error('Checkout failed:', err); }
+}
+
+/**
+ * Same helper, for the cases that are the customer's to fix rather than ours.
+ * Passes cbAlert's own options through and returns its promise, so callers can
+ * still await it — and falls back to plain markup that is always on the page
+ * when modal.js is not there to answer.
+ */
+function cbCheckoutSay(message, opts) {
+    opts = opts || {};
+    if (typeof cbAlert === 'function') { return cbAlert(message, opts); }
+    const errEl = document.getElementById('stripeError');
+    if (errEl) {
+        errEl.textContent = message;
+        errEl.style.display = 'block';
+        errEl.classList.add('cbco-stripe-error-loud');
+        errEl.setAttribute('role', 'alert');
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return Promise.resolve();
+    }
+    window.alert(message);
+    return Promise.resolve();
+}
+
+async function cbRunCheckout() {
+    const btn = document.getElementById('placeOrderBtn');
+    if (btn && !btn.dataset.cbLabel) { btn.dataset.cbLabel = btn.innerHTML; }
 
     // Validate required fields first
     const form = document.getElementById('checkoutForm');
@@ -1403,7 +1486,7 @@ async function handleCheckout() {
     // a customer who has filled the whole form deserves to be stopped in
     // front of the thing they just pressed, not sent hunting for the reason.
     if (!isCollection && lastCalculatedMiles > MAX_DELIVERY_MILES) {
-        await cbAlert(
+        await cbCheckoutSay(
             'We are unable to deliver more than ' + MAX_MILES_TXT + ' miles radius.\n\n' +
             'Your postcode is ' + lastCalculatedMiles.toFixed(1) + ' miles from our Harrow warehouse. ' +
             'Choose Warehouse Collection instead, or call us on ' + <?= json_encode(SHOP_PHONE) ?> +
@@ -1415,7 +1498,7 @@ async function handleCheckout() {
 
     // Below the minimum. Same reasoning — say it at the button.
     if (!isCollection && cartSubtotal < MIN_ORDER) {
-        await cbAlert(
+        await cbCheckoutSay(
             'Minimum order for delivery is £' + MIN_ORDER.toFixed(2) + '.\n\n' +
             'Your basket is £' + cartSubtotal.toFixed(2) + ' — add £' +
             (MIN_ORDER - cartSubtotal).toFixed(2) + ' more, or choose Warehouse Collection.',
@@ -1441,7 +1524,9 @@ async function handleCheckout() {
 
     // Pay Online — process via Stripe
     if (!stripeReady) {
-        cbAlert('The card form is still loading. Give it a moment, or choose Pay Later.', {title:'Nearly ready'});
+        cbCheckoutSay('The card form has not finished loading. Give it a moment and try again — '
+                    + 'or choose Pay Later and we will sort the payment out with you directly.',
+                      { title: 'Nearly ready' });
         return;
     }
 
