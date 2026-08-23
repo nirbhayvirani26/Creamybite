@@ -1468,7 +1468,14 @@ async function handleCheckout() {
     const errEl = document.getElementById('stripeError');
     errEl.style.display = 'none';
 
-    const returnUrl = window.location.origin + '/orders/checkout_handler.php';
+    // Resolved against THIS page's address rather than assembled from a
+    // hardcoded folder. The site lives under /orders/ on the development Mac
+    // and at the domain root on the live server, so origin + '/orders/...'
+    // was only ever right in one of those two places — on live it built a URL
+    // that 404s, and Stripe sends the customer there whenever their bank asks
+    // for authentication. The order is paid for and the customer lands on a
+    // missing page. '../checkout_handler.php' is correct in both.
+    const returnUrl = new URL('../checkout_handler.php', window.location.href).href;
 
     const { error } = await stripe.confirmPayment({
         elements,
@@ -1479,8 +1486,17 @@ async function handleCheckout() {
     });
 
     if (error) {
+        // Shown where the customer is ALREADY LOOKING. This used to write
+        // twelve-pixel red text into a box 88 pixels above the button, with no
+        // background and no movement: you press Pay Now, your eye is on the
+        // button, the button changes back to "Pay Now", and the reason sits
+        // just off the top of where you are looking. It reads as the button
+        // doing nothing at all.
         errEl.textContent = error.message;
         errEl.style.display = 'block';
+        errEl.classList.add('cbco-stripe-error-loud');
+        errEl.setAttribute('role', 'alert');
+        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         busy.restore();
     } else {
         // Payment succeeded — submit form to save order

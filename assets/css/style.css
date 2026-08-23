@@ -1982,3 +1982,27 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
 .toast.is-error .toast-icon { color: #b91c1c; }
 .toast.is-error .toast-text { color: #7f1d1d; }
 .toast.is-error .toast-sub  { color: #991b1b; }
+
+/* A card that was declined, or details that are incomplete. The plain red
+   twelve-pixel line above the button was being missed entirely — pressing Pay
+   Now and seeing nothing change reads as a broken button, not as "your card
+   number is incomplete". */
+.cbco-stripe-error-loud {
+    font-size: 14px !important;
+    font-weight: 700;
+    color: #991b1b !important;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.cbco-stripe-error-loud::before {
+    content: "\f071";                 /* triangle-exclamation */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    flex-shrink: 0;
+}
