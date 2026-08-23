@@ -1399,6 +1399,42 @@ function selectPayment(method) {
 
 // Main checkout handler
 /**
+ * Bind the button from script rather than relying on its onclick attribute.
+ *
+ * The handler used to live only in onclick="handleCheckout()". Inline handlers
+ * are the first thing stripped by a Content-Security-Policy, a privacy
+ * extension, a corporate proxy or a content filter — and when they go, the
+ * button looks completely normal and does absolutely nothing. The function is
+ * defined, the click lands on the button, nothing is covering it, and no
+ * handler runs. There is no error, because nothing failed; the instruction was
+ * simply removed before the browser ever saw it.
+ *
+ * The attribute is left in place as a fallback for the case where this script
+ * has not run yet, so cbCheckoutBusy guards against both firing at once.
+ */
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('placeOrderBtn');
+    if (!btn || btn.dataset.cbBound === '1') { return; }
+    btn.dataset.cbBound = '1';
+
+    // A trade account is never blocked by distance, so clear any flag left
+    // over — from an earlier version of this page, from the browser restoring
+    // the form state, or from a visit made before signing in.
+    if (CB_IS_TRADE) {
+        delete btn.dataset.blockedByDistance;
+        btn.disabled = false;
+    }
+    btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        handleCheckout();
+    });
+});
+
+// Stops the inline attribute and the bound listener both running for one
+// press, which would otherwise place the order twice.
+let cbCheckoutBusy = false;
+
+/**
  * Press Place Order. This wrapper is the whole reason the button can never
  * again do nothing.
  *
@@ -1412,10 +1448,17 @@ function selectPayment(method) {
  * Now every path ends in something the customer can see.
  */
 async function handleCheckout() {
+    if (cbCheckoutBusy) { return; }
+    cbCheckoutBusy = true;
     try {
         await cbRunCheckout();
     } catch (err) {
         cbCheckoutFailed(err);
+    } finally {
+        // Released on the next tick: long enough that one press cannot run
+        // twice, short enough that a customer correcting a mistake can press
+        // again straight away.
+        setTimeout(function () { cbCheckoutBusy = false; }, 400);
     }
 }
 
@@ -1914,7 +1957,16 @@ function onPostcodeInput() {
 
                 const submitBtn = document.getElementById('placeOrderBtn');
 
-                if (miles > MAX_DELIVERY_MILES) {
+                // Trade is exempt, exactly as it is server-side. This check
+                // does not merely refuse — it DISABLES the button and marks it
+                // blockedByDistance so nothing else re-enables it. A wholesale
+                // customer is always outside a radius meant for home delivery,
+                // so their button was switched off the moment their postcode
+                // was looked up, and stayed off. A disabled button fires no
+                // click event at all, which is why there was no error, no
+                // event and no order — while calling handleCheckout() from the
+                // console worked perfectly, because that bypasses the button.
+                if (!CB_IS_TRADE && miles > MAX_DELIVERY_MILES) {
                     chargeInput.value = '0';
                     statusEl.innerHTML = '<div class="cbco-status-box">' +
                         '<i class="fa-solid fa-triangle-exclamation"></i> ' +
