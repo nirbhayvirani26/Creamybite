@@ -1288,6 +1288,15 @@ let currentPaymentMethod = 'online';
 // the ticked radio says they are in.
 const CB_DEFAULT_ORDER_TYPE = <?= json_encode($cbDefaultOrderType) ?>;
 
+// Whether this is a wholesale account, because the delivery rules differ and
+// the browser had no idea. checkout_handler.php has always waived the retail
+// delivery radius for trade — see the empty($_SESSION['trade_user']) guard on
+// the distance check — but nothing said so on this side, so the page refused
+// the order before the server ever got the chance to allow it. Every wholesale
+// customer is further away than a radius meant for home delivery, so this
+// blocked trade ordering outright while retail worked perfectly.
+const CB_IS_TRADE = <?= json_encode((bool)$isTradeUser) ?>;
+
 <?php // With both methods closed there is no form, no #stripeElement and no
       // card to take — and stripe_intent.php refuses the request anyway. The
       // block below writes straight into #stripeElement on both of its failure
@@ -1485,7 +1494,9 @@ async function cbRunCheckout() {
     // sits well above the button on a long page and is easy to scroll past —
     // a customer who has filled the whole form deserves to be stopped in
     // front of the thing they just pressed, not sent hunting for the reason.
-    if (!isCollection && lastCalculatedMiles > MAX_DELIVERY_MILES) {
+    // Trade is exempt, exactly as it is server-side. A wholesale round goes
+    // where the shops are; the mileage limit is a retail home-delivery rule.
+    if (!CB_IS_TRADE && !isCollection && lastCalculatedMiles > MAX_DELIVERY_MILES) {
         await cbCheckoutSay(
             'We are unable to deliver more than ' + MAX_MILES_TXT + ' miles radius.\n\n' +
             'Your postcode is ' + lastCalculatedMiles.toFixed(1) + ' miles from our Harrow warehouse. ' +
