@@ -1440,12 +1440,14 @@ function cbCheckoutFailed(err) {
     }
 
     const errEl = document.getElementById('stripeError');
-    if (errEl) {
+    if (cbVisible(errEl)) {
         errEl.textContent = message;
         errEl.style.display = 'block';
         errEl.classList.add('cbco-stripe-error-loud');
         errEl.setAttribute('role', 'alert');
         errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (cbSayAtButton(message)) {
+        // shown beside the button instead
     } else if (typeof cbAlert === 'function') {
         cbAlert(message, { title: 'Order not placed' });
     } else {
@@ -1464,11 +1466,42 @@ function cbCheckoutFailed(err) {
  * still await it — and falls back to plain markup that is always on the page
  * when modal.js is not there to answer.
  */
+/**
+ * Is this element actually on screen? offsetParent is null for anything with
+ * display:none anywhere up its tree — which is exactly the state the card
+ * error box is in whenever Pay Later is chosen.
+ */
+function cbVisible(el) {
+    return !!(el && el.offsetParent !== null);
+}
+
+/**
+ * A message the customer cannot miss, placed immediately above the button
+ * they just pressed. Used when the card error box is hidden, which it is
+ * whenever they are not paying by card.
+ */
+function cbSayAtButton(message) {
+    const btn = document.getElementById('placeOrderBtn');
+    if (!btn || !btn.parentNode) { return false; }
+    let box = document.getElementById('cbCheckoutNotice');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'cbCheckoutNotice';
+        box.className = 'cbco-stripe-error-loud';
+        box.setAttribute('role', 'alert');
+        btn.parentNode.insertBefore(box, btn);
+    }
+    box.textContent = message;
+    box.style.display = 'flex';
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return true;
+}
+
 function cbCheckoutSay(message, opts) {
     opts = opts || {};
     if (typeof cbAlert === 'function') { return cbAlert(message, opts); }
     const errEl = document.getElementById('stripeError');
-    if (errEl) {
+    if (cbVisible(errEl)) {
         errEl.textContent = message;
         errEl.style.display = 'block';
         errEl.classList.add('cbco-stripe-error-loud');
@@ -1476,6 +1509,7 @@ function cbCheckoutSay(message, opts) {
         errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return Promise.resolve();
     }
+    if (cbSayAtButton(message)) { return Promise.resolve(); }
     window.alert(message);
     return Promise.resolve();
 }
@@ -1518,7 +1552,20 @@ async function cbRunCheckout() {
         return;
     }
 
-    if (currentPaymentMethod === 'later') {
+    // Read from the radio that is actually ticked, not from a variable kept
+    // alongside it. The two can disagree — the panel said Pay Later, the
+    // variable still said online — and when they do, the page takes the card
+    // path against an empty card form. Stripe then answers "your card number
+    // is incomplete" as a RETURN VALUE rather than an exception, so nothing
+    // reaches the console, and the message is written into a box that lives
+    // inside the hidden Pay Online panel. Silent, invisible, and the button
+    // looks dead. The ticked radio is what the customer sees and what gets
+    // posted, so it is the only honest source of truth.
+    const chosenPayment = document.querySelector('input[name="payment_method"]:checked')?.value
+                       || currentPaymentMethod || 'later';
+    currentPaymentMethod = chosenPayment;
+
+    if (chosenPayment === 'later') {
         // Pay Later — just submit the form. The scoop-stacking loader is
         // shown while the page navigates; it also disables the button, so a
         // double-click cannot submit two orders.
@@ -1588,11 +1635,15 @@ async function cbRunCheckout() {
         // button, the button changes back to "Pay Now", and the reason sits
         // just off the top of where you are looking. It reads as the button
         // doing nothing at all.
-        errEl.textContent = error.message;
-        errEl.style.display = 'block';
-        errEl.classList.add('cbco-stripe-error-loud');
-        errEl.setAttribute('role', 'alert');
-        errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (cbVisible(errEl)) {
+            errEl.textContent = error.message;
+            errEl.style.display = 'block';
+            errEl.classList.add('cbco-stripe-error-loud');
+            errEl.setAttribute('role', 'alert');
+            errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            cbSayAtButton(error.message);
+        }
         busy.restore();
     } else {
         // Payment succeeded — submit form to save order
