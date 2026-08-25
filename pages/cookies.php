@@ -19,7 +19,7 @@
 //  consent banner becomes a legal requirement — that is called out below so
 //  it is not discovered later.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 
 $shop  = htmlspecialchars(SHOP_NAME);

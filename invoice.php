@@ -12,7 +12,7 @@
 //  not a document the shop has committed to, and a void one has been
 //  withdrawn; neither should be presentable as a bill.
 // ============================================================
-session_start();
+require_once __DIR__ . '/includes/session.php';
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';

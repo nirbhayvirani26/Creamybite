@@ -3,7 +3,7 @@
 // Creamy Bite – Trade B2B Login
 // URL: /trade_login or /trade_login.php
 // ============================================================
-session_start();
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/trade_cart.php';

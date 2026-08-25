@@ -12,7 +12,7 @@
 //  else falls back to CB_DEFAULT_STORAGE, defined once in product_spec.php
 //  so the temperature on this page cannot drift away from the one in the FAQ.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/pricing.php';

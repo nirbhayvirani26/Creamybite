@@ -12,7 +12,7 @@
 //  retail order that happened to share their phone number or email.
 //  trade_profile.php scopes strictly by trade_user_id.
 // ============================================================
-session_start();
+require_once __DIR__ . '/../includes/session.php';
 
 if (empty($_SESSION['trade_user'])) {
     header('Location: trade_login.php');

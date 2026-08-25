@@ -2,7 +2,7 @@
 // ============================================================
 //  Creamy Bite – Home / Landing Page
 // ============================================================
-session_start();
+require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/flavour_colours.php';

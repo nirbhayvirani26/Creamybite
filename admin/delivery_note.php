@@ -6,9 +6,7 @@
 // Both the shop and the trade customer open this one, which is why the gate
 // below accepts either session.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/session.php';
 $isAdmin     = !empty($_SESSION['admin_logged_in']);
 $isTradeUser = !empty($_SESSION['trade_user']);
 

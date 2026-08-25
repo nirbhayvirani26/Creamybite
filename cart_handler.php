@@ -6,7 +6,7 @@
 //    - No variant:  "42"
 //    - With variant: "42:7"  (product_id:variant_id)
 // ============================================================
-session_start();
+require_once __DIR__ . '/includes/session.php';
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/includes/db.php';

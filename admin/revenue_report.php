@@ -3,7 +3,7 @@
 //  Creamy Bite – Revenue CSV Report Download
 //  Usage: admin/revenue_report.php?from=2025-01-01&to=2025-01-31
 // ============================================================
-session_start();
+require_once __DIR__ . '/../includes/session.php';
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }

@@ -7,9 +7,7 @@
 //  because an invoice is a snapshot: correcting a past invoice must not be
 //  blocked by today's shop settings.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/session.php';
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php');
     exit;

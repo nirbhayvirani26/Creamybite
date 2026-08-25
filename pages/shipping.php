@@ -3,7 +3,7 @@
 //  Creamy Bite – Shipping & Delivery
 //  Figures come from config.php so this page cannot contradict checkout.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 
 $min  = number_format(MIN_DELIVERY_ORDER, 2);

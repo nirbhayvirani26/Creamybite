@@ -9,7 +9,7 @@
 //  page's own JavaScript; these two do not need it, and a form works with
 //  scripting off and cannot get out of step with what is on screen.
 // ============================================================
-session_start();
+require_once __DIR__ . '/../../includes/session.php';
 
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: ../login.php');

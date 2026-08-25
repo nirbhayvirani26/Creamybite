@@ -14,7 +14,7 @@
 //  product. That order matters: a 5L catering tub and a 500ml retail tub
 //  case very differently, so the size-level figure has to win.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/pricing.php';

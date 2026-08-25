@@ -24,6 +24,7 @@ orders/
 ├── includes/                  Server-side only, never a URL (HTTP-blocked)
 │   ├── config.php             Site constants + local/live environment switch
 │   ├── secrets.php            Credentials — never commit real values
+│   ├── session.php            Starts the session — require instead of session_start()
 │   ├── db.php                 PDO connection
 │   ├── csrf.php               CSRF helpers
 │   ├── mailer.php             Order/contact email
@@ -74,6 +75,17 @@ orders/
   which page included it.
 - **Every admin file that can change data must `require_once __DIR__ . '/_guard.php'`**
   (`/../_guard.php` from `handlers/`, `migrations/`).
+- **Never call `session_start()` directly — require `includes/session.php`.**
+  It sets the cookie to HttpOnly, SameSite=Lax and (on HTTPS only) Secure
+  before starting the session. Those flags have to be set on every entry point,
+  because whichever page a visitor reaches first is the one that issues the
+  cookie — a single `session_start()` anywhere would hand out an unprotected
+  one. `secure` follows the actual protocol, so http://localhost still works.
+- **Anything that changes data is a POST, never a link.** A GET has to be safe
+  to fetch speculatively; browsers, extensions and crawlers follow links on
+  their own, and a token in the query string does not change that. Use a form
+  with `csrfField()`, and `data-confirm` on the form for the confirmation
+  dialog (see `assets/js/modal.js`).
 
 ## Updating a database
 

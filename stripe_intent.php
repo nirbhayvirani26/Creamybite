@@ -3,7 +3,7 @@
 //  Creamy Bite – Stripe: Create Payment Intent
 //  Called via AJAX before form submit when "Pay Online" chosen
 // ============================================================
-session_start();
+require_once __DIR__ . '/includes/session.php';
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/includes/config.php';

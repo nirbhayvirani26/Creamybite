@@ -4,7 +4,7 @@
 //  GET  action=validate  code=XXX  cart_total=XX.XX  → JSON
 //  POST action=create/update/delete (admin only)
 // ============================================================
-session_start();
+require_once __DIR__ . '/includes/session.php';
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/includes/config.php';

@@ -7,9 +7,7 @@
 //  order_code AND trade_user_id, so changing the ?code= in the address
 //  bar cannot surface another partner's invoice.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/session.php';
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';

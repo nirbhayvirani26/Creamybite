@@ -10,7 +10,7 @@
 //  Redirects back to the home page rather than rendering anything of its
 //  own, so a refresh cannot re-submit the same review (post/redirect/get).
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
 

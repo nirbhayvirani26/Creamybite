@@ -14,7 +14,7 @@
 //  boxes in the browser only — nothing is stored until the form is saved,
 //  and the confirmation column is what turns "recorded" into "checked".
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/../includes/session.php';
 if (empty($_SESSION['admin_logged_in'])) {
     header('Location: login.php'); exit;
 }

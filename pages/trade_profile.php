@@ -15,9 +15,7 @@
 //  email would show this partner other customers' orders whenever a
 //  detail happens to coincide.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/session.php';
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/product_icons.php';

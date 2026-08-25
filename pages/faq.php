@@ -18,7 +18,7 @@
 //  allergen record, because a generic reassurance on an FAQ page is exactly
 //  how someone with an allergy gets hurt.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 
 $min   = number_format(MIN_DELIVERY_ORDER, 2);

@@ -11,9 +11,7 @@
 //  and setup_trade_v4 were all reachable by anyone who knew the URL.
 // ============================================================
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../includes/session.php';
 
 if (empty($_SESSION['admin_logged_in'])) {
     // JSON handlers must not get an HTML redirect — the caller is parsing JSON.

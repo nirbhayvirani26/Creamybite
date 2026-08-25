@@ -6,7 +6,7 @@
 //  cancel, so this page says so plainly rather than copying a generic
 //  returns policy that would promise something the shop cannot honour.
 // ============================================================
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 
 $phone = htmlspecialchars(SHOP_PHONE);
