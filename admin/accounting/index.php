@@ -96,7 +96,11 @@ function acctBars(array $rows, string $key, string $colour): string
     return $out . '</svg>';
 }
 
-acctPageStart('index', 'VAT & Accounting',
+// 'Dashboard', matching what the sidebar calls this page. acctPageStart()
+// appends " – VAT & Accounting" to build the browser title, so passing
+// 'VAT & Accounting' here produced "VAT & Accounting – VAT & Accounting" in
+// the tab — the only page in this section that read that way.
+acctPageStart('index', 'Dashboard',
     'Current period: ' . acctPeriodLabel($period) . ' · return due ' . date('j M Y', strtotime(acctPeriodDue($period))));
 ?>
 

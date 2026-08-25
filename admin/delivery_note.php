@@ -1,7 +1,10 @@
 <?php
 // ============================================================
 // Creamy Bite – B2B Trade Delivery Note & Invoice
-// URL: /admin/delivery_note.php?code=SCO-123456
+// URL: /admin/delivery_note.php?code=CB-123456
+//
+// Both the shop and the trade customer open this one, which is why the gate
+// below accepts either session.
 // ============================================================
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -10,7 +13,12 @@ $isAdmin     = !empty($_SESSION['admin_logged_in']);
 $isTradeUser = !empty($_SESSION['trade_user']);
 
 if (!$isAdmin && !$isTradeUser) {
-    header('Location: ../trade_login.php');
+    // ../pages/trade_login.php, not ../trade_login.php. The trade login has
+    // lived in pages/ for some time; the old flat address only still works
+    // because .htaccess 301s it, so this was relying on a legacy redirect to
+    // reach a page one directory along — and went nowhere at all on any setup
+    // where that rewrite is not active.
+    header('Location: ../pages/trade_login.php');
     exit;
 }
 if ($isAdmin) {
