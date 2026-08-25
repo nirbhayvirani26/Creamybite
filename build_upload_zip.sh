@@ -37,11 +37,20 @@ echo "Packaging the site…"
 # silently reverted by the next deploy, and card payments broke every time
 # with nothing in the code to blame. Shipping no secrets at all is the fix:
 # each machine keeps its own .env and nothing that travels can touch it.
+#
+# includes/secrets.php is excluded for the same reason as .env. It is not in
+# git, so it only exists on a machine where someone made one — and rsync was
+# copying that developer copy into every package. On an older Mac that file
+# still holds hard-coded Stripe keys, so the package quietly carried them to
+# the server and overwrote whatever the server had: precisely the failure this
+# whole arrangement was built to stop. config.php reads .env directly when the
+# file is absent, so leaving it out costs nothing.
 rsync -a \
     --exclude '.git' \
     --exclude '.claude' \
     --exclude '.env' \
     --exclude '.env.local' \
+    --exclude 'includes/secrets.php' \
     --exclude '.DS_Store' \
     --exclude '*.log' \
     --exclude 'node_modules' \
@@ -54,7 +63,6 @@ FILES=$(find "$STAGE/$NAME" -type f | wc -l | tr -d ' ')
 for required in \
     "$STAGE/$NAME/index.php" \
     "$STAGE/$NAME/includes/config.php" \
-    "$STAGE/$NAME/includes/secrets.php" \
     "$STAGE/$NAME/.htaccess" \
     "$STAGE/$NAME/admin/index.php" \
     "$STAGE/$NAME/vendor/autoload.php"
@@ -84,6 +92,12 @@ fi
 # failure this whole arrangement exists to prevent. Fail loudly.
 if [ -f "$STAGE/$NAME/.env" ]; then
     echo "STOPPED: .env ended up in the package. It must never ship."
+    exit 1
+fi
+
+# Same rule, same reason — see the note on the rsync excludes above.
+if [ -f "$STAGE/$NAME/includes/secrets.php" ]; then
+    echo "STOPPED: includes/secrets.php ended up in the package. It must never ship."
     exit 1
 fi
 

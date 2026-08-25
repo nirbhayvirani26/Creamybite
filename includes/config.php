@@ -46,7 +46,46 @@ if (defined('CB_CONFIG_LOADED')) {
 }
 define('CB_CONFIG_LOADED', true);
 
-$secrets = require __DIR__ . '/secrets.php';
+// cbEnv() reads the .env at the project root. Required HERE rather than being
+// left to secrets.php, because the $DB_LIVE block below calls cbEnv() on every
+// single page load and only worked by accident — secrets.php happened to pull
+// env.php in first. Anything that changed that ordering took the whole site
+// down with "call to undefined function cbEnv()".
+require_once __DIR__ . '/env.php';
+
+// Credentials. .env is the source of truth; includes/secrets.php is only the
+// bridge that turns it into this array.
+//
+// The bridge is OPTIONAL. It is gitignored and untracked — deliberately, since
+// it once held real Stripe keys — but this line used to be a hard `require`,
+// so a copy of the site taken from the repository had no secrets.php and
+// fataled on the first page load, with a blank white screen and nothing in it
+// to say why. build_upload_zip.sh even refuses to build without the file. Only
+// the developer's own Mac, where an untracked copy still sits on disk, could
+// produce a working deploy.
+//
+// So: use secrets.php when it is there (a server upgraded from an older
+// release may still have one holding real values), and otherwise read the same
+// keys straight from .env, which is where they belong now. Either way nothing
+// secret is in the repository, and a fresh checkout starts.
+$secretsFile = __DIR__ . '/secrets.php';
+$secrets = is_readable($secretsFile) ? require $secretsFile : [
+    'admin' => [
+        'username' => cbEnv('ADMIN_USERNAME', ''),
+        'password' => cbEnv('ADMIN_PASSWORD', ''),
+    ],
+    'stripe' => [
+        'publishable' => cbEnv('STRIPE_PUBLISHABLE_KEY', ''),
+        'secret'      => cbEnv('STRIPE_SECRET_KEY', ''),
+        'currency'    => cbEnv('STRIPE_CURRENCY', 'gbp'),
+    ],
+    'smtp' => [
+        'host' => cbEnv('SMTP_HOST', 'smtp.gmail.com'),
+        'user' => cbEnv('SMTP_USER', ''),
+        'pass' => cbEnv('SMTP_PASS', ''),
+        'port' => (int)cbEnv('SMTP_PORT', '587'),
+    ],
+];
 
 // ════════════════════════════════════════════════════════════
 //  DATABASE LOGINS  —  edit these

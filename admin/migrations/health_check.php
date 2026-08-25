@@ -253,15 +253,21 @@ foreach (['STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'SMTP_PASS', 'ADMIN_PAS
 
 // ── Card payments ────────────────────────────────────────────
 // The commonest cause of "Pay Online is not loading" is a secret key that
-// works on the machine it was pasted into and nowhere else, because
-// includes/secrets.php is the one file people skip when uploading — it holds
-// the database password, so overwriting it feels dangerous.
+// works on the machine it was pasted into and nowhere else.
+//
+// The advice below used to say to put the key in includes/secrets.php and
+// upload that file. That was the old arrangement and it is now exactly the
+// wrong thing to do: keys live in .env, secrets.php only reads it, and .env
+// deliberately never ships. Someone following the old wording during a live
+// outage would edit and upload a file that holds no keys, see nothing change,
+// and have no idea why. It says .env now, and says to restart PHP, which is
+// the step that actually makes a changed key take effect.
 //
 // Balance::retrieve() is a read: it proves the key is accepted without
 // creating a payment, a customer or anything else on the Stripe account.
 if (!defined('STRIPE_SECRET_KEY') || STRIPE_SECRET_KEY === '') {
     cbCheck('Card payments', 'Stripe secret key', false, 'not configured',
-        'Add it to includes/secrets.php.');
+        'Add STRIPE_SECRET_KEY to the .env file in the site root, then restart PHP in hPanel.');
 } elseif (!is_file(__DIR__ . '/../../vendor/autoload.php')) {
     cbCheck('Card payments', 'Stripe library', false, 'vendor/ is missing on this server',
         'Upload the whole site, including the vendor folder.');
@@ -278,8 +284,8 @@ if (!defined('STRIPE_SECRET_KEY') || STRIPE_SECRET_KEY === '') {
         cbCheck('Card payments', 'Stripe secret key', false,
             'REJECTED (ending ' . $keyTail . ') — ' . substr($msg, 0, 140),
             $expired
-                ? 'This server has an old or revoked key. Roll it at dashboard.stripe.com, put it in includes/secrets.php, and upload THAT FILE — it is the one most often skipped.'
-                : 'Check the key in includes/secrets.php.');
+                ? 'This server has an old or revoked key. Roll it at dashboard.stripe.com, put the new one in STRIPE_SECRET_KEY in this server\'s .env, then restart PHP in hPanel. Do not upload anything — .env never ships, so each server keeps its own.'
+                : 'Check STRIPE_SECRET_KEY in this server\'s .env file, then restart PHP in hPanel.');
     }
 }
 

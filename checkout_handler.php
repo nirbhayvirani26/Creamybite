@@ -444,7 +444,38 @@ if ($needsReview) {
 }
 
 // ── Generate unique order code ────────────────────────────
-$orderCode = ORDER_PREFIX . '-' . random_int(100000, 999999);
+//
+// Six digits is the format the FAQ and the policy pages promise customers,
+// so the shape stays. What was missing is the "unique" this comment claims:
+// orders.order_code carries a UNIQUE index, and nothing checked the drawn
+// number against it or retried when it clashed. 900,000 codes sounds like
+// plenty, but collisions follow the birthday problem, not the odds of one
+// pair matching — the chance of SOME clash passes 40% by the thousandth
+// order.
+//
+// The clash surfaced at the INSERT below as a duplicate-key error, which the
+// catch turned into "Sorry, we could not place your order. Please try again."
+// For a Pay Later order that is merely wrong. For a card order it is worse:
+// the payment is captured BEFORE this point, so the shop kept the money,
+// rolled the order back, and invited the customer to pay a second time.
+//
+// cbNewOrderCode() draws one; the insert retries with a fresh one if the
+// database rejects it as a duplicate.
+function cbNewOrderCode(): string
+{
+    return ORDER_PREFIX . '-' . random_int(100000, 999999);
+}
+
+/** Was this failure the order_code unique index, and nothing else? */
+function cbIsDuplicateOrderCode(PDOException $e): bool
+{
+    // 1062 is ER_DUP_ENTRY. The key name is checked too, so a duplicate on
+    // any other unique column is still reported rather than silently retried.
+    return (int)($e->errorInfo[1] ?? 0) === 1062
+        && stripos($e->getMessage(), 'order_code') !== false;
+}
+
+$orderCode = cbNewOrderCode();
 
 // ── Trade B2B User Info ───────────────────────────────────
 $tradeUserId       = 0;
@@ -485,6 +516,11 @@ if (!empty($totals['offer_free_items'])) {
 // One INSERT, no silent fallback. The previous version retried without the
 // trade columns when anything went wrong, which quietly recorded a trade
 // order as an anonymous retail one instead of surfacing the problem.
+// Up to five attempts, but only ever for a clashing order code — every other
+// failure still stops on the first try and is reported. Five is far more than
+// enough: each redraw has under a one-in-a-hundred-thousand chance of landing
+// on a taken code again.
+for ($codeAttempt = 1; ; $codeAttempt++) {
 try {
     // One transaction: lock the stock rows, re-check availability, write the
     // order, then commit the stock. Without the lock two simultaneous
@@ -536,15 +572,26 @@ try {
     deductStock($pdo, $stockNeed);
 
     $pdo->commit();
+    break;
 
 } catch (PDOException $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+
+    // A clashing order code is ours to solve, not the customer's. Draw
+    // another and write the same order again — nothing was committed.
+    if (cbIsDuplicateOrderCode($e) && $codeAttempt < 5) {
+        error_log('Order code ' . $orderCode . ' was already taken — retrying with a new one.');
+        $orderCode = cbNewOrderCode();
+        continue;
+    }
+
     $_SESSION['checkout_errors'] = ['Sorry, we could not place your order. Please try again.'];
     error_log("Order save error: " . $e->getMessage());
     header('Location: pages/checkout.php');
     exit;
+}
 }
 
 // ── Post-save: promo uses count ──────────────────────────

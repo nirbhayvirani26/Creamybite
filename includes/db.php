@@ -40,9 +40,36 @@ try {
         error_log('Could not set the database time zone: ' . $tzError->getMessage());
     }
 } catch (PDOException $e) {
+    // The real cause goes to the error log, always. It used to be printed on
+    // the page instead, which meant that if the database so much as hiccuped,
+    // every customer on the site was shown a raw driver message — naming the
+    // host and the database user — above the words "check the database
+    // credentials in config.php". That is a technician's note addressed to
+    // the owner, sitting where a shopper is trying to buy ice cream, and it
+    // hands a stranger the server's connection details.
+    error_log('Database connection failed: ' . $e->getMessage());
+
+    // 503, not 200: a search engine that crawls this must treat it as "come
+    // back later" rather than record an error page as the shop's home page.
+    http_response_code(503);
+    header('Retry-After: 300');
+
+    // Locally, still show the cause — that is the machine where someone is
+    // actually fixing it, and hiding it there just slows them down.
+    $detail = IS_LOCAL
+        ? "<p style='color:#666; font-size:14px; background:#fff; padding:12px; border-radius:8px; font-family:monospace; border:1px solid #eee;'>"
+          . htmlspecialchars($e->getMessage())
+          . "</p><p style='font-size:13px; color:#555;'>Check that MySQL is running and that the login in <code>includes/config.php</code> is right.</p>"
+        : "<p style='font-size:15px; color:#555;'>We are having a brief technical problem and are working on it.
+             Please try again in a few minutes.</p>
+           <p style='font-size:15px; color:#555;'>If you need us now, call
+             <a href='tel:" . htmlspecialchars(str_replace(' ', '', SHOP_PHONE)) . "' style='color:#c44dff; font-weight:700;'>"
+           . htmlspecialchars(SHOP_PHONE) . "</a> — we can take your order over the phone.</p>";
+
+    $heading = IS_LOCAL ? '⚠️ Database connection failed' : 'Back in a moment';
+
     die("<div style='font-family:-apple-system,BlinkMacSystemFont,sans-serif; color:#5C1D24; padding:40px; max-width:600px; margin:40px auto; background:#fff7ef; border-radius:16px; border:1px solid #f0e6ee; box-shadow:0 10px 30px rgba(0,0,0,0.08);'>
-        <h2 style='margin-top:0;'>⚠️ Database connection failed</h2>
-        <p style='color:#666; font-size:14px; background:#fff; padding:12px; border-radius:8px; font-family:monospace; border:1px solid #eee;'>" . htmlspecialchars($e->getMessage()) . "</p>
-        <p style='font-size:13px; color:#555;'>Please ensure your MySQL database is active and check the database credentials in <code>config.php</code>.</p>
+        <h2 style='margin-top:0;'>{$heading}</h2>
+        {$detail}
     </div>");
 }
