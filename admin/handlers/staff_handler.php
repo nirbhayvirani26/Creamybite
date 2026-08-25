@@ -67,7 +67,14 @@ if ($action === 'update') {
     $staffId  = (int)($_POST['staff_id'] ?? 0);
     $active   = !empty($_POST['active']) ? 1 : 0;
     $password = (string)($_POST['password'] ?? '');
-    $sections = json_decode($_POST['sections'] ?? '[]', true);
+    // The Staff tab posts this as a JSON string. Accept a plain sections[]
+    // array too: json_decode() throws a TypeError when handed an array rather
+    // than a string, so a request in that shape took the handler down instead
+    // of being read or refused.
+    $rawSections = $_POST['sections'] ?? '[]';
+    $sections    = is_array($rawSections)
+        ? $rawSections
+        : json_decode((string)$rawSections, true);
     if (!is_array($sections)) $sections = [];
     // Only ever legal grantable keys — 'staff' (or anything invented client
     // side) can never end up in staff_permissions no matter what is posted.

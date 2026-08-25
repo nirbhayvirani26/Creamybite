@@ -668,7 +668,20 @@ require __DIR__ . '/../includes/site_header.php';
             <?php foreach ($products as $product):
                 $hasVariants  = !empty($variantsByProduct[$product['id']]);
                 $variants     = $hasVariants ? $variantsByProduct[$product['id']] : [];
-                $variantsJson = htmlspecialchars(json_encode($variants), ENT_QUOTES);
+                // Encoded twice on purpose: once to JSON, then again by
+                // cbJsAttr() into a JavaScript string literal holding that
+                // JSON — which is what handleAddToCart() JSON.parse()s.
+                //
+                // It used to be htmlspecialchars(json_encode(...), ENT_QUOTES)
+                // dropped between hand-written single quotes. The JSON's own
+                // double quotes survived that, but a single quote in any
+                // VARIANT NAME did not: htmlspecialchars turned it into &#039;
+                // the browser turned it straight back into an apostrophe, and
+                // that closed the argument early. One size called "Chef's Tub
+                // 5L" was enough to make Add to Cart dead for the whole
+                // product — no message, nothing in the console a shopkeeper
+                // would see, just a button that did nothing.
+                $variantsAttr = cbJsAttr(json_encode($variants));
 
                 // Price display
                 if ($hasVariants) {
@@ -786,15 +799,19 @@ require __DIR__ . '/../includes/site_header.php';
                             title="Out of Stock">Out of Stock</button>
                         <?php else: ?>
                         <button class="btn-add-cart"
+<?php // cbJsAttr() everywhere, and no hand-written quotes — it brings its own.
+      // addslashes() escaped an apostrophe for JavaScript but left a double
+      // quote alone, so a product called Belgian "Dark" Chocolate ended the
+      // onclick attribute early and killed its own Add to Cart button. ?>
                             onclick="handleAddToCart(
-                                <?= $product['id'] ?>,
-                                '<?= addslashes($product['name']) ?>',
+                                <?= (int)$product['id'] ?>,
+                                <?= cbJsAttr($product['name']) ?>,
                                 <?php // The raw column value, not markup: cbIconHtml() turns it
                                       // into an <i> at the point the picker renders it. ?>
-                                '<?= addslashes($product['emoji'] ?? 'ice-cream') ?>',
-                                '<?= addslashes($imgSrc) ?>',
+                                <?= cbJsAttr($product['emoji'] ?? 'ice-cream') ?>,
+                                <?= cbJsAttr($imgSrc) ?>,
                                 <?= $hasVariants ? 'true' : 'false' ?>,
-                                '<?= $variantsJson ?>',
+                                <?= $variantsAttr ?>,
                                 this
                             )"
                             aria-label="Add <?= htmlspecialchars($product['name']) ?> to cart"

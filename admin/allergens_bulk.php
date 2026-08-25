@@ -176,7 +176,11 @@ require __DIR__ . '/_sidebar.php';
                         <?php foreach ($allergens as $slug => $label): ?>
                         <th class="cbab-col-allergen">
                             <button type="button" class="cbab-col-toggle"
-                                    onclick="cbabColumnToggle('<?= htmlspecialchars($slug) ?>')"
+<?php // cbJsAttr() like every other inline handler. These slugs come from
+      // cbAllergens() and contain nothing that needs escaping today, but the
+      // pattern is the one that broke Add to Cart and the gallery lightbox, so
+      // it is not left lying around to be copied. ?>
+                                    onclick="cbabColumnToggle(<?= cbJsAttr($slug) ?>)"
                                     title="Tick or clear this whole column">
                                 <span><?= htmlspecialchars($label) ?></span>
                             </button>

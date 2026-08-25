@@ -32,6 +32,11 @@ date_default_timezone_set(CB_TIMEZONE);
 // reaches config.php, so the helper is always defined wherever it is used.
 require_once __DIR__ . '/asset.php';
 
+// cbJsAttr(): a value safely embedded in an inline onclick/onchange. Loaded
+// here for the same reason as cbAsset() above — every page reaches config.php,
+// so the helper is defined wherever a template needs it.
+require_once __DIR__ . '/html.php';
+
 // Be safe to include more than once.
 //
 // require_once de-duplicates by resolved PATH STRING. macOS is

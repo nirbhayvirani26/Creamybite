@@ -1350,7 +1350,7 @@ $pageTitles = [
                                     </button>
                                     <?php endif; ?>
                                     <button class="btn-sm btn-sm-outline cbi-ord-action-btn"
-                                            onclick="reprintReceipt(<?= (int)$order['id'] ?>, '<?= htmlspecialchars($order['order_code'], ENT_QUOTES) ?>')"
+                                            onclick="reprintReceipt(<?= (int)$order['id'] ?>, <?= cbJsAttr($order['order_code']) ?>)"
                                             title="Reprint the till receipt<?= $hasPrinted ? ' (already printed' . ($printCount > 1 ? ' ' . $printCount . ' times' : '') . ')' : '' ?>">
                                         <i class="fa-solid fa-receipt"></i>
                                     </button>
@@ -1360,7 +1360,7 @@ $pageTitles = [
                                     <button class="expand-btn btn-sm btn-sm-outline cbi-ord-action-btn" onclick="toggleDetail(<?= $order['id'] ?>)" title="Details">
                                         <i class="fa-solid fa-eye"></i>
                                     </button>
-                                    <button class="btn-sm btn-sm-danger cbi-ord-action-btn" onclick="deleteOrder(<?= $order['id'] ?>, '<?= htmlspecialchars($order['order_code'], ENT_QUOTES) ?>')" title="Delete">
+                                    <button class="btn-sm btn-sm-danger cbi-ord-action-btn" onclick="deleteOrder(<?= $order['id'] ?>, <?= cbJsAttr($order['order_code']) ?>)" title="Delete">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </div>
@@ -1480,7 +1480,7 @@ $pageTitles = [
                                                 <option value="<?= $s ?>" <?= $order['status']===$s ? 'selected' : '' ?>><?= $s ?></option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <button class="btn-sm btn-sm-primary" onclick="updateStatus(<?= $order['id'] ?>, '<?= htmlspecialchars($order['order_code'], ENT_QUOTES) ?>')">
+                                            <button class="btn-sm btn-sm-primary" onclick="updateStatus(<?= $order['id'] ?>, <?= cbJsAttr($order['order_code']) ?>)">
                                                 <i class="fa-solid fa-check"></i> Save
                                             </button>
                                         </div>
@@ -2142,7 +2142,7 @@ $pageTitles = [
                                         <i class="fa-solid fa-layer-group"></i> Edit by size
                                     </button>
                                     <?php elseif ($sp['track_stock']): ?>
-                                    <button class="btn-sm btn-primary cbi-stock-edit-btn" onclick="openStockEdit(<?= $sp['id'] ?>, 0, '<?= htmlspecialchars($sp['name'], ENT_QUOTES) ?>')">
+                                    <button class="btn-sm btn-primary cbi-stock-edit-btn" onclick="openStockEdit(<?= $sp['id'] ?>, 0, <?= cbJsAttr($sp['name']) ?>)">
                                         <i class="fa-solid fa-pen-to-square"></i> Edit Stock
                                     </button>
                                     <?php endif; ?>
@@ -2208,7 +2208,7 @@ $pageTitles = [
                             <td class="cbi-stock-col-center">
                                 <?php if ($sp['track_stock']): ?>
                                 <button class="btn-sm btn-primary cbi-stock-edit-btn"
-                                        onclick="openStockEdit(<?= $sp['id'] ?>, <?= $v['id'] ?>, '<?= htmlspecialchars($vLabel, ENT_QUOTES) ?>')">
+                                        onclick="openStockEdit(<?= $sp['id'] ?>, <?= $v['id'] ?>, <?= cbJsAttr($vLabel) ?>)">
                                     <i class="fa-solid fa-pen-to-square"></i> Edit Stock
                                 </button>
                                 <?php endif; ?>
@@ -3019,10 +3019,10 @@ $pageTitles = [
                         <span class="cat-name" id="catname-<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></span>
                     </div>
                     <div class="action-group">
-                        <button class="btn-sm btn-sm-outline" onclick="startRename(<?= $cat['id'] ?>, '<?= addslashes($cat['name']) ?>')">
+                        <button class="btn-sm btn-sm-outline" onclick="startRename(<?= $cat['id'] ?>, <?= cbJsAttr($cat['name']) ?>)">
                             <i class="fa-solid fa-pen"></i> Rename
                         </button>
-                        <button class="btn-sm btn-sm-danger" onclick="deleteCategory(<?= $cat['id'] ?>, '<?= addslashes($cat['name']) ?>')">
+                        <button class="btn-sm btn-sm-danger" onclick="deleteCategory(<?= $cat['id'] ?>, <?= cbJsAttr($cat['name']) ?>)">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
@@ -3151,7 +3151,7 @@ $pageTitles = [
                                         <i class="fa-solid fa-toggle-<?= $p['active'] ? 'on' : 'off' ?>"></i>
                                         <?= $p['active'] ? 'Disable' : 'Enable' ?>
                                     </button>
-                                    <button class="btn-danger cbi-promo-btn" onclick="deletePromo(<?= $p['id'] ?>, '<?= htmlspecialchars($p['code']) ?>')">
+                                    <button class="btn-danger cbi-promo-btn" onclick="deletePromo(<?= $p['id'] ?>, <?= cbJsAttr($p['code']) ?>)">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </div>

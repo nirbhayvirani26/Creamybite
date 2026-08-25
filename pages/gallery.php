@@ -68,7 +68,7 @@ require __DIR__ . '/../includes/site_header.php';
         <?php else: ?>
         <div class="gallery-grid" id="galleryGrid">
             <?php foreach ($gallery as $img): ?>
-            <div class="gallery-item" onclick="openLightbox('../assets/images/gallery/<?= htmlspecialchars($img['filename']) ?>', '<?= addslashes(htmlspecialchars($img['caption'])) ?>')">
+            <div class="gallery-item" onclick="openLightbox(<?= cbJsAttr('../assets/images/gallery/' . $img['filename']) ?>, <?= cbJsAttr($img['caption']) ?>)">
                 <img
                     src="../assets/images/gallery/<?= htmlspecialchars($img['filename']) ?>"
                     alt="<?= htmlspecialchars($img['caption'] ?: 'Creamy Bite') ?>"
