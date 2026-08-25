@@ -175,6 +175,52 @@ foreach ($needCols as [$t, $c]) {
         $ok ? '' : 'Run update_db.php on this server.');
 }
 
+// ── VAT ──────────────────────────────────────────────────────
+//
+// Two separate things decide VAT, and nothing made them agree.
+//
+// Checkout charges TRADE_VAT_RATE to any trade customer who has typed a VAT
+// number into their own profile (includes/pricing.php, tradeVatApplies()).
+// The accounting module charges nothing and files nothing unless
+// vat_settings.is_registered is set — includes/accounting.php says as much:
+// "An unregistered business must not". Whether VAT is due depends on whether
+// the SHOP is registered, never on whether the customer happens to have a
+// number, so with the shipped default of is_registered = 0 the site collects
+// 20% it does not account for. Charging VAT while unregistered is not lawful,
+// and it had no warning anywhere.
+//
+// Both directions are worth saying out loud, so this cannot go unnoticed
+// again in either state.
+try {
+    require_once __DIR__ . '/../../includes/accounting.php';
+    $vatOn  = acctVatEnabled($pdo);
+    $vatSet = acctSettings($pdo);
+    $vatNo  = trim((string)($vatSet['vat_number'] ?? ''));
+
+    // Is the shop actually taking VAT off anyone right now?
+    $vatCharged = (float)$pdo->query(
+        "SELECT COALESCE(SUM(vat_amount), 0) FROM orders WHERE vat_amount > 0"
+    )->fetchColumn();
+
+    if (!$vatOn && $vatCharged > 0) {
+        cbCheck('VAT', 'registration vs what is being charged', false,
+            'VAT of £' . number_format($vatCharged, 2) . ' has been charged on orders, but this business is marked NOT VAT registered',
+            'If the shop IS VAT registered, turn it on: Admin → VAT & Accounting → Settings, and put the VAT number in. '
+          . 'If it is NOT registered, it must stop charging the 20% — trade customers are being charged VAT that is not owed.');
+    } elseif ($vatOn && $vatNo === '') {
+        cbCheck('VAT', 'VAT number', false,
+            'marked VAT registered, but no VAT number is set',
+            'A VAT invoice has to show the number. Add it in Admin → VAT & Accounting → Settings.');
+    } else {
+        cbCheck('VAT', 'registration', true,
+            $vatOn
+                ? 'registered' . ($vatNo !== '' ? ' — ' . htmlspecialchars($vatNo) : '')
+                : 'not registered, and no VAT is being charged — consistent');
+    }
+} catch (Throwable $e) {
+    cbCheck('VAT', 'registration', false, 'could not check', $e->getMessage());
+}
+
 // ── Trade ────────────────────────────────────────────────────
 //
 // Its own section because trade is the part with the most moving pieces and

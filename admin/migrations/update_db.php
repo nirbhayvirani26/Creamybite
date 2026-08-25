@@ -1476,8 +1476,8 @@ try {
         VALUES
         (1, 'INV', 4, 226,
          'Creamy Bite',
-         'Unit E5 Phoenix House, Rosslyn Cres\nHarrow HA1 2SP\nLondon, UK',
-         '+44 7459 814068',
+         'Unit E5 Phoenix Business Centre, Rosslyn Cres\nHarrow HA1 2SP\nLondon, UK',
+         '+44 7497 779997',
          'hello@creamybite.com',
          'https://creamybite.com',
          'HNMP Ltd T/A Creamy Bite\nAccount Number: 70992323\nSort Code: 04-00-03',
@@ -1487,6 +1487,47 @@ try {
     $results[] = ['table' => 'invoice_settings', 'col' => '(seed row)', 'status' => '[ok] present / seeded', 'ok' => true];
 } catch (PDOException $e) {
     $results[] = ['table' => 'invoice_settings', 'col' => '(seed row)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
+}
+
+// ── 4b. Correct the two details the seed above got wrong ──
+//
+// The seed only applies to a database that has no invoice_settings row yet, so
+// a shop already running keeps whatever it was first given — and what it was
+// first given named the wrong building and the wrong phone number.
+//
+// Invoices said "Unit E5 Phoenix House" while the website, the emails, the
+// order confirmation and every policy page said "Unit E5 Phoenix Business
+// Centre", so a trade customer's invoice and the site disagreed about where
+// the shop is. Invoices also carried +44 7459 814068, a number that appears
+// nowhere else — the whole site and the till receipts use +44 7497 779997.
+// The owner confirmed Phoenix Business Centre and 7497 779997 are the real
+// ones.
+//
+// Each field is rewritten ONLY where it still holds the exact wrong value it
+// was seeded with. Anything the owner has since typed in the invoice settings
+// is left untouched, and running this again after it has applied changes
+// nothing.
+try {
+    $fixes = [
+        ['from_address', 'Unit E5 Phoenix House, Rosslyn Cres' . "\n" . 'Harrow HA1 2SP' . "\n" . 'London, UK',
+                         'Unit E5 Phoenix Business Centre, Rosslyn Cres' . "\n" . 'Harrow HA1 2SP' . "\n" . 'London, UK'],
+        ['from_phone',   '+44 7459 814068', '+44 7497 779997'],
+    ];
+
+    foreach ($fixes as [$col, $wrong, $right]) {
+        $st = $pdo->prepare("UPDATE `invoice_settings` SET `$col` = :right WHERE `id` = 1 AND `$col` = :wrong");
+        $st->execute(['right' => $right, 'wrong' => $wrong]);
+        $results[] = [
+            'table'  => 'invoice_settings',
+            'col'    => $col,
+            'status' => $st->rowCount() > 0
+                ? '[ok] corrected to match the rest of the site'
+                : '[ok] already correct, or set by hand — left alone',
+            'ok'     => true,
+        ];
+    }
+} catch (PDOException $e) {
+    $results[] = ['table' => 'invoice_settings', 'col' => '(corrections)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
 
 $failures = array_values(array_filter($results, fn($r) => !$r['ok']));

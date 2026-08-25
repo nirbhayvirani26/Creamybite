@@ -131,7 +131,17 @@ define('SHOP_PHONE',     '+44 7497 779997');
 // and because the receipt header is fixed shop identity, not per-document
 // data. Keep the lines short — a 72mm thermal receipt fits about 32
 // monospaced characters, and anything longer is clipped, not wrapped.
-define('SHOP_ADDRESS',   "Unit E5 Phoenix House\nRosslyn Cres, Harrow\nHA1 2SP, London, UK");
+// "Phoenix Business Centre", not "Phoenix House". The building was written two
+// different ways: the website, the emails, the order confirmation and every
+// policy page said Phoenix Business Centre, while this line and the invoice
+// settings said Phoenix House — so a customer who collected an order held a
+// receipt naming a different building from the one the site had sent them to.
+// Confirmed with the owner: Phoenix Business Centre is the real one. The street
+// stays, because a receipt and an invoice want the full postal address.
+//
+// 31 characters on the longest line, inside the ~32 a 72mm thermal receipt
+// prints before it clips.
+define('SHOP_ADDRESS',   "Unit E5 Phoenix Business Centre\nRosslyn Cres, Harrow\nHA1 2SP, London, UK");
 define('SHOP_INSTAGRAM', 'https://www.instagram.com/creamybiteicecream');
 define('SHOP_FACEBOOK',  'https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr');
 
@@ -159,8 +169,18 @@ define('ADMIN_EMAIL',    'princevir2610@gmail.com');
 // while every invoice sent out carried hello@creamybite.com. A customer who
 // saw both had no idea which one reaches the shop.
 //
-// hello@creamybite.com is taken from invoice_settings, which is the address
-// already going out on real paperwork.
+// The shop runs TWO customer-facing mailboxes on purpose, confirmed with the
+// owner, and they are not interchangeable:
+//
+//   orders@creamybite.com  — this constant. The website, the FAQ and every
+//                            policy page. Anything to do with an order.
+//   hello@creamybite.com   — invoice_settings.from_email, edited in the admin
+//                            panel under Invoices. Billing paperwork only.
+//
+// So do not "fix" one to match the other. The comment that used to sit here
+// said this constant was hello@creamybite.com "taken from invoice_settings",
+// which contradicted the line directly beneath it and would have sent someone
+// tidying up in exactly the wrong direction.
 define('SHOP_EMAIL',     'orders@creamybite.com');
 
 // Admin login credentials
