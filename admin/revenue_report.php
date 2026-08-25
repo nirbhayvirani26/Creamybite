@@ -13,6 +13,21 @@ adminRequire('revenue');
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
+/**
+ * fputcsv with the escape character pinned to "".
+ *
+ * The same helper admin/reports.php and admin/accounting/export.php already
+ * use; this file was writing the thirteen rows below with a bare fputcsv() and
+ * was the only CSV export still doing so. PHP 8.4 deprecates relying on the
+ * default $escape, and on a server with display_errors on the notice is written
+ * into the response — which for a download means the warning text lands inside
+ * the .csv and Excel opens a corrupted sheet.
+ */
+function cbCsv($out, array $fields): void
+{
+    fputcsv($out, $fields, ',', '"', '');
+}
+
 $from = $_GET['from'] ?? date('Y-m-01');
 $to   = $_GET['to']   ?? date('Y-m-d');
 
@@ -65,8 +80,8 @@ $fp = fopen('php://output', 'w');
 fwrite($fp, "\xEF\xBB\xBF");
 
 // ── Section 1: Orders ─────────────────────────────────────
-fputcsv($fp, ['=== ORDERS: ' . $from . ' to ' . $to . ' ===']);
-fputcsv($fp, [
+cbCsv($fp, ['=== ORDERS: ' . $from . ' to ' . $to . ' ===']);
+cbCsv($fp, [
     'Date', 'Order Code', 'Customer', 'Phone', 'Status',
     'Payment', 'Postcode', 'Items', 'Subtotal (£)', 'Discount (£)',
     'Delivery (£)', 'Total (£)'
@@ -89,7 +104,7 @@ foreach ($orders as $order) {
     $postcode  = $order['postcode'] ?? '';
     $subtotal  = (float)$order['total_price'] + (float)($order['discount_amount'] ?? 0) - $delivery;
     
-    fputcsv($fp, [
+    cbCsv($fp, [
         date('d/m/Y H:i', strtotime($order['created_at'])),
         $order['order_code'],
         $order['customer_name'],
@@ -127,22 +142,22 @@ try {
     $totalRefunded = 0.0;
 }
 
-fputcsv($fp, []);
-fputcsv($fp, ['', '', '', '', '', '', '', 'TOTAL REVENUE:', '£' . number_format($totalRevenue, 2)]);
-fputcsv($fp, ['', '', '', '', '', '', '', 'Online (Card):', '£' . number_format($totalOnline,  2)]);
-fputcsv($fp, ['', '', '', '', '', '', '', 'Cash:', '£' . number_format($totalCash,    2)]);
-fputcsv($fp, ['', '', '', '', '', '', '', 'Bank Transfer:', '£' . number_format($totalBank,    2)]);
-fputcsv($fp, ['', '', '', '', '', '', '', 'Unpaid Total:', '£' . number_format($totalUnpaid,  2)]);
-fputcsv($fp, ['', '', '', '', '', '', '', 'Refunded (this period):', '£' . number_format($totalRefunded, 2)]);
-fputcsv($fp, ['', '', '', '', '', '', '', 'Net Revenue (after refunds):', '£' . number_format($totalRevenue - $totalRefunded, 2)]);
+cbCsv($fp, []);
+cbCsv($fp, ['', '', '', '', '', '', '', 'TOTAL REVENUE:', '£' . number_format($totalRevenue, 2)]);
+cbCsv($fp, ['', '', '', '', '', '', '', 'Online (Card):', '£' . number_format($totalOnline,  2)]);
+cbCsv($fp, ['', '', '', '', '', '', '', 'Cash:', '£' . number_format($totalCash,    2)]);
+cbCsv($fp, ['', '', '', '', '', '', '', 'Bank Transfer:', '£' . number_format($totalBank,    2)]);
+cbCsv($fp, ['', '', '', '', '', '', '', 'Unpaid Total:', '£' . number_format($totalUnpaid,  2)]);
+cbCsv($fp, ['', '', '', '', '', '', '', 'Refunded (this period):', '£' . number_format($totalRefunded, 2)]);
+cbCsv($fp, ['', '', '', '', '', '', '', 'Net Revenue (after refunds):', '£' . number_format($totalRevenue - $totalRefunded, 2)]);
 
 // ── Section 2: Category Breakdown ─────────────────────────
-fputcsv($fp, []);
-fputcsv($fp, ['=== CATEGORY REVENUE BREAKDOWN ===']);
-fputcsv($fp, ['Category', 'Revenue (£)', 'Items Sold']);
+cbCsv($fp, []);
+cbCsv($fp, ['=== CATEGORY REVENUE BREAKDOWN ===']);
+cbCsv($fp, ['Category', 'Revenue (£)', 'Items Sold']);
 arsort($catRevenue);
 foreach ($catRevenue as $cat => $data) {
-    fputcsv($fp, [$cat, number_format($data['revenue'], 2), $data['qty']]);
+    cbCsv($fp, [$cat, number_format($data['revenue'], 2), $data['qty']]);
 }
 
 fclose($fp);

@@ -49,6 +49,13 @@ adminRequire('orders');
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/db.php';
 
+// cbPrintServerMaxId() lives here. queue.php pulled it in and this page did
+// not, so the watermark block below threw "undefined function" on every load,
+// its catch swallowed it, and the page started with bootMaxId 0 — the station
+// then had no starting point and the "orders already waiting to print" warning
+// could never fire, which is the silent drop that block exists to prevent.
+require_once __DIR__ . '/../../includes/receipt.php';
+
 /**
  * The starting watermark.
  *

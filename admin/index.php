@@ -14,13 +14,21 @@ $successMsg = '';
 $errorMsg   = '';
 
 // ── Handle product delete ─────────────────────────────────
-if (isset($_GET['action']) && $_GET['action'] === 'delete_product' && isset($_GET['id'])) {
-    // Deleting a product removes its image from disk and its row from the
-    // database. Without a token, any page the admin visited could fire this
-    // with a single <img src="…?action=delete_product&id=7">.
+//
+// POST only. This was a GET link carrying its own token in the query string,
+// which meant anything that follows links while the owner is signed in — a
+// browser prefetching on hover, an extension, a link scanner, a crawler —
+// deleted products without a single click. That is not theoretical: an
+// automated pass over the admin panel wiped every product image on disk in
+// under a second. The data-confirm dialog does not help, because none of
+// those things click, and it is skipped entirely if the JavaScript fails.
+//
+// A GET is required by HTTP to be safe to repeat and safe to fetch
+// speculatively. Deleting a row and unlinking a file is neither.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_product' && isset($_POST['id'])) {
     csrfCheck();
     adminRequire('products');
-    $delId = (int)$_GET['id'];
+    $delId = (int)$_POST['id'];
     try {
         $imgRow = $pdo->prepare("SELECT image FROM products WHERE id = :id");
         $imgRow->execute(['id' => $delId]);
@@ -37,12 +45,18 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete_product' && isset($_GE
 }
 
 // ── Handle Trade Account Status Update ────────────────────
-if (isset($_GET['action']) && in_array($_GET['action'], ['approve_trade', 'reject_trade']) && isset($_GET['id'])) {
-    // Approving grants wholesale pricing; rejecting revokes an account.
+// POST only, for the reason given on the product delete above: a link that
+// changes something must not be reachable by anything that merely follows
+// links. Approving grants wholesale pricing across the whole catalogue and
+// rejecting revokes an active account, so neither is safe to fire on a
+// prefetch.
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && in_array($_POST['action'] ?? '', ['approve_trade', 'reject_trade'], true)
+    && isset($_POST['id'])) {
     csrfCheck();
     adminRequire('trade');
-    $tradeId   = (int)$_GET['id'];
-    $newStatus = $_GET['action'] === 'approve_trade' ? 'approved' : 'rejected';
+    $tradeId   = (int)$_POST['id'];
+    $newStatus = $_POST['action'] === 'approve_trade' ? 'approved' : 'rejected';
     try {
         $stmt = $pdo->prepare("UPDATE trade_users SET status = :status WHERE id = :id");
         $stmt->execute(['status' => $newStatus, 'id' => $tradeId]);
@@ -53,12 +67,14 @@ if (isset($_GET['action']) && in_array($_GET['action'], ['approve_trade', 'rejec
 }
 
 // ── Reviews: approve / hide / feature / delete ────────────
-if (isset($_GET['review_action'], $_GET['id'])) {
+// POST only — see the product delete above. "delete" here is irreversible,
+// and "hide"/"approve" change what the public home page shows.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_action'], $_POST['id'])) {
     csrfCheck();
     adminRequire('reviews');
-    $revId = (int)$_GET['id'];
+    $revId = (int)$_POST['id'];
     try {
-        switch ($_GET['review_action']) {
+        switch ($_POST['review_action']) {
             case 'approve':
                 $pdo->prepare("UPDATE testimonials SET approved = 1 WHERE id = ?")->execute([$revId]);
                 $successMsg = 'Review published — it is now on the home page.';
@@ -1695,14 +1711,24 @@ $pageTitles = [
                                         <i class="fa-solid fa-chart-line"></i> Report
                                     </a>
                                     <?php if ($st !== 'approved'): ?>
-                                    <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=trade&action=approve_trade&id=' . (int)$tu['id'])) ?>" class="btn-sm btn-sm-success cbi-trade-action-btn" data-confirm="Approve <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?> as a trade partner? They will get wholesale pricing immediately." data-confirm-title="Approve trade account?" data-confirm-tone="success" data-confirm-ok="Approve">
-                                        <i class="fa-solid fa-check"></i> Approve
-                                    </a>
+                                    <form method="post" action="index.php?tab=trade" class="cbi-inline-form" data-confirm="Approve <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?> as a trade partner? They will get wholesale pricing immediately." data-confirm-title="Approve trade account?" data-confirm-tone="success" data-confirm-ok="Approve">
+                                        <?= csrfField() ?>
+                                        <input type="hidden" name="action" value="approve_trade">
+                                        <input type="hidden" name="id" value="<?= (int)$tu['id'] ?>">
+                                        <button type="submit" class="btn-sm btn-sm-success cbi-trade-action-btn">
+                                            <i class="fa-solid fa-check"></i> Approve
+                                        </button>
+                                    </form>
                                     <?php endif; ?>
                                     <?php if ($st !== 'rejected'): ?>
-                                    <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=trade&action=reject_trade&id=' . (int)$tu['id'])) ?>" class="btn-sm btn-sm-danger cbi-trade-action-btn" data-confirm="Reject the trade application from <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?>? They will not get wholesale pricing." data-confirm-title="Reject trade account?" data-confirm-tone="danger" data-confirm-ok="Reject">
-                                        <i class="fa-solid fa-xmark"></i> Reject
-                                    </a>
+                                    <form method="post" action="index.php?tab=trade" class="cbi-inline-form" data-confirm="Reject the trade application from <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?>? They will not get wholesale pricing." data-confirm-title="Reject trade account?" data-confirm-tone="danger" data-confirm-ok="Reject">
+                                        <?= csrfField() ?>
+                                        <input type="hidden" name="action" value="reject_trade">
+                                        <input type="hidden" name="id" value="<?= (int)$tu['id'] ?>">
+                                        <button type="submit" class="btn-sm btn-sm-danger cbi-trade-action-btn">
+                                            <i class="fa-solid fa-xmark"></i> Reject
+                                        </button>
+                                    </form>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -1880,11 +1906,15 @@ $pageTitles = [
                                     <a href="product_form.php?id=<?= $p['id'] ?>" class="btn-sm btn-sm-outline">
                                         <i class="fa-solid fa-pen"></i> Edit
                                     </a>
-                                    <a href="<?= htmlspecialchars(csrfUrl('index.php?action=delete_product&tab=products&id=' . (int)$p['id'])) ?>"
-                                       class="btn-sm btn-sm-danger"
-                                       data-confirm="Delete &quot;<?= htmlspecialchars($p['name'], ENT_QUOTES) ?>&quot;? This cannot be undone, and any sizes on it go too." data-confirm-title="Delete product?" data-confirm-tone="danger" data-confirm-ok="Delete">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </a>
+                                    <form method="post" action="index.php?tab=products" class="cbi-inline-form"
+                                          data-confirm="Delete &quot;<?= htmlspecialchars($p['name'], ENT_QUOTES) ?>&quot;? This cannot be undone, and any sizes on it go too." data-confirm-title="Delete product?" data-confirm-tone="danger" data-confirm-ok="Delete">
+                                        <?= csrfField() ?>
+                                        <input type="hidden" name="action" value="delete_product">
+                                        <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+                                        <button type="submit" class="btn-sm btn-sm-danger" aria-label="Delete <?= htmlspecialchars($p['name'], ENT_QUOTES) ?>">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -2875,18 +2905,34 @@ $pageTitles = [
                         </span>
                         <span class="cbi-rev-actions">
                             <?php if ($rv['approved']): ?>
-                            <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=reviews&review_action=hide&id=' . (int)$rv['id'])) ?>"
-                               class="btn-sm">Hide</a>
-                            <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=reviews&review_action=feature&id=' . (int)$rv['id'])) ?>"
-                               class="btn-sm"><?= !empty($rv['featured']) ? 'Unfeature' : 'Feature' ?></a>
+                            <form method="post" action="index.php?tab=reviews" class="cbi-inline-form">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="review_action" value="hide">
+                                <input type="hidden" name="id" value="<?= (int)$rv['id'] ?>">
+                                <button type="submit" class="btn-sm">Hide</button>
+                            </form>
+                            <form method="post" action="index.php?tab=reviews" class="cbi-inline-form">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="review_action" value="feature">
+                                <input type="hidden" name="id" value="<?= (int)$rv['id'] ?>">
+                                <button type="submit" class="btn-sm"><?= !empty($rv['featured']) ? 'Unfeature' : 'Feature' ?></button>
+                            </form>
                             <?php else: ?>
-                            <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=reviews&review_action=approve&id=' . (int)$rv['id'])) ?>"
-                               class="btn-sm btn-sm-success">Publish</a>
+                            <form method="post" action="index.php?tab=reviews" class="cbi-inline-form">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="review_action" value="approve">
+                                <input type="hidden" name="id" value="<?= (int)$rv['id'] ?>">
+                                <button type="submit" class="btn-sm btn-sm-success">Publish</button>
+                            </form>
                             <?php endif; ?>
-                            <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=reviews&review_action=delete&id=' . (int)$rv['id'])) ?>"
-                               class="btn-sm btn-sm-danger"
-                               data-confirm="Delete this review from <?= htmlspecialchars($rv['customer_name'], ENT_QUOTES) ?>? This cannot be undone."
-                               data-confirm-title="Delete review?" data-confirm-tone="danger" data-confirm-ok="Delete">Delete</a>
+                            <form method="post" action="index.php?tab=reviews" class="cbi-inline-form"
+                                  data-confirm="Delete this review from <?= htmlspecialchars($rv['customer_name'], ENT_QUOTES) ?>? This cannot be undone."
+                                  data-confirm-title="Delete review?" data-confirm-tone="danger" data-confirm-ok="Delete">
+                                <?= csrfField() ?>
+                                <input type="hidden" name="review_action" value="delete">
+                                <input type="hidden" name="id" value="<?= (int)$rv['id'] ?>">
+                                <button type="submit" class="btn-sm btn-sm-danger">Delete</button>
+                            </form>
                         </span>
                     </div>
                 </div>

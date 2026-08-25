@@ -41,6 +41,42 @@ define('PHPMAILER_AVAILABLE', $_phpmailerLoaded);
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+/**
+ * The SMTP settings every send shares — and, crucially, a time limit.
+ *
+ * PHPMailer defaults Timeout to 300 seconds. Checkout saves the order, then
+ * sends the admin alert and the customer confirmation one after the other,
+ * so an unreachable or slow mail host meant the customer's browser sat on a
+ * dead request for up to ten minutes after their order was already in the
+ * database and their card already charged. In practice PHP's own
+ * max_execution_time killed the script first — which is worse, because it
+ * dies BEFORE the redirect to the confirmation page: the customer gets a
+ * blank page or a 500, has no order number, assumes it failed, and orders
+ * again. Blocked outbound SMTP is a common shared-hosting default, so this
+ * is not a rare edge case.
+ *
+ * Ten seconds is far longer than a healthy send needs and short enough that
+ * both emails together cannot exhaust a 30-second limit. A send that times
+ * out is caught by the caller and logged; the order still completes and the
+ * customer still reaches their confirmation, which is the right trade —
+ * losing an email is recoverable, losing the confirmation is not.
+ */
+function cbMailTransport(PHPMailer $mail): void
+{
+    $mail->SMTPDebug  = 0;
+    $mail->isSMTP();
+    $mail->Host       = SMTP_HOST;
+    $mail->SMTPAuth   = true;
+    $mail->Username   = SMTP_USER;
+    $mail->Password   = SMTP_PASS;
+    $mail->SMTPSecure = cbMailEncryption();
+    $mail->Port       = SMTP_PORT;
+    $mail->Timeout    = 10;
+    // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
+    // so every emoji and every £ arrives as mojibake.
+    $mail->CharSet    = 'UTF-8';
+}
+
 // ============================================================
 //  Creamy Bite – Mailer Helper
 // ============================================================
@@ -264,17 +300,7 @@ function sendOrderEmail(array $order): bool
 
     $mail = new PHPMailer(true);
     try {
-        $mail->SMTPDebug  = 0;
-        $mail->isSMTP();
-        $mail->Host       = SMTP_HOST;
-        $mail->SMTPAuth   = true;
-        $mail->Username   = SMTP_USER;
-        $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = cbMailEncryption();
-        $mail->Port       = SMTP_PORT;
-        // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
-        // so every emoji and every £ arrives as mojibake. See cbSendMail().
-        $mail->CharSet    = 'UTF-8';
+        cbMailTransport($mail);
         $mail->setFrom(SMTP_USER, $shopName);
         $mail->addAddress($adminEmail);
         $mail->isHTML(true);
@@ -299,17 +325,7 @@ function sendGenericEmail(string $toEmail, string $subject, string $htmlBody): b
 
     $mail = new PHPMailer(true);
     try {
-        $mail->SMTPDebug = 0;
-        $mail->isSMTP();
-        $mail->Host       = SMTP_HOST;
-        $mail->SMTPAuth   = true;
-        $mail->Username   = SMTP_USER;
-        $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = cbMailEncryption();
-        $mail->Port       = SMTP_PORT;
-        // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
-        // so every emoji and every £ arrives as mojibake. See cbSendMail().
-        $mail->CharSet    = 'UTF-8';
+        cbMailTransport($mail);
 
         $mail->setFrom(SMTP_USER, $shopName);
         $mail->addAddress($toEmail);
@@ -578,17 +594,7 @@ function sendCustomerConfirmationEmail(array $order, string $customerEmail): boo
 
     $mail = new PHPMailer(true);
     try {
-        $mail->SMTPDebug  = 0;
-        $mail->isSMTP();
-        $mail->Host       = SMTP_HOST;
-        $mail->SMTPAuth   = true;
-        $mail->Username   = SMTP_USER;
-        $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = cbMailEncryption();
-        $mail->Port       = SMTP_PORT;
-        // Without this PHPMailer declares iso-8859-1 while sending UTF-8 bytes,
-        // so every emoji and every £ arrives as mojibake. See cbSendMail().
-        $mail->CharSet    = 'UTF-8';
+        cbMailTransport($mail);
 
         $mail->setFrom(SMTP_USER, $shopName);
         $mail->addAddress($customerEmail, $order['customer_name']);
@@ -806,15 +812,7 @@ function cbSendMail(string $to, string $subject, string $htmlBody, string $reply
 
     $mail = new PHPMailer(true);
     try {
-        $mail->SMTPDebug  = 0;
-        $mail->isSMTP();
-        $mail->Host       = SMTP_HOST;
-        $mail->SMTPAuth   = true;
-        $mail->Username   = SMTP_USER;
-        $mail->Password   = SMTP_PASS;
-        $mail->SMTPSecure = cbMailEncryption();
-        $mail->Port       = SMTP_PORT;
-        $mail->CharSet    = 'UTF-8';
+        cbMailTransport($mail);
         $mail->setFrom(SMTP_USER, SHOP_NAME);
         $mail->addAddress($to);
         $mail->addReplyTo($replyTo !== '' ? $replyTo : ADMIN_EMAIL, SHOP_NAME);

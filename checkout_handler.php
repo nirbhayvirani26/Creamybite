@@ -78,7 +78,7 @@ $orderType    = trim(is_scalar($orderTypeRaw) ? (string)$orderTypeRaw : '');
 if ($orderType === 'collection') {
     $postcode = 'HA1 2SP';
     $clientCharge = 0.0;
-    $address = 'Collection - Creamy Bite, Unit E5 Phoenix Business centre, HA1 2SP (Collection Time: 11 AM to 8 PM)';
+    $address = 'Collection - Creamy Bite, Unit E5 Phoenix Business Centre, HA1 2SP (Collection Time: 11 AM to 8 PM)';
 }
 
 // A revoked trade account must not reach checkout at wholesale prices.
@@ -170,7 +170,7 @@ if ($capturedChannel !== null && $capturedChannel !== $orderChannel) {
     if ($orderType === 'collection') {
         $postcode     = 'HA1 2SP';
         $clientCharge = 0.0;
-        $address      = 'Collection - Creamy Bite, Unit E5 Phoenix Business centre, HA1 2SP (Collection Time: 11 AM to 8 PM)';
+        $address      = 'Collection - Creamy Bite, Unit E5 Phoenix Business Centre, HA1 2SP (Collection Time: 11 AM to 8 PM)';
     }
 }
 

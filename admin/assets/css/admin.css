@@ -566,6 +566,17 @@ body.admin-wrapper.has-sidebar {
 .admin-wrapper.has-sidebar .cbi-ord-trade-icon { font-size:10px; color:var(--color-secondary); }
 .admin-wrapper.has-sidebar .cbi-ord-update-bar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:14px; background:var(--bg-main); border-radius:var(--radius-sm); border:1px solid var(--border-light); }
 
+/* Wrapper for a single-button POST form standing where a link used to be.
+   Deleting a product, approving a trade account and the review buttons are
+   POSTs now — a GET that changes something fires on any prefetch or crawl —
+   and each needs a <form> around its button. display:contents takes the form
+   box out of the layout so the button is still the direct flex child of
+   .action-group / .cbi-trade-actions / .cbi-rev-actions and the row looks
+   exactly as it did. The margin:0 is the fallback for anything that does not
+   support display:contents: the form is then an ordinary flex item hugging
+   its button, which lands in the same place. */
+.cbi-inline-form { display:contents; margin:0; }
+
 /* ── Trade accounts tab ─────────────────────────────── */
 .admin-wrapper.has-sidebar .cbi-trade-action-btn { padding:6px 12px; font-size:12px; gap:4px; }
 .admin-wrapper.has-sidebar .cbi-trade-actions { display:flex; gap:6px; justify-content:flex-end; }
