@@ -98,6 +98,61 @@ if ($orderId <= 0) {
     exit;
 }
 
+// ── Attach an order to a trade account (or detach it) ─────
+//
+// checkout_handler.php is the only thing that ever set trade_user_id, and it
+// sets it from the session — so an order only counted as trade if the partner
+// was logged in when they placed it. Every other route left it 0: an order
+// phoned in and typed up by staff, one placed before the account was
+// approved, one placed while logged out.
+//
+// Nothing anywhere could put that right, and trade_user_id is what the whole
+// trade side keys off. Those orders were invisible in the partner's own
+// Previous Orders tab, missing from their trade report, and counted as retail
+// in the revenue split — while carrying the customer's real name, email and
+// phone, so they plainly belonged to that business.
+//
+// Matching on email or phone instead is what this used to do and is why it
+// was removed: those are values the partner controls, and editing a profile
+// phone number to match someone else's order was enough to read that
+// customer's delivery note. Ownership stays a deliberate act by the shop.
+//
+// trade_business_name is written alongside, because receipts, delivery notes
+// and the invoice builder read that rather than joining trade_users.
+if (isset($_POST['trade_user_id'])) {
+    $newTradeId = (int)$_POST['trade_user_id'];
+
+    if ($newTradeId > 0) {
+        $tu = $pdo->prepare("SELECT id, business_name FROM trade_users WHERE id = :id AND status = 'approved'");
+        $tu->execute(['id' => $newTradeId]);
+        $tradeRow = $tu->fetch(PDO::FETCH_ASSOC);
+
+        if (!$tradeRow) {
+            echo json_encode(['success' => false, 'message' => 'That trade account does not exist, or is not approved.']);
+            exit;
+        }
+
+        $pdo->prepare("UPDATE orders SET trade_user_id = :tid, trade_business_name = :bn WHERE id = :id")
+            ->execute(['tid' => $newTradeId, 'bn' => $tradeRow['business_name'], 'id' => $orderId]);
+
+        echo json_encode([
+            'success'       => true,
+            'message'       => 'Order linked to ' . $tradeRow['business_name'] . '.',
+            'business_name' => $tradeRow['business_name'],
+        ]);
+        exit;
+    }
+
+    // 0 means "this is a retail order after all" — clear both columns
+    // together, so nothing is left labelled with a business it is no longer
+    // attached to.
+    $pdo->prepare("UPDATE orders SET trade_user_id = 0, trade_business_name = '' WHERE id = :id")
+        ->execute(['id' => $orderId]);
+
+    echo json_encode(['success' => true, 'message' => 'Order set back to retail.', 'business_name' => '']);
+    exit;
+}
+
 // ── Update Order Status ───────────────────────────────────
 if (isset($_POST['status'])) {
     $status  = trim($_POST['status']);

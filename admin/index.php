@@ -1534,6 +1534,39 @@ $pageTitles = [
                                         </button>
                                         <?php endif; ?>
 
+                                        <?php
+                                        // Which trade account this order belongs to, if any.
+                                        //
+                                        // Only checkout ever set trade_user_id, and only from the
+                                        // session, so an order phoned in and typed up here — or
+                                        // placed before the account was approved — stayed at 0 and
+                                        // never appeared in that partner's Previous Orders, their
+                                        // trade report, or the trade side of the revenue split.
+                                        // There was no way to correct it. This is that way.
+                                        $approvedTrade = array_values(array_filter(
+                                            $tradeUsers,
+                                            fn($tu) => ($tu['status'] ?? '') === 'approved'
+                                        ));
+                                        if ($approvedTrade):
+                                            $curTradeId = (int)($order['trade_user_id'] ?? 0);
+                                        ?>
+                                        <div class="cbi-ord-divider"></div>
+                                        <div class="cbi-inline-row">
+                                            <label class="cbi-ord-field-label" for="trade-<?= $order['id'] ?>">Trade account</label>
+                                            <select class="status-select" id="trade-<?= $order['id'] ?>">
+                                                <option value="0" <?= $curTradeId === 0 ? 'selected' : '' ?>>Retail — no trade account</option>
+                                                <?php foreach ($approvedTrade as $tu): ?>
+                                                <option value="<?= (int)$tu['id'] ?>" <?= $curTradeId === (int)$tu['id'] ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($tu['business_name']) ?>
+                                                </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <button class="btn-sm btn-sm-primary" onclick="updateTradeAccount(<?= (int)$order['id'] ?>)">
+                                                <i class="fa-solid fa-check"></i> Save
+                                            </button>
+                                        </div>
+                                        <?php endif; ?>
+
                                         <span id="status-msg-<?= $order['id'] ?>" class="cbi-ord-status-msg"></span>
                                     </div>
                                 </div>
@@ -3784,6 +3817,38 @@ function rfConfirm(orderId) {
         btn.disabled = false;
         msg.style.color = 'var(--color-danger)';
         msg.textContent = 'Could not reach the server.';
+    });
+}
+
+/**
+ * Attach this order to a trade account, or set it back to retail.
+ *
+ * trade_user_id is what the partner's own Previous Orders tab, their trade
+ * report and the trade/retail revenue split all key off, so an order that was
+ * not placed through a logged-in trade session had to be correctable from
+ * here — otherwise it stayed invisible to the customer it belonged to.
+ */
+function updateTradeAccount(orderId) {
+    const sel   = document.getElementById('trade-' + orderId);
+    const msgEl = document.getElementById('status-msg-' + orderId);
+    if (!sel) return;
+
+    fetch('handlers/update_order.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'order_id=' + orderId + '&trade_user_id=' + encodeURIComponent(sel.value),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            msgEl.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> ' + data.message;
+            setTimeout(() => msgEl.textContent = '', 3000);
+        } else {
+            msgEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ' + (data.message || 'Could not update.');
+        }
+    })
+    .catch(() => {
+        msgEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Could not reach the server.';
     });
 }
 

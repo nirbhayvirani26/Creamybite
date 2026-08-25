@@ -349,7 +349,13 @@ function sendCustomerConfirmationEmail(array $order, string $customerEmail): boo
     if (!defined('PHPMAILER_AVAILABLE') || !PHPMAILER_AVAILABLE) return false;
     $shopName    = SHOP_NAME;
     $shopPhone   = defined('SHOP_PHONE') ? SHOP_PHONE : '';
-    $shopContact = ADMIN_EMAIL;
+    // SHOP_EMAIL, not ADMIN_EMAIL. This line is printed IN the email the
+    // customer receives, so it has to be the address the rest of the site
+    // gives them — the FAQ, the policy pages and the footer all say
+    // orders@. ADMIN_EMAIL is where alerts are sent TO, and it used to be a
+    // personal Gmail, so customers were being handed a private inbox that
+    // matched nothing they could see anywhere else.
+    $shopContact = SHOP_EMAIL;
 
     $items = json_decode($order['items_json'], true) ?? [];
 
@@ -617,7 +623,13 @@ function sendPaymentReceiptEmail(array $order): bool {
     if (!defined('PHPMAILER_AVAILABLE') || !PHPMAILER_AVAILABLE) return false;
 
     $shopName  = SHOP_NAME;
-    $shopEmail = ADMIN_EMAIL;
+    // SHOP_EMAIL, not ADMIN_EMAIL. This line is printed IN the email the
+    // customer receives, so it has to be the address the rest of the site
+    // gives them — the FAQ, the policy pages and the footer all say
+    // orders@. ADMIN_EMAIL is where alerts are sent TO, and it used to be a
+    // personal Gmail, so customers were being handed a private inbox that
+    // matched nothing they could see anywhere else.
+    $shopEmail = SHOP_EMAIL;
     $shopPhone = defined('SHOP_PHONE') ? SHOP_PHONE : '';
     $orderCode = htmlspecialchars($order['order_code']);
     $total     = number_format((float)$order['total_price'], 2);
@@ -677,7 +689,13 @@ function sendDeliveryNoteEmail(array $order): bool {
     if (!defined('PHPMAILER_AVAILABLE') || !PHPMAILER_AVAILABLE) return false;
 
     $shopName  = SHOP_NAME;
-    $shopEmail = ADMIN_EMAIL;
+    // SHOP_EMAIL, not ADMIN_EMAIL. This line is printed IN the email the
+    // customer receives, so it has to be the address the rest of the site
+    // gives them — the FAQ, the policy pages and the footer all say
+    // orders@. ADMIN_EMAIL is where alerts are sent TO, and it used to be a
+    // personal Gmail, so customers were being handed a private inbox that
+    // matched nothing they could see anywhere else.
+    $shopEmail = SHOP_EMAIL;
     $shopPhone = defined('SHOP_PHONE') ? SHOP_PHONE : '';
     $siteUrl   = defined('SITE_URL') ? SITE_URL : '';
     $orderCode = htmlspecialchars($order['order_code']);

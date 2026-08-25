@@ -159,9 +159,17 @@ define('SHOP_WHATSAPP',  'https://wa.me/' . preg_replace('/\D+/', '', SHOP_PHONE
 // blank — so filling this in makes the button appear, and leaving it empty
 // means no dead button. Same rule for the two above if either ever changes.
 define('SHOP_TIKTOK',    '');
-// Where order alerts and staff notifications are sent. Internal — this is a
-// personal mailbox and is not meant to be printed for customers.
-define('ADMIN_EMAIL',    'princevir2610@gmail.com');
+// Where order alerts and staff notifications are sent. Internal — the shop's
+// own mailbox, not an address printed for customers.
+//
+// This was a personal Gmail account used while the site was being built, and
+// it was never meant to survive going live. Order alerts landing in someone's
+// private inbox is a nuisance on its own, but three customer-facing emails —
+// the order confirmation, the payment receipt and the delivery note — were
+// also printing this constant as the shop's contact address, so real customers
+// were being handed that private inbox. Those three now use SHOP_EMAIL below,
+// which is the address the rest of the site gives out.
+define('ADMIN_EMAIL',    'hello@creamybite.com');
 
 // The address customers are told to write to. Kept separate from ADMIN_EMAIL
 // because the two are different jobs: the FAQ, the policy pages, the
