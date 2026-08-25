@@ -3828,6 +3828,25 @@ function rfConfirm(orderId) {
  * not placed through a logged-in trade session had to be correctable from
  * here — otherwise it stayed invisible to the customer it belonged to.
  */
+/**
+ * Put an icon and a message into a status element without ever parsing the
+ * message as HTML.
+ *
+ * Server messages routinely quote things a customer typed — a business name, a
+ * product name, a person's name. Building the icon as a real element and adding
+ * the words as a text node means none of it can become markup, whatever it
+ * contains.
+ */
+function cbiSetMsg(el, iconClass, text) {
+    if (!el) { return; }
+    el.textContent = '';
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid ' + iconClass;
+    icon.setAttribute('aria-hidden', 'true');
+    el.appendChild(icon);
+    el.appendChild(document.createTextNode(' ' + (text || '')));
+}
+
 function updateTradeAccount(orderId) {
     const sel   = document.getElementById('trade-' + orderId);
     const msgEl = document.getElementById('status-msg-' + orderId);
@@ -3841,10 +3860,20 @@ function updateTradeAccount(orderId) {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            msgEl.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> ' + data.message;
+            // The message carries the trade partner's business_name, and that
+            // name is typed into a PUBLIC registration form that stores it with
+            // nothing but trim() — so it can contain a script tag. Concatenated
+            // into innerHTML it would run here, inside the owner's logged-in
+            // session, with CSRF_TOKEN in scope and every admin handler
+            // reachable. Appended as a text node it is just characters.
+            //
+            // This is how the rest of this file already does it — see
+            // updateStatus() and askWhoDelivered(); this call site was the only
+            // one that did not.
+            cbiSetMsg(msgEl, 'fa-circle-check', data.message);
             setTimeout(() => msgEl.textContent = '', 3000);
         } else {
-            msgEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ' + (data.message || 'Could not update.');
+            cbiSetMsg(msgEl, 'fa-triangle-exclamation', data.message || 'Could not update.');
         }
     })
     .catch(() => {

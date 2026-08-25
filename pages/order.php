@@ -698,7 +698,19 @@ require __DIR__ . '/../includes/site_header.php';
                 elseif ($badgeLabel === 'Hot')      $badgeClass = 'badge-hot';
                 elseif ($badgeLabel === 'Best Seller') $badgeClass = 'badge-best-seller';
 
-                $imgSrc = !empty($product['image']) ? '../assets/images/products/' . htmlspecialchars($product['image']) : '';
+                // Kept RAW here and escaped at each point of use, because the
+                // two places it goes need different escaping and doing it once
+                // up front got one of them wrong.
+                //
+                // Pre-escaping for HTML then passing the result to cbJsAttr()
+                // escaped it twice: "Cookies & Cream" became Cookies-&amp;-Cream.jpg
+                // inside the JavaScript string, and since that is a JS string
+                // rather than an HTML attribute the browser never decodes the
+                // entity back. The size picker asked for a filename that does
+                // not exist and showed a broken image, for every product with
+                // an ampersand in its name.
+                $imgPath = !empty($product['image']) ? '../assets/images/products/' . $product['image'] : '';
+                $imgSrc  = $imgPath !== '' ? htmlspecialchars($imgPath) : '';
 
                 $isOutOfStock = ($product['track_stock'] ?? 0) && ($product['stock_qty'] ?? 1) <= 0;
                 $stockLow     = ($product['track_stock'] ?? 0) && ($product['stock_qty'] ?? 0) > 0 && ($product['stock_qty'] ?? 0) <= 5;
@@ -809,7 +821,7 @@ require __DIR__ . '/../includes/site_header.php';
                                 <?php // The raw column value, not markup: cbIconHtml() turns it
                                       // into an <i> at the point the picker renders it. ?>
                                 <?= cbJsAttr($product['emoji'] ?? 'ice-cream') ?>,
-                                <?= cbJsAttr($imgSrc) ?>,
+                                <?= cbJsAttr($imgPath) ?>,
                                 <?= $hasVariants ? 'true' : 'false' ?>,
                                 <?= $variantsAttr ?>,
                                 this
