@@ -134,6 +134,21 @@ define('SHOP_PHONE',     '+44 7497 779997');
 define('SHOP_ADDRESS',   "Unit E5 Phoenix House\nRosslyn Cres, Harrow\nHA1 2SP, London, UK");
 define('SHOP_INSTAGRAM', 'https://www.instagram.com/creamybiteicecream');
 define('SHOP_FACEBOOK',  'https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr');
+
+// The WhatsApp link was written out by hand as wa.me/447497779997 in both the
+// footer and the About page, so changing SHOP_PHONE above would have left two
+// copies of the old number pointing at a chat nobody reads. Built from
+// SHOP_PHONE instead: wa.me wants digits only, no plus and no spaces.
+define('SHOP_WHATSAPP',  'https://wa.me/' . preg_replace('/\D+/', '', SHOP_PHONE));
+
+// TikTok. EMPTY until the shop has an account to point at.
+//
+// The About page carried a "Follow on TikTok" button with href="#", so it was
+// a real button, in the real row of social buttons, that took a customer
+// nowhere. Every place that renders these now skips a network whose URL is
+// blank — so filling this in makes the button appear, and leaving it empty
+// means no dead button. Same rule for the two above if either ever changes.
+define('SHOP_TIKTOK',    '');
 // Where order alerts and staff notifications are sent. Internal — this is a
 // personal mailbox and is not meant to be printed for customers.
 define('ADMIN_EMAIL',    'princevir2610@gmail.com');

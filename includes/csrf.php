@@ -48,7 +48,25 @@ function csrfMeta(): string
          . '<script>const CSRF_TOKEN = ' . json_encode(csrfToken()) . ';</script>';
 }
 
-/** Append the token to a same-site URL, for links that must stay GET. */
+/**
+ * Append the token to a same-site URL, for links that must stay GET.
+ *
+ * NOT for anything that changes data — use a POST form and csrfField().
+ *
+ * Every caller this had was a destructive admin link: delete a product,
+ * approve or reject a trade account, publish or delete a review, clear the
+ * enquiries. A token in the address does not make a GET safe. Anything that
+ * follows links while the owner is signed in still fires it — a browser
+ * prefetching on hover, an extension, a link checker — with no click and no
+ * confirmation dialog, and an automated pass over the admin panel really did
+ * delete every product image on disk in under a second. The token also ends
+ * up in browser history, in server access logs, and in the Referer header
+ * sent to any third party the next page loads from.
+ *
+ * There are no callers left. It stays because a genuinely read-only link that
+ * still wants a token is a reasonable thing to want; adding a caller that
+ * writes is not.
+ */
 function csrfUrl(string $url): string
 {
     $sep = str_contains($url, '?') ? '&' : '?';

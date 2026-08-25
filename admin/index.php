@@ -3144,26 +3144,33 @@ $pageTitles = [
                     <span class="cbi-inq-total">
                         Total: <strong><?= count($inquiries) ?></strong>
                     </span>
-                    <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=inquiries&delete_inquiry=all')) ?>"
-                       data-confirm="Delete ALL inquiries? This cannot be undone." data-confirm-title="Delete every inquiry?" data-confirm-tone="danger" data-confirm-ok="Delete all"
-                       class="btn-danger cbi-inq-btn">
-                        <i class="fa-solid fa-trash"></i> Clear All
-                    </a>
+                    <form method="post" action="index.php?tab=inquiries" class="cbi-inline-form"
+                          data-confirm="Delete ALL inquiries? This cannot be undone." data-confirm-title="Delete every inquiry?" data-confirm-tone="danger" data-confirm-ok="Delete all">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="delete_inquiry" value="all">
+                        <button type="submit" class="btn-danger cbi-inq-btn">
+                            <i class="fa-solid fa-trash"></i> Clear All
+                        </button>
+                    </form>
                 </div>
             </div>
 
             <?php
             // ── Handle delete inquiry ─────────────────────────
-            if (isset($_GET['delete_inquiry'])) {
+            // POST only, like the other destructive actions on this page. As a
+            // GET link this was one prefetch away from wiping every customer
+            // enquiry the shop had ever received — "Clear All" needs no id, so
+            // simply fetching the URL was the whole action.
+            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_inquiry'])) {
                 // "all" wipes every inquiry, so this needs a token like the rest.
                 csrfCheck();
                 try {
-                    if ($_GET['delete_inquiry'] === 'all') {
+                    if ($_POST['delete_inquiry'] === 'all') {
                         $pdo->exec("DELETE FROM inquiries");
                         $inquiries = [];
                         echo '<div class="alert alert-success cbi-gap-20"><i class="fa-solid fa-check-circle"></i><div>All inquiries deleted.</div></div>';
                     } else {
-                        $delId = (int)$_GET['delete_inquiry'];
+                        $delId = (int)$_POST['delete_inquiry'];
                         $pdo->prepare("DELETE FROM inquiries WHERE id = :id")->execute(['id' => $delId]);
                         $inquiries = $pdo->query("SELECT * FROM inquiries ORDER BY created_at DESC")->fetchAll();
                         echo '<div class="alert alert-success cbi-gap-20"><i class="fa-solid fa-check-circle"></i><div>Inquiry deleted.</div></div>';
@@ -3187,12 +3194,14 @@ $pageTitles = [
                     <?php if ($isNew): ?>
                     <span class="cbi-inq-new-tag">NEW</span>
                     <?php endif; ?>
-                    <a href="<?= htmlspecialchars(csrfUrl('index.php?tab=inquiries&delete_inquiry=' . (int)$inq['id'])) ?>"
-                       data-confirm="Delete this inquiry?" data-confirm-title="Delete inquiry?" data-confirm-tone="danger" data-confirm-ok="Delete"
-                       class="cbi-inq-delete"
-                       title="Delete">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </a>
+                    <form method="post" action="index.php?tab=inquiries" class="cbi-inline-form"
+                          data-confirm="Delete this inquiry?" data-confirm-title="Delete inquiry?" data-confirm-tone="danger" data-confirm-ok="Delete">
+                        <?= csrfField() ?>
+                        <input type="hidden" name="delete_inquiry" value="<?= (int)$inq['id'] ?>">
+                        <button type="submit" class="cbi-inq-delete" title="Delete" aria-label="Delete inquiry">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </form>
 
                     <!-- Header row -->
                     <div class="cbi-inq-header-row">

@@ -274,22 +274,26 @@ require __DIR__ . '/../includes/site_header.php';
         <p class="section-subtitle">Follow along for the latest flavours, behind-the-scenes moments, and sweet inspiration!</p>
 
         <div class="social-buttons-grid">
-            <a href="https://www.instagram.com/creamybiteicecream" class="social-btn social-btn-instagram" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                <i class="fa-brands fa-instagram cbab-social-icon"></i>
-                Follow on Instagram
+            <?php
+            // Driven by the SHOP_* constants rather than four hand-written
+            // URLs, which had already drifted: the TikTok button was href="#"
+            // and took anyone who pressed it nowhere. A network with no URL
+            // set is not rendered at all, so there can never be a button here
+            // that does not go anywhere.
+            $socials = [
+                ['url' => SHOP_INSTAGRAM, 'class' => 'instagram', 'icon' => 'instagram', 'label' => 'Instagram', 'text' => 'Follow on Instagram'],
+                ['url' => SHOP_WHATSAPP,  'class' => 'whatsapp',  'icon' => 'whatsapp',  'label' => 'WhatsApp',  'text' => 'Chat on WhatsApp'],
+                ['url' => SHOP_TIKTOK,    'class' => 'tiktok',    'icon' => 'tiktok',    'label' => 'TikTok',    'text' => 'Follow on TikTok'],
+                ['url' => SHOP_FACEBOOK,  'class' => 'facebook',  'icon' => 'facebook',  'label' => 'Facebook',  'text' => 'Like on Facebook'],
+            ];
+            foreach ($socials as $s):
+                if (trim((string)$s['url']) === '') continue;
+            ?>
+            <a href="<?= htmlspecialchars($s['url']) ?>" class="social-btn social-btn-<?= $s['class'] ?>" target="_blank" rel="noopener noreferrer" aria-label="<?= $s['label'] ?>">
+                <i class="fa-brands fa-<?= $s['icon'] ?> cbab-social-icon"></i>
+                <?= $s['text'] ?>
             </a>
-            <a href="https://wa.me/447497779997" class="social-btn social-btn-whatsapp" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
-                <i class="fa-brands fa-whatsapp cbab-social-icon"></i>
-                Chat on WhatsApp
-            </a>
-            <a href="#" class="social-btn social-btn-tiktok" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
-                <i class="fa-brands fa-tiktok cbab-social-icon"></i>
-                Follow on TikTok
-            </a>
-            <a href="https://www.facebook.com/share/17oFEAg77U/?mibextid=wwXIfr" class="social-btn social-btn-facebook" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-                <i class="fa-brands fa-facebook cbab-social-icon"></i>
-                Like on Facebook
-            </a>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>

@@ -577,6 +577,14 @@ body.admin-wrapper.has-sidebar {
    its button, which lands in the same place. */
 .cbi-inline-form { display:contents; margin:0; }
 
+/* .cbi-inq-delete was written for an <a> and sets only colour and position,
+   so as a <button> it would arrive with the browser's grey box and border.
+   The .btn-* classes the other converted buttons use already paint their own
+   background, so this is the only one that needs it. */
+.admin-wrapper.has-sidebar .cbi-inline-form > button.cbi-inq-delete {
+    background:none; border:0; padding:0; font:inherit; cursor:pointer; line-height:1;
+}
+
 /* ── Trade accounts tab ─────────────────────────────── */
 .admin-wrapper.has-sidebar .cbi-trade-action-btn { padding:6px 12px; font-size:12px; gap:4px; }
 .admin-wrapper.has-sidebar .cbi-trade-actions { display:flex; gap:6px; justify-content:flex-end; }

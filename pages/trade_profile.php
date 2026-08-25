@@ -44,6 +44,20 @@ if (!$account || $account['status'] !== 'approved') {
     exit;
 }
 
+// The partner's customer number, in the one format the rest of the site
+// already uses — pages/trade_invoice.php and admin/trade_report.php both build
+// it exactly this way, and the note in trade_report.php describes it as
+// "matching the partner's own account page".
+//
+// It did not match, because this page never worked it out. $customerNo was
+// printed twice below and assigned nowhere, so the account header read
+// "Customer Number:" followed by nothing, and the locked field under the
+// heading "Quote this number when you contact us" was blank — while their
+// invoices and the shop's own report showed TC-00001. Two PHP warnings went
+// into the log on every visit, and onto the page itself on any server left
+// with display_errors on.
+$customerNo = 'TC-' . str_pad((string)$userId, 5, '0', STR_PAD_LEFT);
+
 $tab       = $_GET['tab'] ?? 'profile';
 $allowed   = ['profile', 'orders', 'payments', 'invoices'];
 if (!in_array($tab, $allowed, true)) {
