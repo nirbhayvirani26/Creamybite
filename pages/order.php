@@ -1294,7 +1294,7 @@ function closeDeliveryPopup() {
                 <i class="fa-solid fa-store cbor-delivery-popup-foot-icon"></i> Warehouse collection is also available!
             </div>
         </div>
-        <button onclick="closeDeliveryPopup()" class="cbor-delivery-popup-close">
+        <button onclick="closeDeliveryPopup()" class="cbor-delivery-popup-close" aria-label="Close">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>

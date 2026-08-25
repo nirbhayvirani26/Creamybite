@@ -129,13 +129,13 @@ require __DIR__ . '/../includes/site_header.php';
                       // moment the form submits and everyone lands on order.php. ?>
                 <input type="hidden" name="next" value="<?= htmlspecialchars($cbNext) ?>">
                 <div class="form-group">
-                    <label class="form-label cbtl-login-label">Registered Email Address</label>
-                    <input type="email" name="email" class="form-control" placeholder="orders@yourstore.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                    <label class="form-label cbtl-login-label" for="tl_email">Registered Email Address</label>
+                    <input id="tl_email" type="email" name="email" class="form-control" placeholder="orders@yourstore.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label cbtl-login-label">Password</label>
-                    <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+                    <label class="form-label cbtl-login-label" for="tl_password">Password</label>
+                    <input id="tl_password" type="password" name="password" class="form-control" placeholder="Enter your password" required>
                 </div>
 
                 <button type="submit" class="btn-primary cbtl-login-submit">

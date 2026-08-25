@@ -71,8 +71,14 @@ function dnIcon(string $name): string
          . $shapes[$name] . '</svg>';
 }
 
+// Proper status codes on these three. They answered 200 OK with the words
+// "Order code required." in the body, which tells a browser, a cache and any
+// uptime monitor that the request succeeded — so a broken link to this page
+// looked healthy from the outside. The other exports in this folder already
+// do this correctly.
 $code = trim($_GET['code'] ?? '');
 if (empty($code)) {
+    http_response_code(400);
     die('Order code required.');
 }
 
@@ -81,6 +87,7 @@ $stmt->execute(['code' => $code]);
 $order = $stmt->fetch();
 
 if (!$order) {
+    http_response_code(404);
     die('Order not found.');
 }
 
@@ -122,11 +129,13 @@ if (!empty($order['sales_rep_id'])) {
 // with their name and full address on it. Ownership is trade_user_id alone.
 if (!$isAdmin) {
     if (!$isTradeUser) {
+        http_response_code(403);
         die('Access denied.');
     }
     $tu      = $_SESSION['trade_user'];
     $ownerId = (int)($order['trade_user_id'] ?? 0);
     if ($ownerId <= 0 || $ownerId !== (int)$tu['id']) {
+        http_response_code(403);
         die('Access denied: You do not have permission to view this delivery note.');
     }
 }

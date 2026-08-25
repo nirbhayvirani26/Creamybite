@@ -49,8 +49,13 @@ Options -Indexes
     #  this is permanent, and only a permanent redirect passes on the ranking
     #  the old address has already earned.
     #
-    #  HTTPS only in the condition, so this cannot fight the host's own
-    #  http->https redirect and bounce a visitor between the two.
+    #  It cannot fight the host's own http->https redirect: the first condition
+    #  excludes creamybite.com itself, so a request already on the canonical
+    #  host is left alone whichever scheme it arrived on, and there is nothing
+    #  for the two redirects to bounce between. (The comment here used to claim
+    #  a "%{HTTPS} on" condition was doing that job. There isn't one, and there
+    #  does not need to be — but a note describing a line that is not in the
+    #  file is worse than no note, because the next person adds it back.)
     RewriteCond %{HTTP_HOST} !^creamybite\.com$ [NC]
     RewriteCond %{HTTP_HOST} creamybite\.com$ [NC]
     RewriteRule ^(.*)$ https://creamybite.com/$1 [R=301,L]
@@ -67,6 +72,38 @@ Options -Indexes
 <FilesMatch "^\.env">
     Require all denied
 </FilesMatch>
+
+# ── Response headers every page should carry ─────────────────
+#
+# Three headers, none of which change how the site behaves for a customer.
+#
+# Referrer-Policy is the one that matters most here. Several pages load things
+# from other companies — the icon font from cdnjs, the map on the About page,
+# Stripe on the checkout — and by default the browser tells each of them the
+# full address of the page that asked. That leaks the admin URLs an owner was
+# on, and any one-time token sitting in an address, to companies with no
+# business knowing them. strict-origin-when-cross-origin sends them the domain
+# and nothing more, while links inside the site still behave normally.
+#
+# X-Content-Type-Options stops a browser second-guessing a file's type — an
+# upload that sniffs as script is the reason the uploads folders have their own
+# .htaccess.
+#
+# X-Frame-Options SAMEORIGIN stops another site putting the admin panel in a
+# hidden frame over their own page and collecting the clicks. Same-origin is
+# deliberately still allowed: the print station loads receipt.php into a hidden
+# iframe to print it, and that must keep working. The map on the About page is
+# unaffected — that is this site embedding someone else, not the reverse.
+#
+# Deliberately NOT here: Strict-Transport-Security. It tells every browser to
+# refuse plain http for this domain for months, which is right for a shop
+# taking card payments but is very hard to undo if the certificate ever lapses.
+# That is the owner's call, not a default.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
 
 # ── Caching ──────────────────────────────────────────────────
 #  Stylesheets and scripts are requested with a ?v=<file mtime> on the end

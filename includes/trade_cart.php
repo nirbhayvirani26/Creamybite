@@ -229,6 +229,11 @@ function tradeCartReprice(PDO $pdo, array $cart): array
                 'variant_id'   => $variantId > 0 ? $variantId : null,
                 'variant_name' => $variantName,
                 'name'         => $product['name'],
+                // Kept in step with cart_handler.php so a category offer
+                // matches a trade basket too — this function rebuilds a saved
+                // basket from scratch, and a line missing its category would
+                // quietly stop matching after the partner logged back in.
+                'category'     => (string)($product['category'] ?? ''),
                 'emoji'        => $product['emoji'],
                 'image'        => $product['image'] ?? '',
                 'price'        => $price,

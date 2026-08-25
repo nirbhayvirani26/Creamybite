@@ -334,7 +334,12 @@ require __DIR__ . '/includes/site_header.php';
                   // only h1 from the most important page on the site. Here it survives
                   // either way. .section-title is styled by class, so the tag change is
                   // invisible. ?>
-            <h1 class="section-title">Handcrafted Ice Cream for Every Mood</h1>
+            <?php // h2, not h1. The hero above is already this page's h1, and a
+                  // second one told a screen reader the page had two titles and
+                  // gave search engines two competing ones. Every other section
+                  // heading on the page is an h2; .section-title styles by class,
+                  // so nothing moves. ?>
+            <h2 class="section-title">Handcrafted Ice Cream for Every Mood</h2>
             <div class="cb-drip-line" aria-hidden="true"><span></span><span></span><span></span></div>
             <p class="section-subtitle">From indulgent chocolate to refreshing sorbets — handcrafted with love for every craving.</p>
         </div>

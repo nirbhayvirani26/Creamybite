@@ -1,7 +1,7 @@
 <?php
 // ============================================================
-//  Sweet Scoops – Admin Login
-//  URL: /Orders/admin/login.php
+//  Creamy Bite – Admin Login
+//  URL: /admin/login.php
 // ============================================================
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';

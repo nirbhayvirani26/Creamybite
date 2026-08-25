@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-//  Sweet Scoops – Order Confirmation Page
+//  Creamy Bite – Order Confirmation Page
 // ============================================================
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';

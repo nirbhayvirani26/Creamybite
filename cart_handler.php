@@ -161,6 +161,14 @@ switch ($action) {
                 'variant_id'  => $variantId > 0 ? $variantId : null,
                 'variant_name'=> $variantName,
                 'name'        => $product['name'],
+                // The line's category, so a category-scoped offer can match it.
+                // Basket lines never carried this, which is the whole reason
+                // category offers did nothing: includes/offers.php matches on
+                // exactly this key, and the admin page had to warn owners not
+                // to use that option. Stored on the line rather than looked up
+                // later, the same as name and price, so pricing never has to
+                // re-query the catalogue mid-basket.
+                'category'    => (string)($product['category'] ?? ''),
                 'emoji'       => $product['emoji'],
                 'image'       => $product['image'] ?? '',
                 'price'       => $price,

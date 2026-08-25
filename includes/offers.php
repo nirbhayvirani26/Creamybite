@@ -40,11 +40,15 @@
 //  A NOTE ON CATEGORY OFFERS
 //  -------------------------
 //  An offer scoped to a category matches on a `category` key on the basket
-//  line. Basket lines do not carry one yet (cart_handler.php stores the name,
-//  price and quantity), so a category offer simply matches nothing until the
-//  line carries its category. That is a safe way round: an offer that has not
-//  been wired up yet takes nothing off, rather than taking money off
-//  everything.
+//  line. cart_handler.php and includes/trade_cart.php both put it there, so
+//  category offers work. They did nothing at all until those two started
+//  storing it — the matching below was written and correct, the basket simply
+//  never carried the field it matched on, and the admin page had to warn
+//  owners off the option.
+//
+//  If a line ever arrives without the key it matches nothing rather than
+//  everything, which is the safe way round: a basket saved before this
+//  existed takes no money off instead of taking it off the whole order.
 // ============================================================
 
 require_once __DIR__ . '/config.php';

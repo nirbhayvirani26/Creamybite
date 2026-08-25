@@ -1186,11 +1186,9 @@ require __DIR__ . '/_sidebar.php';
                     <option value="<?= htmlspecialchars((string)$c) ?>"><?= htmlspecialchars((string)$c) ?></option>
                     <?php endforeach; ?>
                 </select>
-                <small class="cbst-hint cbst-warn-note">
-                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-                    Category offers are not live yet — a basket does not record which
-                    category an item came from, so an offer set this way will safely do
-                    nothing. Use &ldquo;Everything&rdquo; or &ldquo;One product&rdquo; for now.
+                <small class="cbst-hint">
+                    Applies to every product in this category. A basket with items from
+                    other categories in it only gets the discount on the ones that match.
                 </small>
                 <p class="cbst-err" data-err="scope_value" hidden></p>
             </div>

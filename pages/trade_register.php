@@ -142,44 +142,44 @@ require __DIR__ . '/../includes/site_header.php';
                 <form method="POST" action="trade_register.php" class="cbtr-form">
                     <div class="form-row cbtr-form-row">
                         <div class="form-group">
-                            <label class="form-label cbtr-field-label">Business / Store Name *</label>
-                            <input type="text" name="business_name" class="form-control" placeholder="e.g. Sunny Supermarket" required value="<?= htmlspecialchars($_POST['business_name'] ?? '') ?>">
+                            <label class="form-label cbtr-field-label" for="tr_business_name">Business / Store Name *</label>
+                            <input id="tr_business_name" type="text" name="business_name" class="form-control" placeholder="e.g. Sunny Supermarket" required value="<?= htmlspecialchars($_POST['business_name'] ?? '') ?>">
                         </div>
                         <div class="form-group">
-                            <label class="form-label cbtr-field-label">Contact Person Name *</label>
-                            <input type="text" name="contact_name" class="form-control" placeholder="e.g. John Smith" required value="<?= htmlspecialchars($_POST['contact_name'] ?? '') ?>">
+                            <label class="form-label cbtr-field-label" for="tr_contact_name">Contact Person Name *</label>
+                            <input id="tr_contact_name" type="text" name="contact_name" class="form-control" placeholder="e.g. John Smith" required value="<?= htmlspecialchars($_POST['contact_name'] ?? '') ?>">
                         </div>
                     </div>
 
                     <div class="form-row cbtr-form-row">
                         <div class="form-group">
-                            <label class="form-label cbtr-field-label">Work Email Address *</label>
-                            <input type="email" name="email" class="form-control" placeholder="orders@yourstore.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                            <label class="form-label cbtr-field-label" for="tr_email">Work Email Address *</label>
+                            <input id="tr_email" type="email" name="email" class="form-control" placeholder="orders@yourstore.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
                         </div>
                         <div class="form-group">
-                            <label class="form-label cbtr-field-label">Phone / Mobile *</label>
-                            <input type="tel" name="phone" class="form-control" placeholder="07123 456789" required value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>">
+                            <label class="form-label cbtr-field-label" for="tr_phone">Phone / Mobile *</label>
+                            <input id="tr_phone" type="tel" name="phone" class="form-control" placeholder="07123 456789" required value="<?= htmlspecialchars($_POST['phone'] ?? '') ?>">
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label cbtr-field-label">Account Password *</label>
-                        <input type="password" name="password" class="form-control" placeholder="Create a secure password (min 6 chars)" required>
+                        <label class="form-label cbtr-field-label" for="tr_password">Account Password *</label>
+                        <input id="tr_password" type="password" name="password" class="form-control" placeholder="Create a secure password (min 6 chars)" required>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label cbtr-field-label">Store Delivery Address *</label>
-                        <textarea name="address" class="form-control" rows="2" placeholder="Full store / business address" required><?= htmlspecialchars($_POST['address'] ?? '') ?></textarea>
+                        <label class="form-label cbtr-field-label" for="tr_address">Store Delivery Address *</label>
+                        <textarea id="tr_address" name="address" class="form-control" rows="2" placeholder="Full store / business address" required><?= htmlspecialchars($_POST['address'] ?? '') ?></textarea>
                     </div>
 
                     <div class="form-row cbtr-form-row">
                         <div class="form-group">
-                            <label class="form-label cbtr-field-label">Postcode *</label>
-                            <input type="text" name="postcode" class="form-control cbtr-input-uppercase" placeholder="e.g. HA1 2SP" required value="<?= htmlspecialchars($_POST['postcode'] ?? '') ?>">
+                            <label class="form-label cbtr-field-label" for="tr_postcode">Postcode *</label>
+                            <input id="tr_postcode" type="text" name="postcode" class="form-control cbtr-input-uppercase" placeholder="e.g. HA1 2SP" required value="<?= htmlspecialchars($_POST['postcode'] ?? '') ?>">
                         </div>
                         <div class="form-group">
-                            <label class="form-label cbtr-field-label">VAT / Company Reg No. (Optional)</label>
-                            <input type="text" name="vat_number" class="form-control" placeholder="GB123456789" value="<?= htmlspecialchars($_POST['vat_number'] ?? '') ?>">
+                            <label class="form-label cbtr-field-label" for="tr_vat_number">VAT / Company Reg No. (Optional)</label>
+                            <input id="tr_vat_number" type="text" name="vat_number" class="form-control" placeholder="GB123456789" value="<?= htmlspecialchars($_POST['vat_number'] ?? '') ?>">
                         </div>
                     </div>
 

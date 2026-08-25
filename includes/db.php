@@ -1,7 +1,8 @@
 <?php
 // ============================================================
-//  Sweet Scoops – Database Layer (MySQL via PDO)
-//  Tables are created manually in phpMyAdmin using setup.sql
+//  Creamy Bite – Database Layer (MySQL via PDO)
+//  Schema lives in database/schema.sql; admin/migrations/update_db.php
+//  brings an existing database up to date.
 // ============================================================
 require_once __DIR__ . '/config.php';
 

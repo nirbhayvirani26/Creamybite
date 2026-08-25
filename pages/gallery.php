@@ -89,7 +89,7 @@ require __DIR__ . '/../includes/site_header.php';
 <!-- ══ Lightbox ════════════════════════════════════════════ -->
 <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
     <div class="lightbox-inner" onclick="event.stopPropagation()">
-        <button class="lightbox-close" onclick="closeLightbox()">
+        <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close photo">
             <i class="fa-solid fa-xmark"></i>
         </button>
         <img src="" alt="" id="lightboxImg">
