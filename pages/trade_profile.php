@@ -148,6 +148,37 @@ try {
     $errorMsg = $errorMsg ?: 'Could not load your order history right now.';
 }
 
+/**
+ * One order status as [css class, Font Awesome icon, label].
+ *
+ * The Orders tab called statusPill() for every row and no such function
+ * existed anywhere in the project, so the moment a trade partner had a single
+ * order to show, their own order history died mid-page with a fatal error.
+ * Output had already started by then, so the response was still a 200 with
+ * half a table in it — the page simply stopped, with no message. An empty
+ * account was fine, which is why it went unnoticed: the loop never ran.
+ *
+ * The four statuses are the ones admin/handlers/update_order.php will accept,
+ * and the classes are the four already defined in assets/css/components.css.
+ * Anything else falls back to the pending styling and shows the raw value
+ * rather than inventing a label for it.
+ */
+function statusPill(string $status): array
+{
+    switch ($status) {
+        case 'Delivered':
+            return ['is-delivered',  'fa-circle-check', 'Delivered'];
+        case 'Processing':
+            return ['is-processing', 'fa-box',          'Processing'];
+        case 'Cancelled':
+            return ['is-cancelled',  'fa-circle-xmark', 'Cancelled'];
+        case 'Pending':
+            return ['is-pending',    'fa-clock',        'Pending'];
+        default:
+            return ['is-pending',    'fa-clock',        $status !== '' ? $status : 'Pending'];
+    }
+}
+
 // ── Invoices the shop has actually issued ────────────────────
 // Only documents the admin has raised AND sent. A draft is a working copy —
 // the figures on it can still change — so showing one to the customer invites
