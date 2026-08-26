@@ -20,6 +20,8 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/db.php';
+// invoicePublicToken() — the Invoices tab mints a customer link on demand.
+require_once __DIR__ . '/../includes/invoice.php';
 
 if (empty($_SESSION['trade_user'])) {
     header('Location: trade_login.php');
@@ -584,10 +586,24 @@ require __DIR__ . '/../includes/site_header.php';
                     $balance = (float)$iv['total'] - (float)$iv['amount_paid'];
                     $isPaid  = $iv['status'] === 'paid' || $balance <= 0.001;
                     $isPart  = !$isPaid && (float)$iv['amount_paid'] > 0;
-                    // A token is minted when the invoice is sent; fall back to
-                    // the order-based view for anything issued before that.
-                    $link = !empty($iv['public_token'])
-                        ? '../invoice.php?t=' . urlencode($iv['public_token'])
+                    // Mint the token if this invoice has not needed one yet.
+                    //
+                    // This read the public_token column directly and showed
+                    // "Being prepared — please check back shortly." whenever it
+                    // was empty. But the token is not created when an invoice is
+                    // raised or marked sent — it appears the first time someone
+                    // asks for the customer's link, i.e. when it is emailed or
+                    // shared. An invoice the shop raised, marked paid and never
+                    // emailed therefore had no token, so the partner was told it
+                    // was still being prepared and given no way to open a
+                    // finished invoice they were being asked to pay.
+                    //
+                    // Relative, not the absolute SITE_URL invoicePublicUrl()
+                    // returns, so the link stays on whatever host the partner is
+                    // already browsing.
+                    $ivToken = invoicePublicToken($pdo, $iv);
+                    $link    = $ivToken !== ''
+                        ? '../invoice.php?t=' . urlencode($ivToken)
                         : '';
                 ?>
                 <div class="cbtp-card cbtp-tone-plain cbtp-invoice-card">

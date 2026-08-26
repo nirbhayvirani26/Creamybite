@@ -370,19 +370,50 @@ function invoicePublicUrl(PDO $pdo, array $inv): string
         return '';
     }
 
-    $token = trim((string)($inv['public_token'] ?? ''));
+    $token = invoicePublicToken($pdo, $inv);
     if ($token === '') {
-        try {
-            $token = bin2hex(random_bytes(24));
-            $pdo->prepare("UPDATE invoices SET public_token = :t WHERE id = :id")
-                ->execute(['t' => $token, 'id' => (int)$inv['id']]);
-        } catch (Throwable $e) {
-            error_log('invoicePublicUrl token failed: ' . $e->getMessage());
-            return '';
-        }
+        return '';
     }
 
     return rtrim(SITE_URL, '/') . '/invoice.php?t=' . urlencode($token);
+}
+
+/**
+ * The invoice's public token, minting one the first time it is asked for.
+ *
+ * Split out of invoicePublicUrl() so a caller that needs a link relative to
+ * the current host — the partner's own account page — can still get the token
+ * without being handed an absolute SITE_URL address.
+ *
+ * Minting on demand is the point. The token is not created when an invoice is
+ * raised, or when it is marked sent; it appears the first time something asks
+ * for the customer's link, which in practice means emailing or sharing it. An
+ * invoice the shop raised and marked paid without ever emailing therefore has
+ * no token at all, and any page that read the column directly and gave up when
+ * it was empty showed the customer no way to open their own invoice.
+ */
+function invoicePublicToken(PDO $pdo, array $inv): string
+{
+    $token = trim((string)($inv['public_token'] ?? ''));
+    if ($token !== '') {
+        return $token;
+    }
+
+    $id = (int)($inv['id'] ?? 0);
+    if ($id <= 0) {
+        return '';
+    }
+
+    try {
+        $token = bin2hex(random_bytes(24));
+        $pdo->prepare("UPDATE invoices SET public_token = :t WHERE id = :id")
+            ->execute(['t' => $token, 'id' => $id]);
+    } catch (Throwable $e) {
+        error_log('invoicePublicToken failed for invoice ' . $id . ': ' . $e->getMessage());
+        return '';
+    }
+
+    return $token;
 }
 
 /**
