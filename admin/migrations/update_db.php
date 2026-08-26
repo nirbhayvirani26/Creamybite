@@ -1526,6 +1526,41 @@ try {
             'ok'     => true,
         ];
     }
+
+    // The settings row is only the template for the NEXT invoice. Every
+    // invoice already issued keeps its own copy of the shop's address and
+    // phone in invoices.from_address / from_phone, taken at the moment it was
+    // raised — so correcting the template above leaves every existing invoice
+    // still naming "Unit E5 Phoenix House" and still printing a phone number
+    // that reaches nobody. A trade customer opening the invoice they were
+    // sent last month sees the wrong building and a dead number, and no
+    // amount of fixing the settings ever reaches them.
+    //
+    // Rewriting a document that has already been sent is normally the wrong
+    // thing to do, and it would be wrong here too if it touched the
+    // transaction. It does not: the amounts, the dates, the line items, the
+    // VAT, the customer's own details and the invoice number are all left
+    // exactly as they were. The only thing that changes is where Creamy Bite
+    // says it is and how to ring it — a correction of fact about the shop,
+    // not a change to the bill.
+    //
+    // Same no-clobber rule as above: a row is only touched while it still
+    // holds the exact wrong value it was snapshotted with, so an invoice
+    // raised after the settings were fixed, or one edited by hand, is left
+    // alone, and running this a second time changes nothing.
+    foreach ($fixes as [$col, $wrong, $right]) {
+        $st = $pdo->prepare("UPDATE `invoices` SET `$col` = :right WHERE `$col` = :wrong");
+        $st->execute(['right' => $right, 'wrong' => $wrong]);
+        $n = $st->rowCount();
+        $results[] = [
+            'table'  => 'invoices',
+            'col'    => $col,
+            'status' => $n > 0
+                ? '[ok] corrected on ' . $n . ' invoice' . ($n === 1 ? '' : 's') . ' already issued'
+                : '[ok] no already-issued invoice still carries the wrong value',
+            'ok'     => true,
+        ];
+    }
 } catch (PDOException $e) {
     $results[] = ['table' => 'invoice_settings', 'col' => '(corrections)', 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
 }
