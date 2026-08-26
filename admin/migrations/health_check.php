@@ -297,6 +297,48 @@ foreach (['STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'SMTP_PASS', 'ADMIN_PAS
         $v !== '' ? '' : 'Add ' . $k . ' to .env on this server.');
 }
 
+// ── Outgoing email: what customers see in the From line ──────
+//
+// Every message the shop sends goes out FROM the SMTP login in .env, not from
+// SHOP_EMAIL and not from the invoice settings. That is correct and must stay
+// that way — a From address that does not match the authenticated account
+// fails SPF/DMARC and gets rewritten or binned by the receiving mail server.
+//
+// But it means the SMTP login IS the shop's public email address, and nothing
+// anywhere said so. A personal Gmail in that field puts a personal Gmail on
+// every order confirmation the shop sends.
+$cbSmtpUser = defined('SMTP_USER') ? trim((string)SMTP_USER) : '';
+$cbShopHost = '';
+if (defined('SHOP_EMAIL') && str_contains(SHOP_EMAIL, '@')) {
+    $cbShopHost = strtolower(substr(strrchr(SHOP_EMAIL, '@'), 1));
+}
+
+if ($cbSmtpUser === '') {
+    cbCheck('Outgoing email', 'the address customers see', false,
+        'no SMTP_USER — nothing can be sent at all',
+        'Put the shop mailbox in SMTP_USER in this server\'s .env, then restart PHP in hPanel.');
+} else {
+    $cbSmtpHost   = strtolower(substr(strrchr($cbSmtpUser, '@') ?: '@', 1));
+    $cbFreeMail   = in_array($cbSmtpHost, ['gmail.com','googlemail.com','outlook.com','hotmail.com','yahoo.com','yahoo.co.uk','live.com','icloud.com'], true);
+    $cbOwnDomain  = ($cbShopHost !== '' && $cbSmtpHost === $cbShopHost);
+
+    cbCheck('Outgoing email', 'the address customers see', $cbOwnDomain,
+        'every email the shop sends arrives From: ' . $cbSmtpUser
+        . ($cbOwnDomain ? ' — your own domain' : ($cbFreeMail ? ' — a personal mailbox, not your domain' : ' — not your domain')),
+        $cbOwnDomain ? ''
+            : 'Customers see this on every order confirmation, receipt and invoice, and replies go here. '
+            . 'Use a mailbox on ' . ($cbShopHost !== '' ? $cbShopHost : 'your own domain')
+            . ' as SMTP_USER in .env, then restart PHP. Do not just change SHOP_EMAIL — the From line follows the '
+            . 'SMTP login, because a mismatch fails SPF and the message gets rewritten or junked.');
+
+    // Where a reply actually lands, said plainly. Three addresses are in play
+    // and it is not obvious which does what.
+    cbCheck('Outgoing email', 'where replies go', true,
+        'customer replies → ' . (defined('SHOP_EMAIL') ? SHOP_EMAIL : '?')
+        . ' · enquiries reply straight to the customer · order alerts → '
+        . (defined('ADMIN_EMAIL') ? ADMIN_EMAIL : '?'));
+}
+
 // ── Card payments ────────────────────────────────────────────
 // The commonest cause of "Pay Online is not loading" is a secret key that
 // works on the machine it was pasted into and nowhere else.

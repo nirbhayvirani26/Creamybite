@@ -302,6 +302,13 @@ function sendOrderEmail(array $order): bool
     try {
         cbMailTransport($mail);
         $mail->setFrom(SMTP_USER, $shopName);
+        // Reply goes to the customer. This alert is the one place the shop
+        // reads a new order, and answering "can I change my order?" should not
+        // mean copying an address out of the message.
+        $cbOrderEmail = trim((string)($order['customer_email'] ?? ''));
+        if ($cbOrderEmail !== '' && filter_var($cbOrderEmail, FILTER_VALIDATE_EMAIL)) {
+            $mail->addReplyTo($cbOrderEmail, (string)($order['customer_name'] ?? $cbOrderEmail));
+        }
         $mail->addAddress($adminEmail);
         $mail->isHTML(true);
         $mail->Subject = $subject;
@@ -318,7 +325,7 @@ function sendOrderEmail(array $order): bool
 // ============================================================
 //  Generic email sender – used by contact form on About Us
 // ============================================================
-function sendGenericEmail(string $toEmail, string $subject, string $htmlBody): bool
+function sendGenericEmail(string $toEmail, string $subject, string $htmlBody, string $replyTo = '', string $replyToName = ''): bool
 {
     if (!defined('PHPMAILER_AVAILABLE') || !PHPMAILER_AVAILABLE) return false;
     $shopName = SHOP_NAME;
@@ -329,6 +336,15 @@ function sendGenericEmail(string $toEmail, string $subject, string $htmlBody): b
 
         $mail->setFrom(SMTP_USER, $shopName);
         $mail->addAddress($toEmail);
+        // Reply goes to whoever wrote in, not back to our own mailbox.
+        //
+        // The contact form sends the enquiry from the shop's own SMTP account
+        // with no Reply-To, so pressing Reply in the inbox replied to the shop
+        // itself. The customer's address was only ever readable in the body,
+        // which meant copying it out by hand for every single enquiry.
+        if ($replyTo !== '' && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+            $mail->addReplyTo($replyTo, $replyToName !== '' ? $replyToName : $replyTo);
+        }
         $mail->isHTML(true);
         $mail->Subject = $subject;
         $mail->Body    = $htmlBody;
@@ -603,6 +619,10 @@ function sendCustomerConfirmationEmail(array $order, string $customerEmail): boo
         cbMailTransport($mail);
 
         $mail->setFrom(SMTP_USER, $shopName);
+        // A customer who replies to their confirmation should reach the shop,
+        // not the raw SMTP login the message happens to be sent from. That
+        // account is a delivery mechanism, not an address anyone reads.
+        $mail->addReplyTo(SHOP_EMAIL, $shopName);
         $mail->addAddress($customerEmail, $order['customer_name']);
         $mail->isHTML(true);
         $mail->Subject = $subject;
