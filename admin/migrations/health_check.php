@@ -357,6 +357,150 @@ try {
         'This is why orders fail. Run update_db.php, then reload this page.');
 }
 
+// ── Your shop right now ──────────────────────────────────────
+//
+// Everything above asks "does the code work". This section asks a different
+// question: "is anything wrong with the actual shop today". They are not the
+// same, and the gap between them is where real faults hide.
+//
+// A worked example, and the reason this section exists: the Invoices tab on a
+// trade partner's account showed "Being prepared" instead of a button whenever
+// an invoice had no customer link yet. The page returned 200. Nothing was
+// logged. Every check above passed. A customer simply could not open an
+// invoice they were being asked to pay, and nothing anywhere said so.
+//
+// These read live data and report conditions a customer or the owner would
+// notice. Each one is worded as what to DO, because a number on its own is
+// not something anybody can act on.
+$cbShopWarn = static function (string $what, int $count, string $goodWord, string $badWord, string $fix): void {
+    cbCheck('Your shop right now', $what, $count === 0,
+        $count === 0 ? $goodWord : $count . ' ' . $badWord,
+        $count === 0 ? '' : $fix);
+};
+
+// 1. Invoices a customer can see listed but cannot open. THE bug this section
+//    was written for. pages/trade_profile.php mints the link on demand now, so
+//    this should stay at zero; if it ever does not, invoices are unreachable.
+try {
+    $n = (int)$pdo->query(
+        "SELECT COUNT(*) FROM invoices
+          WHERE status IN ('sent','part_paid','paid')
+            AND (public_token IS NULL OR public_token = '')"
+    )->fetchColumn();
+    $cbShopWarn('invoices customers can open', $n,
+        'every issued invoice has a working customer link',
+        'issued invoice(s) have no customer link',
+        'Open the Invoices tab on the customer\'s account once and the link is created, '
+      . 'or email the invoice from the invoice page.');
+} catch (Throwable $e) {
+    cbCheck('Your shop right now', 'invoices customers can open', false, 'could not check', $e->getMessage());
+}
+
+// 2. Orders that look like a trade partner's but are not attached to them.
+//    Invisible in that partner's account, absent from their trade report, and
+//    counted as retail in the revenue split.
+try {
+    $n = (int)$pdo->query(
+        "SELECT COUNT(*) FROM orders o
+           JOIN trade_users t ON LOWER(TRIM(t.email)) = LOWER(TRIM(o.customer_email))
+          WHERE o.trade_user_id = 0 AND t.status = 'approved' AND o.customer_email <> ''"
+    )->fetchColumn();
+    $cbShopWarn('orders attached to the right account', $n,
+        'every order that matches a trade partner is attached to them',
+        'order(s) match a trade partner but are not attached',
+        'Admin → Orders. Those orders show a note naming the partner — set the Trade account picker and Save.');
+} catch (Throwable $e) {
+    cbCheck('Your shop right now', 'orders attached to the right account', false, 'could not check', $e->getMessage());
+}
+
+// 3. Product photos that are named on the product but missing from the server.
+//    A broken image on the menu is the most visible fault a shop can have.
+try {
+    $missing = 0; $firstMissing = '';
+    $dir = dirname(__DIR__, 2) . '/assets/images/products/';
+    foreach ($pdo->query("SELECT name, image FROM products WHERE image <> ''")->fetchAll() as $p) {
+        if (!is_file($dir . $p['image'])) {
+            $missing++;
+            if ($firstMissing === '') { $firstMissing = $p['name']; }
+        }
+    }
+    $cbShopWarn('product photos', $missing,
+        'every product photo is on the server',
+        'product(s) point at a photo that is not on the server, starting with "' . $firstMissing . '"',
+        'Admin → Products → edit the product and upload the photo again.');
+} catch (Throwable $e) {
+    cbCheck('Your shop right now', 'product photos', false, 'could not check', $e->getMessage());
+}
+
+// 4. Allergens. A legal duty, and the public allergen sheet says "please ask"
+//    for anything not confirmed.
+try {
+    $n = (int)$pdo->query("SELECT COUNT(*) FROM products WHERE allergen_reviewed_at IS NULL")->fetchColumn();
+    $cbShopWarn('allergen information', $n,
+        'every product has had its allergens confirmed',
+        'product(s) have no confirmed allergens — the public sheet shows "please ask" for each',
+        'Admin → allergens_bulk.php. This is a legal duty, not a nicety.');
+} catch (Throwable $e) {
+    cbCheck('Your shop right now', 'allergen information', false, 'could not check', $e->getMessage());
+}
+
+// 5. Trade applications nobody has answered.
+try {
+    $n = (int)$pdo->query("SELECT COUNT(*) FROM trade_users WHERE status = 'pending'")->fetchColumn();
+    $cbShopWarn('trade applications', $n,
+        'no applications waiting',
+        'trade application(s) waiting for an answer — they cannot order until approved',
+        'Admin → Trade.');
+} catch (Throwable $e) {
+    cbCheck('Your shop right now', 'trade applications', false, 'could not check', $e->getMessage());
+}
+
+// 6. Customers who wrote in and have not been answered.
+try {
+    $n = (int)$pdo->query("SELECT COUNT(*) FROM inquiries WHERE is_read = 0")->fetchColumn();
+    $cbShopWarn('customer enquiries', $n,
+        'no unread enquiries',
+        'unread enquiry(ies) — someone is waiting to hear back',
+        'Admin → Inquiries.');
+} catch (Throwable $e) {
+    cbCheck('Your shop right now', 'customer enquiries', false, 'could not check', $e->getMessage());
+}
+
+// ── What the site has actually been complaining about ────────
+//
+// The single most useful thing on this page once the shop is live. PHP writes
+// every warning and fatal to a log that nobody ever opens, because reading it
+// means finding the hosting control panel. Real faults hit by real customers
+// sit in there unread.
+//
+// Read-only, newest last, and capped — this is a window on the log, not a
+// substitute for it.
+$cbLogPath  = (string)@ini_get('error_log');
+$cbLogLines = [];
+$cbLogNote  = '';
+if ($cbLogPath === '' || $cbLogPath === 'syslog') {
+    $cbLogNote = 'PHP is not writing to a file this page can read'
+               . ($cbLogPath === 'syslog' ? ' (it is going to the system log).' : '.')
+               . ' Ask the host to set error_log to a file inside the site, or look in hPanel → Error Log.';
+} elseif (!is_readable($cbLogPath)) {
+    $cbLogNote = 'The log is at ' . $cbLogPath . ' but this page cannot read it. Open it in hPanel → File Manager.';
+} else {
+    $cbLogSize = (int)@filesize($cbLogPath);
+    $fh = @fopen($cbLogPath, 'r');
+    if ($fh) {
+        // Only the tail. A log can be tens of megabytes and reading it whole
+        // would take the page down with the very problem it is reporting on.
+        if ($cbLogSize > 60000) { @fseek($fh, -60000, SEEK_END); @fgets($fh); }
+        while (($line = fgets($fh)) !== false) {
+            $line = rtrim($line);
+            if ($line !== '') { $cbLogLines[] = $line; }
+        }
+        @fclose($fh);
+        $cbLogLines = array_slice($cbLogLines, -40);
+        if (!$cbLogLines) { $cbLogNote = 'The log is empty — nothing has gone wrong.'; }
+    }
+}
+
 $failures = array_values(array_filter($checks, fn($c) => !$c['ok']));
 ?>
 <!DOCTYPE html>
@@ -433,6 +577,26 @@ $failures = array_values(array_filter($checks, fn($c) => !$c['ok']));
             <?php endforeach; ?>
         </table>
         <?php endforeach; ?>
+
+        <?php // What the site itself has been complaining about. ?>
+        <h2 class="cbtr-card-title">What the site has been complaining about</h2>
+        <p class="su-loghint">
+            Every warning and error PHP has written, newest at the bottom. This is where a
+            fault a customer hit shows up — and it is worth a look after any change, or any
+            time something is reported as not working.
+        </p>
+        <?php if ($cbLogNote !== ''): ?>
+        <p class="su-loghint su-loghint-note"><?= htmlspecialchars($cbLogNote) ?></p>
+        <?php endif; ?>
+        <?php if ($cbLogLines): ?>
+        <div class="su-log"><?php foreach ($cbLogLines as $line): ?><div class="su-log-line<?=
+            preg_match('/Fatal|Uncaught|Parse error/i', $line) ? ' is-fatal'
+            : (preg_match('/Warning|Deprecated|Notice/i', $line) ? ' is-warn' : '') ?>"><?=
+            htmlspecialchars($line) ?></div><?php endforeach; ?></div>
+        <p class="su-loghint">
+            Showing the last <?= count($cbLogLines) ?> line(s) of <?= htmlspecialchars($cbLogPath) ?>.
+        </p>
+        <?php endif; ?>
 
         <a href="../index.php" class="btn-secondary su-btn-back">
             <i class="fa-solid fa-arrow-left"></i> Back to Admin
