@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/product_icons.php';
+require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/pricing.php';
 require_once __DIR__ . '/../includes/trade_cart.php';
@@ -490,6 +491,8 @@ if ($summaryJson) {
     <meta name="description" content="Complete your ice cream order at <?= SHOP_NAME ?>.">
     <?php // Cart contents and personal details pass through here — must never be indexed. ?>
     <meta name="robots" content="noindex, nofollow">
+    <?php // Gives the promo, basket and card-payment fetch() calls their token. ?>
+    <?php require __DIR__ . '/../includes/csrf_js.php'; ?>
     <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/responsive.css') ?>">
@@ -607,6 +610,7 @@ require __DIR__ . '/../includes/site_header.php';
                     <h2><i class="fa-solid fa-user-check cbco-icon-primary"></i> Contact & Delivery Instructions</h2>
 
                     <form action="../checkout_handler.php" method="POST" id="checkoutForm">
+                        <?= csrfField() ?>
 
                         <!-- Bot protection (honeypot) -->
                         <input type="text" name="website" id="hp_website" tabindex="-1" autocomplete="off" aria-hidden="true" class="cbco-honeypot">
@@ -672,6 +676,7 @@ require __DIR__ . '/../includes/site_header.php';
                     <h2><i class="fa-solid fa-user cbco-icon-primary"></i> Delivery Details</h2>
 
                     <form action="../checkout_handler.php" method="POST" id="checkoutForm">
+                        <?= csrfField() ?>
 
                         <!-- ── Bot protection (honeypot) ─────────── -->
                         <input type="text" name="website" id="hp_website" tabindex="-1" autocomplete="off"

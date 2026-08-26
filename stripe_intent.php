@@ -7,9 +7,27 @@ require_once __DIR__ . '/includes/session.php';
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/pricing.php';
 require_once __DIR__ . '/includes/stock.php';
+
+// This one opens a payment with Stripe, so it does not answer anyone who
+// cannot show they came from the checkout page. Left open, any site could
+// have a visitor's browser create payment intents against this shop's Stripe
+// account, over and over, for a basket sitting in their session — noise in
+// the Stripe dashboard at best, and a real question from the card processor
+// about what the account is being used for at worst.
+//
+// The token arrives on the X-CSRF-Token header, added by includes/csrf_js.php
+// on the checkout page. Both fetch() calls to this file are bodyless, which
+// is exactly why the header matters — there is nowhere else to put it.
+if (!csrfValid()) {
+    error_log('Payment intent refused: no valid token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    http_response_code(419);
+    echo json_encode(['error' => 'Your session expired. Please refresh the checkout page and try again.']);
+    exit;
+}
 
 // Only load vendor if fully installed
 if (file_exists(__DIR__ . '/vendor/composer/autoload_real.php')) {

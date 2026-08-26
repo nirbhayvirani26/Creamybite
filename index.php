@@ -5,6 +5,7 @@
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/flavour_colours.php';
 
 // Load a few featured products for the flavour showcase
@@ -558,6 +559,7 @@ require __DIR__ . '/includes/site_header.php';
             </summary>
 
             <form method="post" action="<?= SITE_BASE ?>/review_submit.php" class="cbrev-form">
+                <?= csrfField() ?>
                 <div class="cbrev-form-row">
                     <div class="form-group">
                         <label class="form-label" for="revName">Your name *</label>

@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/session.php';
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/trade_cart.php';
 require_once __DIR__ . '/includes/stock.php';
 
@@ -21,6 +22,28 @@ if (!isset($_SESSION['cart'])) {
 }
 
 $action = $_POST['action'] ?? $_GET['action'] ?? 'get';
+
+// Everything except 'get' changes the basket, so everything except 'get' has
+// to prove it came from this site. Without that, any page open in the same
+// browser can quietly empty a customer's basket, or fill it, while they are
+// on another tab — and the first they know of it is at the checkout.
+//
+// 'get' only reads, and is fetched on page load before any interaction has
+// happened, so it stays open. A read that leaked would matter; this one
+// returns the visitor their own basket, which they can already see.
+//
+// The token travels in the X-CSRF-Token header, put there by the fetch()
+// calls in pages/order.php and pages/checkout.php. If you add another caller
+// that writes, it needs that header too, or it will get this refusal.
+if ($action !== 'get' && !csrfValid()) {
+    error_log('Cart action "' . $action . '" refused: no valid token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    http_response_code(419);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Your session expired. Please refresh the page and try again.',
+    ]);
+    exit;
+}
 
 // ── Helper: build cart summary ────────────────────────────────
 function cartSummary(): array {

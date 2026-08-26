@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/mailer.php';
 
 // ── Ensure inquiries table exists (auto-create) ───────────
@@ -33,7 +34,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     // Bot protection, matching the checkout form: a honeypot field a human
     // never sees, plus a minimum time on the page. This form writes to the
     // database AND sends mail on every submit, so it was a free spam relay.
-    if (!empty($_POST['website'])) {
+    // The token is the third guard alongside those two, and catches what
+    // neither can: a post made from another site in a real visitor's browser,
+    // where the honeypot is genuinely empty and the page really was open for
+    // a while, because a person did load it — just not this form. Every send
+    // costs an email out of the shop's mailbox, so a relay left open is a
+    // reputation problem for the address as much as a full inbox.
+    if (!csrfValid()) {
+        error_log('Contact form refused: no valid token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+        $formError = 'That page had been open a while. Please check your message below and send it again.';
+    } elseif (!empty($_POST['website'])) {
         $formError = 'Your message could not be sent. Please try again.';
     } elseif (($t = (int)($_POST['form_loaded_at'] ?? 0)) > 0 && (time() - $t) < 3) {
         $formError = 'Please take a moment before sending.';
@@ -195,6 +205,7 @@ require __DIR__ . '/../includes/site_header.php';
                         <i class="fa-solid fa-envelope"></i> Send an Enquiry
                     </h3>
                     <form action="about.php" method="POST" id="contactForm">
+                        <?= csrfField() ?>
                         <?php /* Honeypot: hidden from people, filled in by bots. */ ?>
                         <div class="cbab-honeypot" aria-hidden="true">
                             <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>

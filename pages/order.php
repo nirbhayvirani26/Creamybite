@@ -487,6 +487,9 @@ if (empty($_SESSION['trade_user'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order – <?= SHOP_NAME ?></title>
+<?php // Every fetch() on this page adds to, changes or empties the basket.
+      // This gives them all the token, and refuses nothing else. ?>
+<?php require __DIR__ . '/../includes/csrf_js.php'; ?>
 <?php require __DIR__ . '/../includes/seo_head.php'; ?>
     <meta name="description" content="Browse and order handcrafted ice cream and cocoa drinks at <?= SHOP_NAME ?>. Fresh flavours made daily, delivered to your door.">
     <?php if (!empty($cbMenuSchema)):

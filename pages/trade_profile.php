@@ -19,6 +19,7 @@ require_once __DIR__ . '/../includes/session.php';
 
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/product_icons.php';
+require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/db.php';
 // invoicePublicToken() — the Invoices tab mints a customer link on demand.
 require_once __DIR__ . '/../includes/invoice.php';
@@ -79,7 +80,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     // registered, which is what triggers VAT on their orders.
     $vatNumber   = strtoupper(preg_replace('/\s+/', '', $_POST['vat_number'] ?? ''));
 
-    if (mb_strlen($contactName) < 2) {
+    // Worth more here than on most forms. This one writes the delivery
+    // address every future order goes to, and the VAT number that decides
+    // whether VAT is charged at all. Silently changing either, from a page
+    // the partner merely had open, would send stock to the wrong door and put
+    // the wrong figure on an invoice — and nothing on screen would say so.
+    if (!csrfValid()) {
+        error_log('Trade profile update refused: no valid token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+        $errorMsg = 'That page had been open a while, so nothing was changed. Please check your details and save again.';
+    } elseif (mb_strlen($contactName) < 2) {
         $errorMsg = 'Please enter the contact name.';
     } elseif (mb_strlen($phone) < 7) {
         $errorMsg = 'Please enter a valid contact number.';
@@ -329,6 +338,7 @@ require __DIR__ . '/../includes/site_header.php';
             </p>
 
             <form method="POST" action="?tab=profile">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="update_profile">
 
                 <div class="cbtp-form-grid">

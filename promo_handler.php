@@ -9,8 +9,33 @@ header('Content-Type: application/json');
 
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $action = $_REQUEST['action'] ?? '';
+
+// Every action here changes something, so every action needs the token.
+//
+// "validate" reads as if it only looks a code up, and that is what its name
+// says, but a code that checks out is written into the session and applied to
+// the basket then and there. So it is a write like the rest, and treating it
+// as a harmless read would leave the one action a customer actually uses
+// unprotected.
+//
+// The admin half — create, update, toggle, delete — matters for a different
+// reason. Those already refuse anyone without the promos permission, but an
+// owner signed into the admin panel carries that permission everywhere,
+// including onto any other page they open. The token is what stops a page
+// they merely visited from minting itself a discount code with their
+// authority.
+if ($action !== '' && !csrfValid()) {
+    error_log('Promo action "' . $action . '" refused: no valid token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    http_response_code(419);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Your session expired. Please refresh the page and try again.',
+    ]);
+    exit;
+}
 
 // ── PUBLIC: Validate a promo code ─────────────────────────────
 if ($action === 'validate') {

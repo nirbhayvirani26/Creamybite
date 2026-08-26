@@ -13,6 +13,7 @@
 require_once __DIR__ . '/includes/session.php';
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $back = SITE_BASE . '/index.php';
 
@@ -39,6 +40,21 @@ $trap     = trim($_POST['website']       ?? '');
 
 $keep = ['customer_name' => $name, 'location' => $location, 'body' => $body,
          'product_name' => $product, 'rating' => $rating];
+
+// The honeypot below catches a bot filling the form in. The token catches
+// something the honeypot cannot: another site posting this form from a real
+// customer's browser, with the hidden field correctly left empty because no
+// one ever saw the form at all. Reviews land unapproved either way, so the
+// damage is a moderation queue nobody can get to the bottom of rather than
+// spam on the page — but that is enough to make a genuine review invisible
+// among the noise.
+//
+// Refused the same way every other problem on this form is: straight back to
+// the reviews section with what they typed still in the box.
+if (!csrfValid()) {
+    error_log('Review submission refused: no valid token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    cbReviewBack($back, 'That page had been open a while. Please check your review below and send it again.', $keep);
+}
 
 if ($name === '' || $body === '') {
     cbReviewBack($back, 'Please give your name and tell us what you thought.', $keep);

@@ -5,6 +5,7 @@
 require_once __DIR__ . '/includes/session.php';
 
 require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/mailer.php';
 require_once __DIR__ . '/includes/trade_cart.php';
@@ -40,6 +41,32 @@ try {
 
 // Only accept POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: pages/checkout.php');
+    exit;
+}
+
+// The order must have been placed from this site's own checkout page.
+//
+// Without this, another page open in the same browser could submit an order
+// in a signed-in customer's name — their account, their saved details, their
+// delivery address, and a basket they never chose. For a trade partner on
+// account that is a real invoice for real stock going to a real address.
+//
+// Checked here, at the very top, deliberately: before the basket is read,
+// before stock is touched, and above all before any card is charged. A
+// refusal at this point has cost the customer nothing.
+//
+// Their basket is in the session and stays there, so this sends them back to
+// the checkout with everything intact and one thing to do — press the button
+// again. That is why it is not the hard "Request blocked" page: the realistic
+// cause is a checkout left open too long, and a customer holding a full
+// basket is the worst possible person to show a dead end to.
+if (!csrfValid()) {
+    error_log('Checkout refused: no valid form token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    $_SESSION['checkout_errors'] = [
+        'That page had been open a while, so we did not put the order through. '
+        . 'Your basket is still here — please check it over and press Place Order again.',
+    ];
     header('Location: pages/checkout.php');
     exit;
 }
