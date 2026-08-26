@@ -1565,6 +1565,35 @@ $pageTitles = [
                                                 <i class="fa-solid fa-check"></i> Save
                                             </button>
                                         </div>
+                                        <?php
+                                        // An unlinked order whose email matches an approved trade
+                                        // account almost certainly belongs to it — phoned in, or
+                                        // placed before they signed in. Said out loud here because
+                                        // an unlinked order is invisible in that partner's own
+                                        // Previous Orders, missing from their trade report, and
+                                        // counted as retail in the revenue split, and nothing
+                                        // otherwise draws attention to it.
+                                        //
+                                        // A suggestion only — it never links anything by itself.
+                                        // Ownership stays a deliberate act by the shop, because
+                                        // the email on an order is typed at checkout by whoever
+                                        // is placing it, not proven to belong to them.
+                                        if ($curTradeId === 0):
+                                            $orderEmail = strtolower(trim((string)($order['customer_email'] ?? '')));
+                                            $guess = null;
+                                            if ($orderEmail !== '') {
+                                                foreach ($approvedTrade as $tu) {
+                                                    if (strtolower(trim((string)($tu['email'] ?? ''))) === $orderEmail) { $guess = $tu; break; }
+                                                }
+                                            }
+                                            if ($guess):
+                                        ?>
+                                        <div class="cbi-ord-trade-hint">
+                                            <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+                                            This email matches <strong><?= htmlspecialchars($guess['business_name']) ?></strong>.
+                                            Linking it puts the order in their account and counts it as trade.
+                                        </div>
+                                        <?php endif; endif; ?>
                                         <?php endif; ?>
 
                                         <span id="status-msg-<?= $order['id'] ?>" class="cbi-ord-status-msg"></span>

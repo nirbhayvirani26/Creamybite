@@ -253,7 +253,21 @@ require __DIR__ . '/../includes/site_header.php';
                 <h1 class="cbtp-account-name">
                     <?= htmlspecialchars($account['business_name']) ?>
                 </h1>
+                <?php
+                // Customer number AND the person's name, together.
+                //
+                // The card named the business and gave the account number, but
+                // never said who the account belongs to — so a partner looking
+                // at their own page, or a member of their staff opening it,
+                // had no confirmation they were in the right account. Both are
+                // what the shop asks for on the phone, so both belong here.
+                $contactName = trim((string)($account['contact_name'] ?? ''));
+                ?>
                 <div class="cbtp-account-meta">
+                    <?php if ($contactName !== ''): ?>
+                    <span class="cbtp-account-contact"><?= htmlspecialchars($contactName) ?></span>
+                    <span class="cbtp-meta-sep" aria-hidden="true">·</span>
+                    <?php endif; ?>
                     Customer Number:
                     <strong class="cbtp-customer-no">
                         <?= htmlspecialchars($customerNo) ?>

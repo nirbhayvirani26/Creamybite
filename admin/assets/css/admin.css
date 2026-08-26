@@ -585,6 +585,15 @@ body.admin-wrapper.has-sidebar {
     background:none; border:0; padding:0; font:inherit; cursor:pointer; line-height:1;
 }
 
+/* Suggestion under the Trade account picker on an unlinked order whose email
+   matches an approved partner. Informational, not a warning — nothing is
+   wrong, the shop just has a one-click improvement available. */
+.admin-wrapper.has-sidebar .cbi-ord-trade-hint {
+    margin-top:8px; padding:8px 12px; font-size:12.5px; line-height:1.5;
+    background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:var(--radius-sm);
+    display:flex; align-items:baseline; gap:8px;
+}
+
 /* ── Trade accounts tab ─────────────────────────────── */
 .admin-wrapper.has-sidebar .cbi-trade-action-btn { padding:6px 12px; font-size:12px; gap:4px; }
 .admin-wrapper.has-sidebar .cbi-trade-actions { display:flex; gap:6px; justify-content:flex-end; }

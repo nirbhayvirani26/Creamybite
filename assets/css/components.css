@@ -289,6 +289,11 @@
 }
 .trade-page .cbtp-account-name { font-size:26px; margin:10px 0 6px; color:white; }
 .trade-page .cbtp-account-meta { font-size:13px; opacity:0.92; }
+/* The contact person's name, sitting beside the customer number. Slightly
+   heavier than the label around it so the eye lands on the two things the
+   shop asks for on the phone: who you are and your account number. */
+.trade-page .cbtp-account-contact { font-weight:700; }
+.trade-page .cbtp-meta-sep { margin:0 7px; opacity:0.55; }
 .trade-page .cbtp-customer-no {
     font-family:monospace;
     font-size:15px;
