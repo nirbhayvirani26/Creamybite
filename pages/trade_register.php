@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 $successMsg = '';
 $errorMsg   = '';
@@ -20,7 +21,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postcode     = strtoupper(trim($_POST['postcode'] ?? ''));
     $vatNumber    = trim($_POST['vat_number'] ?? '');
 
-    if (empty($businessName) || empty($contactName) || empty($email) || empty($password) || empty($phone) || empty($address) || empty($postcode)) {
+    // Same token as the login form, for a plainer reason: without it any other
+    // site can post this form from a visitor's browser, and every application
+    // it files lands in the admin panel looking exactly like a real one. A
+    // steady trickle of those is enough to bury the genuine applications a
+    // trade partner is waiting on.
+    //
+    // Soft failure again — the whole form is re-shown with everything they
+    // typed still in it, so a lapsed session costs one more click and not a
+    // page of details typed a second time.
+    if (!csrfValid()) {
+        error_log('Trade registration rejected: no valid form token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+        $errorMsg = 'This page was open for a while and the form expired. Please check your details below and send it again.';
+    } elseif (empty($businessName) || empty($contactName) || empty($email) || empty($password) || empty($phone) || empty($address) || empty($postcode)) {
         $errorMsg = 'Please fill in all required fields marked with *';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errorMsg = 'Please enter a valid email address';
@@ -78,7 +91,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $successMsg = 'Thank you! Your Trade Account application for <strong>' . htmlspecialchars($businessName) . '</strong> has been submitted. Our team will review and activate your account shortly.';
             }
         } catch (PDOException $e) {
-            $errorMsg = 'Registration failed: ' . $e->getMessage();
+            // Logged, not shown. Printing $e->getMessage() here put the failing
+            // SQL and this site's table and column names on a page anyone on
+            // the internet can reach, in front of a shop owner who can do
+            // nothing with it. What they need is a way to reach a human.
+            error_log('Trade registration failed: ' . $e->getMessage());
+            $errorMsg = 'We could not save your application just now. Please try again in a moment, or call us on ' . htmlspecialchars(SHOP_PHONE) . '.';
         }
     }
 }
@@ -140,6 +158,7 @@ require __DIR__ . '/../includes/site_header.php';
                 <?php endif; ?>
 
                 <form method="POST" action="trade_register.php" class="cbtr-form">
+                    <?= csrfField() ?>
                     <div class="form-row cbtr-form-row">
                         <div class="form-group">
                             <label class="form-label cbtr-field-label" for="tr_business_name">Business / Store Name *</label>

@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/trade_cart.php';
 
 $errorMsg = '';
@@ -28,7 +29,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = strtolower(trim($_POST['email'] ?? ''));
     $password = $_POST['password'] ?? '';
 
-    if (empty($email) || empty($password)) {
+    // The token proves the sign-in was started from this page, not posted by
+    // another site the partner happened to have open. Without it, any page on
+    // the web can submit this form in their browser and quietly sign them into
+    // an account someone else controls — after which the basket they build,
+    // the delivery address they type and the order they place all belong to
+    // that other account.
+    //
+    // Deliberately a soft failure, not the hard "Request blocked" page the
+    // admin panel shows. The overwhelmingly likely cause here is not an attack
+    // but a partner who left the login page open long enough for the session
+    // to lapse, and telling a customer their request was blocked when they
+    // simply need to type their password again is how a shop loses an order.
+    // They land back on the form with everything except the password intact.
+    //
+    // Logged as well as refused, because the two causes look identical to the
+    // customer and completely different to the owner: one lapsed token now and
+    // then is a session timing out, a burst of them is someone posting at the
+    // form. The health check's log viewer is where that difference shows up.
+    if (!csrfValid()) {
+        error_log('Trade login rejected: no valid form token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+        $errorMsg = 'Your session timed out while this page was open. Please enter your password again.';
+    } elseif (empty($email) || empty($password)) {
         $errorMsg = 'Please enter both email and password';
     } else {
         try {
@@ -45,6 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // own — the icon only decorates it.
                     $errorMsg = '<i class="fa-solid fa-circle-xmark cb-alert-icon" aria-hidden="true"></i>Your trade account application was not approved. Please contact us for support.';
                 } elseif ($user['status'] === 'approved') {
+                    // New session id the moment the sign-in succeeds, exactly
+                    // as the admin login does. Anyone who managed to plant a
+                    // known session id in the partner's browser beforehand —
+                    // a shared machine in the shop, a link carrying one — is
+                    // holding an id that no longer refers to anything, rather
+                    // than one that is now signed in as the partner.
+                    // The second argument deletes the old session file; the
+                    // basket and everything else in $_SESSION carries over.
+                    session_regenerate_id(true);
+
                     $_SESSION['trade_user'] = [
                         'id'            => $user['id'],
                         'business_name' => $user['business_name'],
@@ -71,7 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errorMsg = 'Invalid email or password';
             }
         } catch (PDOException $e) {
-            $errorMsg = 'Login failed: ' . $e->getMessage();
+            // The database's own words go to the log, never to the page. This
+            // line used to print $e->getMessage() straight into the alert, so
+            // a trade partner hitting a bad moment on the server was shown the
+            // failing SQL, the table and column names behind it and the login
+            // the site connects with — read by whoever happened to be trying
+            // to sign in, and by anyone who could make the query fail on
+            // purpose.
+            error_log('Trade login failed: ' . $e->getMessage());
+            $errorMsg = 'We could not sign you in just now. Please try again in a moment, or call us on ' . htmlspecialchars(SHOP_PHONE) . '.';
         }
     }
 }
@@ -125,6 +165,7 @@ require __DIR__ . '/../includes/site_header.php';
             <?php endif; ?>
 
             <form method="POST" action="trade_login.php" class="cbtl-login-form">
+                <?= csrfField() ?>
                 <?php // Carried through the POST, or the destination is lost the
                       // moment the form submits and everyone lands on order.php. ?>
                 <input type="hidden" name="next" value="<?= htmlspecialchars($cbNext) ?>">

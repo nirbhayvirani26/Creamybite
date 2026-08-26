@@ -6,6 +6,7 @@
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/csrf.php';
 
 /**
  * Where to go once the password checks out.
@@ -76,7 +77,18 @@ if (!$adminCredsConfigured) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
 
-    if ($lockedTil > time()) {
+    if (!csrfValid()) {
+        // Soft failure rather than the hard "Request blocked" page, for the
+        // same reason as the trade login: the realistic cause is a login page
+        // left open overnight, and the owner opening the shop at six in the
+        // morning needs a password box, not a security notice.
+        //
+        // Deliberately NOT counted as a failed attempt — a stale token is not
+        // a wrong password, and counting it would let anyone lock the owner
+        // out of their own admin panel by posting rubbish at this form.
+        error_log('Admin login rejected: no valid form token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+        $error = 'This page had been open a while and the login form expired. Please enter your password again.';
+    } elseif ($lockedTil > time()) {
         $error = 'Too many failed attempts. Try again in '
                . (int)ceil(($lockedTil - time()) / 60) . ' minute(s).';
     } else {
@@ -201,6 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
         <?php endif; ?>
 
         <form action="login.php" method="POST" class="login-form">
+            <?= csrfField() ?>
             <div class="form-group">
                 <label for="username" class="form-label">Username</label>
                 <input type="text" id="username" name="username" class="form-control"
