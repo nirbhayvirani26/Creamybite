@@ -20,6 +20,7 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/postcode.php';
 require_once __DIR__ . '/../includes/db.php';
 // invoicePublicToken() — the Invoices tab mints a customer link on demand.
 require_once __DIR__ . '/../includes/invoice.php';
@@ -94,9 +95,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
         $errorMsg = 'Please enter a valid contact number.';
     } elseif (mb_strlen($address) < 5) {
         $errorMsg = 'Please enter the store address.';
-    } elseif (mb_strlen($postcode) < 3) {
-        $errorMsg = 'Please enter the postcode.';
+    } elseif (($postcodeClean = cbUkPostcodeNormalise($postcode)) === null) {
+        // The same rule the application form applies. Checking only one of the
+        // two would have been no rule at all: this page writes the delivery
+        // address every future order goes to, so a postcode refused at signup
+        // could simply be saved here a minute later.
+        $errorMsg = 'Please enter a valid UK postcode, for example HA1 2SP.';
     } else {
+        $postcode = $postcodeClean;
+
         try {
             $pdo->prepare(
                 "UPDATE trade_users
@@ -382,6 +389,10 @@ require __DIR__ . '/../includes/site_header.php';
                     <div>
                         <label class="form-label">Postcode <span class="cbtp-accent">*</span></label>
                         <input type="text" name="postcode" class="form-control cbtp-upper" required
+                               maxlength="8"
+                               autocomplete="postal-code"
+                               pattern="<?= htmlspecialchars(cbUkPostcodeHtmlPattern(), ENT_QUOTES, 'UTF-8') ?>"
+                               title="A UK postcode, for example HA1 2SP"
                                value="<?= htmlspecialchars($account['postcode']) ?>">
                     </div>
                 </div>

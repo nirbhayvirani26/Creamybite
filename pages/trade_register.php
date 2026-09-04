@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/csrf.php';
+require_once __DIR__ . '/../includes/postcode.php';
 
 $successMsg = '';
 $errorMsg   = '';
@@ -39,7 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMsg = 'Please enter a valid email address';
     } elseif (strlen($password) < 6) {
         $errorMsg = 'Password must be at least 6 characters long';
+    } elseif (($postcodeClean = cbUkPostcodeNormalise($postcode)) === null) {
+        // The server decides, whatever the browser allowed — the pattern on
+        // the input is a convenience, and a form can always be posted without
+        // one. A bad postcode here reaches a delivery run and an invoice with
+        // nothing downstream to catch it: the distance lookup just answers
+        // "not found" and the application sits in the admin panel looking
+        // entirely normal.
+        $errorMsg = 'Please enter a valid UK postcode, for example HA1 2SP. We deliver within the UK only.';
     } else {
+        // Store the printed form, not what was typed. "ha12sp" and "HA1 2SP"
+        // are the same address and should not become two different partners.
+        $postcode = $postcodeClean;
+
         try {
             // Check if email already registered
             $check = $pdo->prepare("SELECT COUNT(*) FROM trade_users WHERE email = :email");
@@ -194,7 +207,18 @@ require __DIR__ . '/../includes/site_header.php';
                     <div class="form-row cbtr-form-row">
                         <div class="form-group">
                             <label class="form-label cbtr-field-label" for="tr_postcode">Postcode *</label>
-                            <input id="tr_postcode" type="text" name="postcode" class="form-control cbtr-input-uppercase" placeholder="e.g. HA1 2SP" required value="<?= htmlspecialchars($_POST['postcode'] ?? '') ?>">
+                            <?php // pattern is a convenience that catches the typo before the round
+                                  // trip; includes/postcode.php is what actually decides, and
+                                  // the two are kept in step by cbUkPostcodeHtmlPattern(). ?>
+                            <input id="tr_postcode" type="text" name="postcode" class="form-control cbtr-input-uppercase"
+                                   placeholder="e.g. HA1 2SP" required
+                                   maxlength="8"
+                                   autocomplete="postal-code"
+                                   pattern="<?= htmlspecialchars(cbUkPostcodeHtmlPattern(), ENT_QUOTES, 'UTF-8') ?>"
+                                   title="A UK postcode, for example HA1 2SP"
+                                   aria-describedby="tr_postcode_hint"
+                                   value="<?= htmlspecialchars($_POST['postcode'] ?? '') ?>">
+                            <small id="tr_postcode_hint" class="cbtr-field-hint">UK postcodes only — we do not deliver outside the UK.</small>
                         </div>
                         <div class="form-group">
                             <label class="form-label cbtr-field-label" for="tr_vat_number">VAT / Company Reg No. (Optional)</label>

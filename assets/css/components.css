@@ -632,6 +632,13 @@
 .trade-page .cbtr-form-row        { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .trade-page .cbtr-field-label     { font-weight: 700; font-size: 13px; }
 .trade-page .cbtr-input-uppercase { text-transform: uppercase; }
+/* Says the rule before the field is filled in, rather than only after it is
+   refused — the postcode box is the one field on this form that rejects
+   something a customer considers perfectly valid (a non-UK address). */
+.trade-page .cbtr-field-hint      { display: block; margin-top: 5px; font-size: 12px;
+                                    color: var(--text-muted); line-height: 1.45; }
+.trade-page .cbtr-input-uppercase:invalid:not(:placeholder-shown) {
+                                    border-color: var(--color-danger, #b3261e); }
 .trade-page .cbtr-submit-btn      { margin-top: 10px; width: 100%; justify-content: center; padding: 14px; font-size: 15px; }
 
 .trade-page .cbtr-form-footer  { text-align: center; font-size: 13px; margin-top: 12px; color: var(--text-secondary); }
