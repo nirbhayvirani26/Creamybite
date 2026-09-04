@@ -388,15 +388,15 @@ require __DIR__ . '/_sidebar.php';
     </button>
 </header>
 
-<div class="cbtr-wrap">
+<div class="cbtv-wrap">
 
-    <header class="cbtr-head">
-        <h1 class="cbtr-title"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> <?= $h($pageTitle) ?></h1>
-        <p class="cbtr-sub"><?= $h($pageSub) ?></p>
+    <header class="cbtv-head">
+        <h1 class="cbtv-title"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> <?= $h($pageTitle) ?></h1>
+        <p class="cbtv-sub"><?= $h($pageSub) ?></p>
     </header>
 
     <?php if (!$ready): ?>
-    <div class="cbtr-banner is-warn">
+    <div class="cbtv-banner is-warn">
         <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
         <div>
             <strong>Traffic recording is not set up on this server yet.</strong>
@@ -407,109 +407,109 @@ require __DIR__ . '/_sidebar.php';
     <?php else: ?>
 
     <!-- ── Filters ────────────────────────────────────────── -->
-    <div class="cbtr-filters">
-        <div class="cbtr-range" role="group" aria-label="Date range">
+    <div class="cbtv-filters">
+        <div class="cbtv-range" role="group" aria-label="Date range">
             <?php foreach ([1 => 'Today', 7 => '7 days', 30 => '30 days', 90 => '90 days'] as $d => $label): ?>
-            <a class="cbtr-chip <?= $days === $d ? 'is-on' : '' ?>"
+            <a class="cbtv-chip <?= $days === $d ? 'is-on' : '' ?>"
                href="<?= $h($linkWith(['days' => $d, 'p' => null])) ?>"><?= $h($label) ?></a>
             <?php endforeach; ?>
         </div>
 
-        <a class="cbtr-chip <?= $showBots ? 'is-on' : '' ?>"
+        <a class="cbtv-chip <?= $showBots ? 'is-on' : '' ?>"
            href="<?= $h($linkWith(['bots' => $showBots ? null : '1', 'p' => null])) ?>">
             <i class="fa-solid fa-robot" aria-hidden="true"></i>
             <?= $showBots ? 'Bots included' : 'Humans only' ?>
         </a>
 
-        <form class="cbtr-search" method="get" action="traffic.php">
+        <form class="cbtv-search" method="get" action="traffic.php">
             <input type="hidden" name="days" value="<?= (int)$days ?>">
             <?php if ($showBots): ?><input type="hidden" name="bots" value="1"><?php endif; ?>
-            <label class="cbtr-visually-hidden" for="cbtrSearch">Search visitors</label>
+            <label class="cbtv-visually-hidden" for="cbtrSearch">Search visitors</label>
             <input type="search" id="cbtrSearch" name="q" value="<?= $h($search) ?>"
-                   class="cbtr-input" placeholder="Search IP, page or browser…" maxlength="60">
-            <button type="submit" class="cbtr-btn"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Search</button>
+                   class="cbtv-input" placeholder="Search IP, page or browser…" maxlength="60">
+            <button type="submit" class="cbtv-btn"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Search</button>
         </form>
 
-        <a class="cbtr-chip cbtr-export" href="<?= $h($linkWith(['export' => 'csv'])) ?>">
+        <a class="cbtv-chip cbtv-export" href="<?= $h($linkWith(['export' => 'csv'])) ?>">
             <i class="fa-solid fa-file-csv" aria-hidden="true"></i> Export CSV
         </a>
     </div>
 
     <!-- ── Headline figures ───────────────────────────────── -->
-    <div class="cbtr-stats">
-        <div class="cbtr-stat">
-            <div class="cbtr-stat-icon"><i class="fa-solid fa-eye" aria-hidden="true"></i></div>
-            <div class="cbtr-stat-label">Page views</div>
-            <div class="cbtr-stat-value"><?= number_format($totals['views']) ?></div>
-            <div class="cbtr-stat-note">last <?= $days === 1 ? 'day' : $days . ' days' ?></div>
+    <div class="cbtv-stats">
+        <div class="cbtv-stat">
+            <div class="cbtv-stat-icon"><i class="fa-solid fa-eye" aria-hidden="true"></i></div>
+            <div class="cbtv-stat-label">Page views</div>
+            <div class="cbtv-stat-value"><?= number_format($totals['views']) ?></div>
+            <div class="cbtv-stat-note">last <?= $days === 1 ? 'day' : $days . ' days' ?></div>
         </div>
-        <div class="cbtr-stat">
-            <div class="cbtr-stat-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
-            <div class="cbtr-stat-label">Unique addresses</div>
-            <div class="cbtr-stat-value"><?= number_format($totals['ips']) ?></div>
-            <div class="cbtr-stat-note">distinct IPs seen</div>
+        <div class="cbtv-stat">
+            <div class="cbtv-stat-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></div>
+            <div class="cbtv-stat-label">Unique addresses</div>
+            <div class="cbtv-stat-value"><?= number_format($totals['ips']) ?></div>
+            <div class="cbtv-stat-note">distinct IPs seen</div>
         </div>
-        <div class="cbtr-stat">
-            <div class="cbtr-stat-icon"><i class="fa-solid fa-person-walking" aria-hidden="true"></i></div>
-            <div class="cbtr-stat-label">Visits</div>
-            <div class="cbtr-stat-value"><?= number_format($totals['visits']) ?></div>
-            <div class="cbtr-stat-note">browsing sessions</div>
+        <div class="cbtv-stat">
+            <div class="cbtv-stat-icon"><i class="fa-solid fa-person-walking" aria-hidden="true"></i></div>
+            <div class="cbtv-stat-label">Visits</div>
+            <div class="cbtv-stat-value"><?= number_format($totals['visits']) ?></div>
+            <div class="cbtv-stat-note">browsing sessions</div>
         </div>
-        <div class="cbtr-stat">
-            <div class="cbtr-stat-icon"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i></div>
-            <div class="cbtr-stat-label">Today</div>
-            <div class="cbtr-stat-value"><?= number_format($today['views']) ?></div>
-            <div class="cbtr-stat-note"><?= number_format($today['ips']) ?> address<?= $today['ips'] === 1 ? '' : 'es' ?></div>
+        <div class="cbtv-stat">
+            <div class="cbtv-stat-icon"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i></div>
+            <div class="cbtv-stat-label">Today</div>
+            <div class="cbtv-stat-value"><?= number_format($today['views']) ?></div>
+            <div class="cbtv-stat-note"><?= number_format($today['ips']) ?> address<?= $today['ips'] === 1 ? '' : 'es' ?></div>
         </div>
-        <div class="cbtr-stat">
-            <div class="cbtr-stat-icon"><i class="fa-solid fa-robot" aria-hidden="true"></i></div>
-            <div class="cbtr-stat-label">Bot hits</div>
-            <div class="cbtr-stat-value"><?= number_format($totals['bots']) ?></div>
-            <div class="cbtr-stat-note">crawlers and scanners</div>
+        <div class="cbtv-stat">
+            <div class="cbtv-stat-icon"><i class="fa-solid fa-robot" aria-hidden="true"></i></div>
+            <div class="cbtv-stat-label">Bot hits</div>
+            <div class="cbtv-stat-value"><?= number_format($totals['bots']) ?></div>
+            <div class="cbtv-stat-note">crawlers and scanners</div>
         </div>
     </div>
 
     <!-- ── Traffic over time ──────────────────────────────── -->
-    <section class="cbtr-panel">
-        <h2 class="cbtr-panel-title">
+    <section class="cbtv-panel">
+        <h2 class="cbtv-panel-title">
             <i class="fa-solid fa-chart-column" aria-hidden="true"></i> Traffic over time
-            <span class="cbtr-count">peak <?= number_format($peak) ?>/day</span>
+            <span class="cbtv-count">peak <?= number_format($peak) ?>/day</span>
         </h2>
 
         <?php if ($peak === 0): ?>
-            <p class="cbtr-empty">No page views recorded in this period.</p>
+            <p class="cbtv-empty">No page views recorded in this period.</p>
         <?php else: ?>
         <?php // Drawn with plain elements rather than a charting library: this
               // shop loads no third-party JavaScript anywhere, and a bar chart
               // of at most ninety values does not justify being the first. ?>
-        <div class="cbtr-chart" role="img"
+        <div class="cbtv-chart" role="img"
              aria-label="Daily page views for the last <?= (int)$days ?> day<?= $days === 1 ? '' : 's' ?>, peaking at <?= number_format($peak) ?>.">
             <?php foreach ($chart as $c): ?>
-            <div class="cbtr-bar-cell">
-                <div class="cbtr-bar" style="height: <?= $peak > 0 ? max(2, round($c['views'] / $peak * 100)) : 2 ?>%"
+            <div class="cbtv-bar-cell">
+                <div class="cbtv-bar" style="height: <?= $peak > 0 ? max(2, round($c['views'] / $peak * 100)) : 2 ?>%"
                      title="<?= $h(date('D j M', strtotime($c['date']))) ?> — <?= number_format($c['views']) ?> views, <?= number_format($c['ips']) ?> addresses"></div>
-                <span class="cbtr-bar-label"><?= $h(date($days > 30 ? 'j' : 'D', strtotime($c['date']))) ?></span>
+                <span class="cbtv-bar-label"><?= $h(date($days > 30 ? 'j' : 'D', strtotime($c['date']))) ?></span>
             </div>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
     </section>
 
-    <div class="cbtr-cols">
+    <div class="cbtv-cols">
         <!-- ── Top pages ──────────────────────────────────── -->
-        <section class="cbtr-panel">
-            <h2 class="cbtr-panel-title"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Most opened pages</h2>
+        <section class="cbtv-panel">
+            <h2 class="cbtv-panel-title"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Most opened pages</h2>
             <?php if (!$topPages): ?>
-                <p class="cbtr-empty">Nothing recorded yet.</p>
+                <p class="cbtv-empty">Nothing recorded yet.</p>
             <?php else: ?>
-            <table class="cbtr-table">
-                <thead><tr><th scope="col">Page</th><th scope="col" class="cbtr-num">Views</th><th scope="col" class="cbtr-num">People</th></tr></thead>
+            <table class="cbtv-table">
+                <thead><tr><th scope="col">Page</th><th scope="col" class="cbtv-num">Views</th><th scope="col" class="cbtv-num">People</th></tr></thead>
                 <tbody>
                 <?php foreach ($topPages as $p): ?>
                     <tr>
-                        <td class="cbtr-mono"><?= $h($p['path']) ?></td>
-                        <td class="cbtr-num"><?= number_format((int)$p['views']) ?></td>
-                        <td class="cbtr-num"><?= number_format((int)$p['ips']) ?></td>
+                        <td class="cbtv-mono"><?= $h($p['path']) ?></td>
+                        <td class="cbtv-num"><?= number_format((int)$p['views']) ?></td>
+                        <td class="cbtv-num"><?= number_format((int)$p['ips']) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -518,23 +518,23 @@ require __DIR__ . '/_sidebar.php';
         </section>
 
         <!-- ── Referrers ──────────────────────────────────── -->
-        <section class="cbtr-panel">
-            <h2 class="cbtr-panel-title"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> Where they came from</h2>
-            <p class="cbtr-panel-note">
+        <section class="cbtv-panel">
+            <h2 class="cbtv-panel-title"><i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i> Where they came from</h2>
+            <p class="cbtv-panel-note">
                 Only the site they arrived from is kept, never the full link —
                 a search page's address can carry what somebody typed into it.
             </p>
             <?php if (!$topRefs): ?>
-                <p class="cbtr-empty">No outside referrals recorded. Visitors typed the address, used a bookmark, or arrived from an app that sends no referrer.</p>
+                <p class="cbtv-empty">No outside referrals recorded. Visitors typed the address, used a bookmark, or arrived from an app that sends no referrer.</p>
             <?php else: ?>
-            <table class="cbtr-table">
-                <thead><tr><th scope="col">Source</th><th scope="col" class="cbtr-num">Views</th><th scope="col" class="cbtr-num">People</th></tr></thead>
+            <table class="cbtv-table">
+                <thead><tr><th scope="col">Source</th><th scope="col" class="cbtv-num">Views</th><th scope="col" class="cbtv-num">People</th></tr></thead>
                 <tbody>
                 <?php foreach ($topRefs as $r): ?>
                     <tr>
-                        <td class="cbtr-mono"><?= $h($r['referrer_host']) ?></td>
-                        <td class="cbtr-num"><?= number_format((int)$r['views']) ?></td>
-                        <td class="cbtr-num"><?= number_format((int)$r['ips']) ?></td>
+                        <td class="cbtv-mono"><?= $h($r['referrer_host']) ?></td>
+                        <td class="cbtv-num"><?= number_format((int)$r['views']) ?></td>
+                        <td class="cbtv-num"><?= number_format((int)$r['ips']) ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -544,33 +544,33 @@ require __DIR__ . '/_sidebar.php';
     </div>
 
     <!-- ── Device and browser ─────────────────────────────── -->
-    <div class="cbtr-cols">
-        <section class="cbtr-panel">
-            <h2 class="cbtr-panel-title"><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> Devices</h2>
+    <div class="cbtv-cols">
+        <section class="cbtv-panel">
+            <h2 class="cbtv-panel-title"><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i> Devices</h2>
             <?php if (!$devices): ?>
-                <p class="cbtr-empty">Nothing recorded yet.</p>
+                <p class="cbtv-empty">Nothing recorded yet.</p>
             <?php else: foreach ($devices as $d): $pct = $deviceTotal > 0 ? round($d['views'] / $deviceTotal * 100) : 0; ?>
-                <div class="cbtr-meter">
-                    <div class="cbtr-meter-top">
+                <div class="cbtv-meter">
+                    <div class="cbtv-meter-top">
                         <span><?= $h(ucfirst((string)$d['device'])) ?></span>
-                        <span class="cbtr-meter-pct"><?= (int)$pct ?>% · <?= number_format((int)$d['views']) ?></span>
+                        <span class="cbtv-meter-pct"><?= (int)$pct ?>% · <?= number_format((int)$d['views']) ?></span>
                     </div>
-                    <div class="cbtr-meter-track"><div class="cbtr-meter-fill" style="width: <?= (int)$pct ?>%"></div></div>
+                    <div class="cbtv-meter-track"><div class="cbtv-meter-fill" style="width: <?= (int)$pct ?>%"></div></div>
                 </div>
             <?php endforeach; endif; ?>
         </section>
 
-        <section class="cbtr-panel">
-            <h2 class="cbtr-panel-title"><i class="fa-solid fa-window-maximize" aria-hidden="true"></i> Browsers</h2>
+        <section class="cbtv-panel">
+            <h2 class="cbtv-panel-title"><i class="fa-solid fa-window-maximize" aria-hidden="true"></i> Browsers</h2>
             <?php if (!$browsers): ?>
-                <p class="cbtr-empty">Nothing recorded yet.</p>
+                <p class="cbtv-empty">Nothing recorded yet.</p>
             <?php else: foreach ($browsers as $b): $pct = $browserTotal > 0 ? round($b['views'] / $browserTotal * 100) : 0; ?>
-                <div class="cbtr-meter">
-                    <div class="cbtr-meter-top">
+                <div class="cbtv-meter">
+                    <div class="cbtv-meter-top">
                         <span><?= $h($b['browser']) ?></span>
-                        <span class="cbtr-meter-pct"><?= (int)$pct ?>% · <?= number_format((int)$b['views']) ?></span>
+                        <span class="cbtv-meter-pct"><?= (int)$pct ?>% · <?= number_format((int)$b['views']) ?></span>
                     </div>
-                    <div class="cbtr-meter-track"><div class="cbtr-meter-fill" style="width: <?= (int)$pct ?>%"></div></div>
+                    <div class="cbtv-meter-track"><div class="cbtv-meter-fill" style="width: <?= (int)$pct ?>%"></div></div>
                 </div>
             <?php endforeach; endif; ?>
         </section>
@@ -578,21 +578,21 @@ require __DIR__ . '/_sidebar.php';
 
     <!-- ── One address, in detail ─────────────────────────── -->
     <?php if ($ipFilter !== ''): ?>
-    <section class="cbtr-panel cbtr-panel-detail">
-        <h2 class="cbtr-panel-title">
+    <section class="cbtv-panel cbtv-panel-detail">
+        <h2 class="cbtv-panel-title">
             <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
-            Everything from <span class="cbtr-mono"><?= $h($ipFilter) ?></span>
-            <span class="cbtr-count"><?= count($ipDetail) ?> view<?= count($ipDetail) === 1 ? '' : 's' ?></span>
+            Everything from <span class="cbtv-mono"><?= $h($ipFilter) ?></span>
+            <span class="cbtv-count"><?= count($ipDetail) ?> view<?= count($ipDetail) === 1 ? '' : 's' ?></span>
         </h2>
-        <p class="cbtr-panel-note">
+        <p class="cbtv-panel-note">
             Newest first, up to the last 300 in this period.
             <a href="<?= $h($linkWith(['ip' => null, 'p' => null])) ?>">Clear this filter</a>
         </p>
         <?php if (!$ipDetail): ?>
-            <p class="cbtr-empty">Nothing from this address in the selected period.</p>
+            <p class="cbtv-empty">Nothing from this address in the selected period.</p>
         <?php else: ?>
-        <div class="cbtr-scroll">
-        <table class="cbtr-table">
+        <div class="cbtv-scroll">
+        <table class="cbtv-table">
             <thead><tr>
                 <th scope="col">When</th><th scope="col">Page</th>
                 <th scope="col">From</th><th scope="col">Browser</th>
@@ -600,10 +600,10 @@ require __DIR__ . '/_sidebar.php';
             <tbody>
             <?php foreach ($ipDetail as $d): ?>
                 <tr>
-                    <td class="cbtr-nowrap"><?= $h(date('j M, H:i:s', strtotime((string)$d['occurred_at']))) ?></td>
-                    <td class="cbtr-mono"><?= $h($d['path']) ?><?= $d['query'] !== '' ? $h('?' . $d['query']) : '' ?></td>
-                    <td class="cbtr-mono"><?= $d['referrer_host'] !== '' ? $h($d['referrer_host']) : '—' ?></td>
-                    <td><?= $h($d['browser']) ?> · <?= $h($d['os']) ?><?= (int)$d['is_bot'] === 1 ? ' <span class="cbtr-tag is-bot">bot</span>' : '' ?></td>
+                    <td class="cbtv-nowrap"><?= $h(date('j M, H:i:s', strtotime((string)$d['occurred_at']))) ?></td>
+                    <td class="cbtv-mono"><?= $h($d['path']) ?><?= $d['query'] !== '' ? $h('?' . $d['query']) : '' ?></td>
+                    <td class="cbtv-mono"><?= $d['referrer_host'] !== '' ? $h($d['referrer_host']) : '—' ?></td>
+                    <td><?= $h($d['browser']) ?> · <?= $h($d['os']) ?><?= (int)$d['is_bot'] === 1 ? ' <span class="cbtv-tag is-bot">bot</span>' : '' ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -614,27 +614,27 @@ require __DIR__ . '/_sidebar.php';
     <?php endif; ?>
 
     <!-- ── The IP table ───────────────────────────────────── -->
-    <section class="cbtr-panel">
-        <h2 class="cbtr-panel-title">
+    <section class="cbtv-panel">
+        <h2 class="cbtv-panel-title">
             <i class="fa-solid fa-network-wired" aria-hidden="true"></i> Visitors by IP address
-            <span class="cbtr-count"><?= number_format($ipTotal) ?> address<?= $ipTotal === 1 ? '' : 'es' ?></span>
+            <span class="cbtv-count"><?= number_format($ipTotal) ?> address<?= $ipTotal === 1 ? '' : 'es' ?></span>
         </h2>
-        <p class="cbtr-panel-note">
+        <p class="cbtv-panel-note">
             Busiest first. Click an address to see every page it opened.
             Addresses are deleted automatically after <?= (int)CB_TRAFFIC_RETENTION_DAYS ?> days.
         </p>
 
         <?php if (!$ipRows): ?>
-            <p class="cbtr-empty">
+            <p class="cbtv-empty">
                 <?= $search !== '' ? 'Nothing matches that search in this period.' : 'No visitors recorded in this period yet.' ?>
             </p>
         <?php else: ?>
-        <div class="cbtr-scroll">
-        <table class="cbtr-table">
+        <div class="cbtv-scroll">
+        <table class="cbtv-table">
             <thead><tr>
                 <th scope="col">IP address</th>
-                <th scope="col" class="cbtr-num">Views</th>
-                <th scope="col" class="cbtr-num">Visits</th>
+                <th scope="col" class="cbtv-num">Views</th>
+                <th scope="col" class="cbtv-num">Visits</th>
                 <th scope="col">Last page</th>
                 <th scope="col">Device</th>
                 <th scope="col">First seen</th>
@@ -643,17 +643,17 @@ require __DIR__ . '/_sidebar.php';
             <tbody>
             <?php foreach ($ipRows as $r): ?>
                 <tr<?= (int)$r['is_bot'] === 1 ? ' class="is-bot-row"' : '' ?>>
-                    <td class="cbtr-mono">
+                    <td class="cbtv-mono">
                         <a href="<?= $h($linkWith(['ip' => $r['ip_address'], 'p' => null])) ?>"><?= $h($r['ip_address']) ?></a>
-                        <?php if ((int)$r['is_bot'] === 1): ?><span class="cbtr-tag is-bot">bot</span><?php endif; ?>
-                        <?php if ((int)$r['trade_user_id'] > 0): ?><span class="cbtr-tag is-trade">trade</span><?php endif; ?>
+                        <?php if ((int)$r['is_bot'] === 1): ?><span class="cbtv-tag is-bot">bot</span><?php endif; ?>
+                        <?php if ((int)$r['trade_user_id'] > 0): ?><span class="cbtv-tag is-trade">trade</span><?php endif; ?>
                     </td>
-                    <td class="cbtr-num"><?= number_format((int)$r['views']) ?></td>
-                    <td class="cbtr-num"><?= number_format((int)$r['visits']) ?></td>
-                    <td class="cbtr-mono cbtr-clip"><?= $h($r['last_path']) ?></td>
-                    <td class="cbtr-nowrap"><?= $h(ucfirst((string)$r['device'])) ?> · <?= $h($r['browser']) ?></td>
-                    <td class="cbtr-nowrap"><?= $h(date('j M, H:i', strtotime((string)$r['first_seen']))) ?></td>
-                    <td class="cbtr-nowrap"><?= $h(date('j M, H:i', strtotime((string)$r['last_seen']))) ?></td>
+                    <td class="cbtv-num"><?= number_format((int)$r['views']) ?></td>
+                    <td class="cbtv-num"><?= number_format((int)$r['visits']) ?></td>
+                    <td class="cbtv-mono cbtv-clip"><?= $h($r['last_path']) ?></td>
+                    <td class="cbtv-nowrap"><?= $h(ucfirst((string)$r['device'])) ?> · <?= $h($r['browser']) ?></td>
+                    <td class="cbtv-nowrap"><?= $h(date('j M, H:i', strtotime((string)$r['first_seen']))) ?></td>
+                    <td class="cbtv-nowrap"><?= $h(date('j M, H:i', strtotime((string)$r['last_seen']))) ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
@@ -661,20 +661,20 @@ require __DIR__ . '/_sidebar.php';
         </div>
 
         <?php $pages = max(1, (int)ceil($ipTotal / $perPage)); if ($pages > 1): ?>
-        <nav class="cbtr-pager" aria-label="Pages of visitors">
+        <nav class="cbtv-pager" aria-label="Pages of visitors">
             <?php if ($page > 1): ?>
-                <a class="cbtr-chip" href="<?= $h($linkWith(['p' => $page - 1])) ?>">← Previous</a>
+                <a class="cbtv-chip" href="<?= $h($linkWith(['p' => $page - 1])) ?>">← Previous</a>
             <?php endif; ?>
-            <span class="cbtr-pager-at">Page <?= (int)$page ?> of <?= (int)$pages ?></span>
+            <span class="cbtv-pager-at">Page <?= (int)$page ?> of <?= (int)$pages ?></span>
             <?php if ($page < $pages): ?>
-                <a class="cbtr-chip" href="<?= $h($linkWith(['p' => $page + 1])) ?>">Next →</a>
+                <a class="cbtv-chip" href="<?= $h($linkWith(['p' => $page + 1])) ?>">Next →</a>
             <?php endif; ?>
         </nav>
         <?php endif; ?>
         <?php endif; ?>
     </section>
 
-    <p class="cbtr-foot">
+    <p class="cbtv-foot">
         <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
         Recorded on this server only — no analytics service, no advertising tag and
         nothing stored in a visitor's browser. Rows older than
