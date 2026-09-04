@@ -3,8 +3,10 @@
 //  Creamy Bite – Privacy Policy
 //
 //  Describes what the site ACTUALLY stores, checked against the schema:
-//  orders, trade_users, inquiries. Claiming less than is stored would be
-//  worse than saying nothing.
+//  orders, trade_users, inquiries, page_views. Claiming less than is stored
+//  would be worse than saying nothing — which is why page_views is listed
+//  here the moment includes/traffic.php began writing to it, rather than
+//  being treated as too minor to mention because it is only an IP address.
 // ============================================================
 require_once __DIR__ . '/../includes/session.php';
 require_once __DIR__ . '/../includes/config.php';
@@ -12,6 +14,11 @@ require_once __DIR__ . '/../includes/config.php';
 $email = htmlspecialchars(SHOP_EMAIL);
 $phone = htmlspecialchars(SHOP_PHONE);
 $shop  = htmlspecialchars(SHOP_NAME);
+// Needed by the links into the cookie policy below. Without it the heredoc
+// interpolates an undefined variable and the links resolve to "/pages/…",
+// which is only correct when the shop is the document root — it is not on
+// MAMP, where the project sits in a subfolder.
+$base  = SITE_BASE;
 
 $policyTitle = 'Privacy Policy';
 $policyIntro = 'What we collect, why we hold it, and what you can ask us to do with it.';
@@ -38,6 +45,11 @@ $policyBody  = <<<HTML
     <li>Your VAT number, if you give us one</li>
 </ul>
 <p><strong>If you send us a message:</strong> your name, email, phone and the message itself.</p>
+<p><strong>Whenever a page is opened,</strong> our own server records the time, the
+page address, the site you followed a link from, your IP address, and what your
+browser reports about itself. This is a log on our server, not a cookie and not
+an analytics service — see <a href="{$base}/pages/cookies.php#visit-log">our own
+visit record</a> for what it does and does not do.</p>
 
 <h2>Card details</h2>
 <p>
@@ -62,6 +74,10 @@ $policyBody  = <<<HTML
         records to be kept for six years.</li>
     <li><strong>To run trade accounts</strong> — pricing, invoicing and
         approving applications.</li>
+    <li><strong>To keep the website working and safe</strong> — the visit log
+        tells us how many people are reaching the shop, which pages are worth
+        keeping, and when something is hammering the site. This one rests on
+        our legitimate interest rather than your order.</li>
 </ul>
 <p>
     We do not sell your data, and we do not send marketing email unless you
@@ -74,6 +90,7 @@ $policyBody  = <<<HTML
     <li><strong>Trade accounts</strong> — while the account is open, then six
         years for the invoicing record.</li>
     <li><strong>Enquiries</strong> — until dealt with, then cleared periodically.</li>
+    <li><strong>Visit records</strong> — 90 days, then deleted automatically.</li>
 </ul>
 
 <h2>Your rights</h2>
@@ -99,7 +116,10 @@ $policyBody  = <<<HTML
 <p>
     This site uses one cookie: a session cookie that remembers what is in your
     basket and keeps you logged in to a trade account. It disappears when you
-    close your browser. We do not use advertising or tracking cookies.
+    close your browser. We do not use advertising or tracking cookies, and no
+    analytics company is given access to this site. Our
+    <a href="{$base}/pages/cookies.php">Cookie Policy</a> lists every one in
+    full, along with the server-side visit record described above.
 </p>
 
 <h2>Complaints</h2>

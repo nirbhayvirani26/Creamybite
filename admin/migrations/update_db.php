@@ -695,6 +695,45 @@ $tables = [
         PRIMARY KEY (`id`),
         KEY `idx_live` (`active`, `sort_order`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+    // ── One row per page a visitor opened ──────────────────────
+    //
+    // The shop had no traffic record of any kind: the only way to answer "is
+    // anyone actually reaching the trade page?" was to guess. This is that
+    // record, and it is deliberately first-party and cookie-free — nothing is
+    // stored in the visitor's browser, so it does not turn the site into
+    // something that needs a consent banner. See includes/traffic.php for the
+    // reasoning and pages/cookies.php for what the public is told.
+    //
+    // Rows are written on ordinary page loads by real customers, so this table
+    // grows faster than anything else here. Two things keep it honest:
+    // cbTrafficPurge() deletes rows past the retention window, and every
+    // column below is fixed-width and small — a VARCHAR(255) referrer would
+    // multiply the row size for a value nobody reads in full.
+    //
+    // ip_address is kept whole rather than truncated, because the point of the
+    // IP column is to be able to say "these forty hits in one minute were all
+    // the same person". That makes the row personal data, which is why the
+    // retention purge is not optional.
+    'page_views' => "CREATE TABLE IF NOT EXISTS `page_views` (
+        `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `occurred_at`   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `path`          VARCHAR(190) NOT NULL DEFAULT '',
+        `query`         VARCHAR(190) NOT NULL DEFAULT '',
+        `referrer_host` VARCHAR(120) NOT NULL DEFAULT '',
+        `ip_address`    VARCHAR(45)  NOT NULL DEFAULT '',
+        `user_agent`    VARCHAR(255) NOT NULL DEFAULT '',
+        `browser`       VARCHAR(40)  NOT NULL DEFAULT '',
+        `os`            VARCHAR(40)  NOT NULL DEFAULT '',
+        `device`        VARCHAR(20)  NOT NULL DEFAULT '',
+        `is_bot`        TINYINT(1)   NOT NULL DEFAULT 0,
+        `session_key`   CHAR(32)     NOT NULL DEFAULT '',
+        `trade_user_id` INT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY (`id`),
+        KEY `idx_when` (`occurred_at`),
+        KEY `idx_ip` (`ip_address`, `occurred_at`),
+        KEY `idx_path` (`path`, `occurred_at`),
+        KEY `idx_human` (`is_bot`, `occurred_at`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 ];
 
 foreach ($tables as $name => $sql) {

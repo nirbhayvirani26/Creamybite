@@ -55,3 +55,21 @@ if (session_status() === PHP_SESSION_NONE) {
 
     session_start();
 }
+
+// ── The visit log ───────────────────────────────────────────────────────
+//
+// Hooked here, and nowhere else, because this file is the one thing all 38
+// entry points require — which is exactly why the traffic figures could not
+// simply be hung off includes/site_header.php: order_confirmation.php,
+// catalogue.php and trade_invoice.php never include it, so a third of the
+// shop would have been invisible in its own statistics.
+//
+// cbTrafficArm() only registers a shutdown function; it decides whether the
+// request is a public page view, and writes anything, after the page has
+// already been sent. The admin panel and the AJAX handlers require this file
+// too and are filtered out inside includes/traffic.php.
+//
+// Nothing is stored in the visitor's browser by any of this. See the header
+// of includes/traffic.php for why that distinction is the whole point.
+require_once __DIR__ . '/traffic.php';
+cbTrafficArm();

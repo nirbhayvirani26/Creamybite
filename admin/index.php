@@ -3409,6 +3409,7 @@ $pageTitles = [
                 // granted to a staff member at all.
                 'production' => 'Production', 'documents' => 'Documents & SOPs',
                 'traceability' => 'Traceability & Recall',
+                'traffic' => 'Traffic & Visitors',
             ];
             ?>
 

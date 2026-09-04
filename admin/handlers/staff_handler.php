@@ -25,6 +25,7 @@ const CBI_GRANTABLE_SECTIONS = [
     'orders', 'invoices', 'revenue', 'products', 'stock',
     'categories', 'promos', 'trade', 'inquiries', 'gallery', 'banners', 'reviews',
     'accounting', 'store', 'documents', 'production', 'traceability',
+    'traffic',
 ];
 
 $action = $_POST['action'] ?? '';

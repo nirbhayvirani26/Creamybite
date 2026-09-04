@@ -110,5 +110,14 @@ $adminNav = [
      'badge' => $pendingReviews > 0 ? (string)$pendingReviews : null, 'alert' => true],
 
     ['group' => 'Admin'],
+
+    // Standalone page, same treatment as Delivery & Offers above: NOT a
+    // ?tab= in index.php, so it must never be added to $validTabs there.
+    // Its 'traffic' permission key is registered in the two places a key has
+    // to appear or it cannot be ticked for a staff member — see the comment
+    // on Delivery & Offers.
+    ['href' => 'traffic.php', 'icon' => 'fa-chart-simple',     'label' => 'Traffic & Visitors',
+     'perm' => 'traffic'],
+
     ['tab' => 'staff',      'icon' => 'fa-user-shield',        'label' => 'Staff'],
 ];
