@@ -545,7 +545,7 @@ ob_start(); ?>
 <button class="btn-view-cart cbor-drawer-action-btn" onclick="closeMobileMenu(); openCart();">
     <i class="fa-solid fa-bag-shopping"></i> View Cart
 </button>
-<a href="checkout.php" class="btn-primary cbor-drawer-action-btn">
+<a href="<?= cbUrl('checkout') ?>" class="btn-primary cbor-drawer-action-btn">
     <i class="fa-solid fa-bolt"></i> Order Now
 </a>
 <?php $cbNavDrawerRight = ob_get_clean();
@@ -629,10 +629,10 @@ require __DIR__ . '/../includes/site_header.php';
                 <span class="cbor-trade-banner-note">(Wholesale pricing applied)</span>
             </div>
             <div class="cbor-trade-banner-actions">
-                <a href="trade_profile.php" class="btn-secondary cbor-trade-banner-btn">
+                <a href="<?= cbUrl('trade_profile') ?>" class="btn-secondary cbor-trade-banner-btn">
                     <i class="fa-solid fa-user"></i> My Account
                 </a>
-                <a href="trade_logout.php" class="btn-secondary cbor-trade-banner-btn">
+                <a href="<?= cbUrl('trade_logout') ?>" class="btn-secondary cbor-trade-banner-btn">
                     <i class="fa-solid fa-right-from-bracket"></i> Logout Trade
                 </a>
             </div>
@@ -644,9 +644,9 @@ require __DIR__ . '/../includes/site_header.php';
                 <strong>Are you a Shop, Cafe, or Restaurant owner?</strong> Get wholesale pricing on bulk tubs.
             </div>
             <div class="cbor-trade-cta-links">
-                <a href="trade_register.php" class="cbor-trade-cta-link">Apply for Trade &rarr;</a>
+                <a href="<?= cbUrl('trade_register') ?>" class="cbor-trade-cta-link">Apply for Trade &rarr;</a>
                 <span class="cbor-trade-cta-sep">|</span>
-                <a href="trade_login.php" class="cbor-trade-cta-link">Trade Login &rarr;</a>
+                <a href="<?= cbUrl('trade_login') ?>" class="cbor-trade-cta-link">Trade Login &rarr;</a>
             </div>
         </div>
         <?php endif; ?>
@@ -712,7 +712,7 @@ require __DIR__ . '/../includes/site_header.php';
                 // entity back. The size picker asked for a filename that does
                 // not exist and showed a broken image, for every product with
                 // an ampersand in its name.
-                $imgPath = !empty($product['image']) ? '../assets/images/products/' . $product['image'] : '';
+                $imgPath = !empty($product['image']) ? cbUrl('assets/images/products/') . $product['image'] : '';
                 $imgSrc  = $imgPath !== '' ? htmlspecialchars($imgPath) : '';
 
                 $isOutOfStock = ($product['track_stock'] ?? 0) && ($product['stock_qty'] ?? 1) <= 0;
@@ -873,7 +873,7 @@ require __DIR__ . '/../includes/site_header.php';
                 <span class="cart-total-amount" id="cartTotal">£0.00</span>
             </div>
             <?php endif; ?></div>
-        <a href="checkout.php" class="btn-primary btn-checkout">
+        <a href="<?= cbUrl('checkout') ?>" class="btn-primary btn-checkout">
             <i class="fa-solid fa-arrow-right"></i> Proceed to Checkout
         </a>
         <button class="btn-clear-cart" onclick="clearCart()">
@@ -898,6 +898,15 @@ require __DIR__ . '/../includes/site_header.php';
 
 <!-- ══ Scripts ══════════════════════════════════════════════ -->
 <script>
+// Where product images live, handed to the cart renderer from PHP.
+//
+// The cart is drawn in JavaScript, and a relative "../assets/..." in it would
+// resolve against whatever address the customer is on. That was fine while the
+// page was always /pages/order.php; it is wrong the moment the same page is
+// served at /order, and it would be wrong again the day the cart is rendered
+// anywhere else. PHP is the only thing that knows where the site root is, so
+// it says so once here.
+const CB_PRODUCT_IMG_BASE = <?= json_encode(cbUrl('assets/images/products/')) ?>;
 // ── Cart state ──────────────────────────────────────────────
 let cartState = { items: [], cart_count: 0, cart_total: '0.00' };
 
@@ -997,7 +1006,7 @@ function addToCart(productId, variantId, name, emoji, variantName, variantPrice,
     let body = 'action=add&product_id=' + productId;
     if (variantId > 0) body += '&variant_id=' + variantId;
 
-    fetch('../cart_handler.php', {
+    fetch('<?= cbUrl('cart_handler.php') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body,
@@ -1033,7 +1042,7 @@ function addToCart(productId, variantId, name, emoji, variantName, variantPrice,
 
 // ── Remove item ──────────────────────────────────────────────
 function removeItem(cartKey) {
-    fetch('../cart_handler.php', {
+    fetch('<?= cbUrl('cart_handler.php') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=remove&cart_key=' + encodeURIComponent(cartKey),
@@ -1043,7 +1052,7 @@ function removeItem(cartKey) {
 
 // ── Update quantity ───────────────────────────────────────────
 function updateQty(cartKey, qty) {
-    fetch('../cart_handler.php', {
+    fetch('<?= cbUrl('cart_handler.php') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=update&cart_key=' + encodeURIComponent(cartKey) + '&quantity=' + qty,
@@ -1053,7 +1062,7 @@ function updateQty(cartKey, qty) {
 
 // ── Clear cart ───────────────────────────────────────────────
 function clearCart() {
-    fetch('../cart_handler.php', {
+    fetch('<?= cbUrl('cart_handler.php') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=clear',
@@ -1078,7 +1087,7 @@ function renderCart() {
         const cartKey   = item.cart_key || item.product_id;
         const safeKey   = encodeURIComponent(cartKey);
         const imgHtml   = item.image
-            ? `<img class="cart-item-img" src="../assets/images/products/${escHtml(item.image)}" alt="${escHtml(item.name)}">`
+            ? `<img class="cart-item-img" src="${CB_PRODUCT_IMG_BASE}${escHtml(item.image)}" alt="${escHtml(item.name)}">`
             : `<div class="cart-item-img-placeholder">${cbIconHtml(item.emoji)}</div>`;
         const variantLabel = item.variant_name ? `<span class="cbo-variant-label">${escHtml(item.variant_name)}</span>` : '';
 
@@ -1133,7 +1142,7 @@ let cartSummaryRequestId = 0;
 function refreshCartSummary() {
     const mine = ++cartSummaryRequestId;
 
-    return fetch('order.php?summary=json', { headers: { 'Accept': 'application/json' } })
+    return fetch('<?= cbUrl('order') ?>?summary=json', { headers: { 'Accept': 'application/json' } })
         .then(r => r.json())
         .then(data => {
             if (mine !== cartSummaryRequestId) return;   // a newer answer is on its way
@@ -1279,7 +1288,7 @@ function cbIconHtml(value) {
 // every page instead of defined here on its own.
 
 // ── Load cart on page start ──────────────────────────────────
-fetch('../cart_handler.php?action=get')
+fetch('<?= cbUrl('cart_handler.php') ?>?action=get')
     .then(r => r.json())
     .then(data => { cartState = data; renderCart(); updateBadge(); updateInCartIndicators(); });
 

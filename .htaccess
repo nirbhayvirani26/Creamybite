@@ -18,24 +18,42 @@
 # Never list a directory that has no index file.
 Options -Indexes
 
-# ── Old flat URLs -> pages/ ──────────────────────────────────
-#  The public pages used to sit at the web root (/order.php,
-#  /checkout.php, …) and those URLs are already live, bookmarked and
-#  indexed. They now live in pages/, so redirect rather than 404.
+# ── Clean URLs ───────────────────────────────────────────────
+#  Public pages are addressed WITHOUT an extension and without the folder
+#  they happen to live in:
 #
-#  301 (not an internal rewrite) on purpose: the browser ends up on the
-#  real /pages/... URL, so the "../assets/..." links inside each page
-#  resolve correctly. An internal rewrite would keep the old URL in the
-#  address bar and every relative asset path would break.
+#      /order          serves   pages/order.php
+#      /trade_register serves   pages/trade_register.php
+#      /               serves   index.php
 #
-#  Only fires when the request does not match a real file or directory,
-#  so index.php and the handlers at the root are untouched. The pattern
-#  has no slash in it, so an already-rewritten /pages/x.php cannot loop.
-#  The target is built from REQUEST_URI rather than written as a bare
-#  "pages/$1" so it stays a URL path. A bare relative target makes Apache
-#  resolve it against the filesystem and emit the server's absolute disk
-#  path in the Location header. Deriving the prefix (%1) also keeps this
-#  working whether the site is served from /orders/ or from the domain root.
+#  Three rules below, in the order they must run:
+#
+#    1. /pages/order.php  -> 301 -> /order      (the current address)
+#    2. /order.php        -> 301 -> /order      (the original flat address,
+#                                                still bookmarked and indexed)
+#    3. /order            -> internally serves pages/order.php
+#
+#  The two redirects are 301 rather than 302 because they are permanent, and
+#  only a permanent redirect passes on the ranking an address has earned. They
+#  run BEFORE the rewrite so that every old URL converges on one canonical
+#  address instead of two addresses serving identical pages.
+#
+#  Rule 3 is an INTERNAL rewrite — the address bar keeps saying /order. That is
+#  the whole point, and it is also what used to make this impossible: pages
+#  linked their assets as "../assets/...", which resolves against the address,
+#  so serving pages/order.php at /order left every stylesheet pointing at
+#  /../assets and the page came out unstyled. includes/asset.php now resolves
+#  asset URLs from the site root and cbUrl() builds internal links the same
+#  way, which is what lets the address and the file location differ at all.
+#
+#  Rules 2 and 3 only fire when the request is not a real file or directory, so
+#  index.php, the AJAX handlers and everything under assets/ and admin/ are
+#  untouched — and the pattern allows no slash, so nothing under admin/ or
+#  pages/ can be caught by them either. Rule 2 additionally checks that the
+#  page really exists before redirecting, so a request for a .php that never
+#  existed 404s where it stands instead of being sent to a clean URL with
+#  nothing behind it. An unknown clean address (/nonsense) rewrites onto
+#  pages/nonsense.php, which is not there, and Apache 404s as it should.
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
@@ -59,10 +77,41 @@ Options -Indexes
     RewriteCond %{HTTP_HOST} !^creamybite\.com$ [NC]
     RewriteCond %{HTTP_HOST} creamybite\.com$ [NC]
     RewriteRule ^(.*)$ https://creamybite.com/$1 [R=301,L]
+
+    # THE REDIRECT_STATUS GUARD ON RULES 1 AND 2 IS LOAD-BEARING.
+    #
+    # Rule 3 rewrites /order onto pages/order.php internally, and an internal
+    # rewrite in .htaccess re-enters these rules with REQUEST_URI now reading
+    # /pages/order.php. Rule 1 then recognises its own handiwork as an old-style
+    # address and 301s it back to /order, which rewrites again — every page on
+    # the site answering a redirect loop, and the browser giving up with
+    # ERR_TOO_MANY_REDIRECTS.
+    #
+    # REDIRECT_STATUS is empty only on a request that arrived from outside and
+    # is set once Apache has redirected internally, so testing it for empty
+    # means "this is the address the visitor actually asked for". Rule 3 needs
+    # no such guard: it cannot match /pages/... because its pattern allows no
+    # slash.
+
+    # 1. The folder address is no longer canonical: /pages/order.php -> /order
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteCond %{REQUEST_URI} ^(.*/)pages/([A-Za-z0-9_-]+)\.php$
+    RewriteRule ^(.*)$ %1%2 [R=301,L]
+
+    # 2. The original flat address: /order.php -> /order
+    #    Fires only when nothing real matches, so index.php and the handlers at
+    #    the root keep their .php and are never redirected.
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} ^(.*/)[^/]+\.php$
-    RewriteRule ^([A-Za-z0-9_-]+\.php)$ %1pages/$1 [R=301,L]
+    RewriteCond %{DOCUMENT_ROOT}%1pages/$1.php -f
+    RewriteRule ^([A-Za-z0-9_-]+)\.php$ %1$1 [R=301,L]
+
+    # 3. Serve the clean address from the file, without changing the address.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^([A-Za-z0-9_-]+)/?$ pages/$1.php [L]
 </IfModule>
 
 # ── Secrets must never be served ─────────────────────────────

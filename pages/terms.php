@@ -16,6 +16,10 @@ $shop  = htmlspecialchars(SHOP_NAME);
 $email = htmlspecialchars(SHOP_EMAIL);
 $phone = htmlspecialchars(SHOP_PHONE);
 
+// Used by the links in the body below. The other policy pages define it
+// the same way; terms.php simply never needed it until now.
+$base  = SITE_BASE;
+
 $policyTitle = 'Terms & Conditions';
 $policyIntro = 'The terms you agree to when you order from us.';
 $policyBody  = <<<HTML
@@ -52,7 +56,7 @@ $policyBody  = <<<HTML
 <p>
     Delivery times are our best estimate, not a guarantee. Where a delay is our
     fault and the products are unusable as a result, see
-    <a href="returns.php">Returns &amp; Refunds</a>.
+    <a href="{$base}/returns">Returns &amp; Refunds</a>.
 </p>
 
 <h2>Payment</h2>
@@ -93,7 +97,7 @@ $policyBody  = <<<HTML
 <p>
     Because our products are perishable, the usual 14-day right to cancel does
     not apply. This does not affect your rights if something is wrong with the
-    order — see <a href="returns.php">Returns &amp; Refunds</a>.
+    order — see <a href="{$base}/returns">Returns &amp; Refunds</a>.
 </p>
 
 <h2>Liability</h2>

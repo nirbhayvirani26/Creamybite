@@ -28,7 +28,7 @@ $isTrade = tradeIsLoggedIn();
 // quantities and wholesale prices openly undercuts the partners who are
 // buying on the understanding that their price is not the public one.
 if (!$isTrade) {
-    header('Location: ' . SITE_BASE . '/pages/trade_login.php?next=' . urlencode(SITE_BASE . '/pages/catalogue.php'));
+    header('Location: ' . cbUrl('trade_login') . '?next=' . urlencode(cbUrl('catalogue')));
     exit;
 }
 
@@ -58,10 +58,10 @@ ob_start();
     <?= htmlspecialchars($vatTx) ?>
     <?php if (!$isTrade): ?>
         Trade customers see wholesale pricing and case quantities here once signed in —
-        <a href="<?= $base ?>/pages/trade_register.php">apply for a trade account</a>.
+        <a href="<?= cbUrl('trade_register') ?>">apply for a trade account</a>.
     <?php endif; ?>
     Allergen and nutrition information is published separately, on the
-    <a href="<?= $base ?>/pages/allergens.php">allergen &amp; nutrition sheet</a>.
+    <a href="<?= cbUrl('allergens') ?>">allergen &amp; nutrition sheet</a>.
 </div>
 
 <?php if (empty($products)): ?>

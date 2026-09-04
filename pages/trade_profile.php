@@ -26,7 +26,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/invoice.php';
 
 if (empty($_SESSION['trade_user'])) {
-    header('Location: trade_login.php');
+    header('Location: ' . cbUrl('trade_login'));
     exit;
 }
 
@@ -42,7 +42,7 @@ $account = $stmt->fetch();
 if (!$account || $account['status'] !== 'approved') {
     unset($_SESSION['trade_user']);
     $_SESSION['cart'] = [];
-    header('Location: trade_login.php?revoked=1');
+    header('Location: ' . cbUrl('trade_login') . '?revoked=1');
     exit;
 }
 
@@ -249,10 +249,10 @@ foreach ($orders as $o) {
 $cbNavActive = '';
 $cbNavShowTrade = false; // already on the trade account page — the pill would just point at itself
 ob_start(); ?>
-<a href="order.php" class="btn-primary cbtp-nav-btn">
+<a href="<?= cbUrl('order') ?>" class="btn-primary cbtp-nav-btn">
     <i class="fa-solid fa-basket-shopping"></i> Place Order
 </a>
-<a href="trade_logout.php" class="btn-secondary cbtp-nav-btn-out">
+<a href="<?= cbUrl('trade_logout') ?>" class="btn-secondary cbtp-nav-btn-out">
     <i class="fa-solid fa-right-from-bracket"></i> Logout
 </a>
 <?php $cbNavRight = ob_get_clean();
@@ -429,7 +429,7 @@ require __DIR__ . '/../includes/site_header.php';
             <div class="cbtp-empty cbtp-empty-tall">
                 <div class="cbtp-empty-icon"><i class="fa-solid fa-box" aria-hidden="true"></i></div>
                 <h3 class="cbtp-empty-title">No orders yet</h3>
-                <a href="order.php" class="btn-primary cbtp-empty-cta">Browse Wholesale Menu</a>
+                <a href="<?= cbUrl('order') ?>" class="btn-primary cbtp-empty-cta">Browse Wholesale Menu</a>
             </div>
             <?php else: ?>
             <div class="table-wrapper">
@@ -481,7 +481,7 @@ require __DIR__ . '/../includes/site_header.php';
                                 </span>
                             </td>
                             <td class="cbtp-text-right">
-                                <a href="trade_invoice.php?code=<?= urlencode($o['order_code']) ?>" target="_blank"
+                                <a href="<?= cbUrl('trade_invoice') ?>?code=<?= urlencode($o['order_code']) ?>" target="_blank"
                                    class="btn-secondary cbtp-btn-xs">
                                     <i class="fa-solid fa-file-invoice"></i> View
                                 </a>

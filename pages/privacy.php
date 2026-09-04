@@ -48,7 +48,7 @@ $policyBody  = <<<HTML
 <p><strong>Whenever a page is opened,</strong> our own server records the time, the
 page address, the site you followed a link from, your IP address, and what your
 browser reports about itself. This is a log on our server, not a cookie and not
-an analytics service — see <a href="{$base}/pages/cookies.php#visit-log">our own
+an analytics service — see <a href="{$base}/cookies#visit-log">our own
 visit record</a> for what it does and does not do.</p>
 
 <h2>Card details</h2>
@@ -118,7 +118,7 @@ visit record</a> for what it does and does not do.</p>
     basket and keeps you logged in to a trade account. It disappears when you
     close your browser. We do not use advertising or tracking cookies, and no
     analytics company is given access to this site. Our
-    <a href="{$base}/pages/cookies.php">Cookie Policy</a> lists every one in
+    <a href="{$base}/cookies">Cookie Policy</a> lists every one in
     full, along with the server-side visit record described above.
 </p>
 

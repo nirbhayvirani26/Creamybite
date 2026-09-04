@@ -34,6 +34,15 @@ if (defined('SITE_BASE') && SITE_BASE !== '' && str_starts_with($cbSeoPath, SITE
 if ($cbSeoPath === '/index.php' || $cbSeoPath === 'index.php') {
     $cbSeoPath = '/';
 }
+
+// The same argument, for the clean URLs. SCRIPT_NAME is the FILE Apache ran —
+// /pages/order.php — but that address now 301s to /order, and a canonical tag
+// pointing at a redirect is the one thing a canonical must never be: it tells
+// a search engine the real address is somewhere that immediately says "no, it
+// is somewhere else". Declare the address visitors actually have.
+if (preg_match('#^/pages/([A-Za-z0-9_-]+)\.php$#', $cbSeoPath, $cbSeoMatch)) {
+    $cbSeoPath = '/' . $cbSeoMatch[1];
+}
 $cbSeoUrl = $cbSeoBase . $cbSeoPath;
 
 $cbSeoTitle = $cbSeoTitle ?? (SHOP_NAME . ' – ' . SHOP_TAGLINE);

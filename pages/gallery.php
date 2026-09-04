@@ -32,12 +32,12 @@ try {
 <?php
 $cbNavActive = 'gallery';
 ob_start(); ?>
-<a href="order.php" class="btn-primary cb-gal-cta">
+<a href="<?= cbUrl('order') ?>" class="btn-primary cb-gal-cta">
     <i class="fa-solid fa-bolt"></i> Order Now
 </a>
 <?php $cbNavRight = ob_get_clean();
 ob_start(); ?>
-<a href="order.php" class="btn-primary cb-gal-drawer-cta">
+<a href="<?= cbUrl('order') ?>" class="btn-primary cb-gal-drawer-cta">
     <i class="fa-solid fa-bolt"></i> Order Now
 </a>
 <?php $cbNavDrawerRight = ob_get_clean();
@@ -61,7 +61,7 @@ require __DIR__ . '/../includes/site_header.php';
         <div class="gallery-empty">
             <div class="gallery-empty-icon"><i class="fa-solid fa-camera-retro"></i></div>
             <p class="cb-gal-lead">No photos yet — check back soon!</p>
-            <a href="order.php" class="btn-primary">
+            <a href="<?= cbUrl('order') ?>" class="btn-primary">
                 <i class="fa-solid fa-arrow-right"></i> Browse Our Menu
             </a>
         </div>
@@ -70,7 +70,7 @@ require __DIR__ . '/../includes/site_header.php';
             <?php foreach ($gallery as $img): ?>
             <div class="gallery-item" onclick="openLightbox(<?= cbJsAttr('../assets/images/gallery/' . $img['filename']) ?>, <?= cbJsAttr($img['caption']) ?>)">
                 <img
-                    src="../assets/images/gallery/<?= htmlspecialchars($img['filename']) ?>"
+                    src="<?= cbUrl('assets/images/gallery/') . rawurlencode($img['filename']) ?>"
                     alt="<?= htmlspecialchars($img['caption'] ?: 'Creamy Bite') ?>"
                     loading="lazy">
                 <div class="gallery-item-overlay">

@@ -17,5 +17,5 @@ unset($_SESSION['promo']);
 unset($_SESSION['trade_user']);
 
 // Back to the home page with an empty basket.
-header('Location: ../index.php');
+header('Location: ' . cbUrl());
 exit;

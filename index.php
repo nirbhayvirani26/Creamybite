@@ -408,7 +408,7 @@ require __DIR__ . '/includes/site_header.php';
     <div class="container">
         <div class="story-grid">
             <div class="story-img-block">
-                <img src="assets/images/story_artisan.jpg" alt="Creamy Bite Handcrafted Ice Cream Story" loading="lazy">
+                <img src="<?= cbUrl('assets/images/story_artisan.jpg') ?>" alt="Creamy Bite Handcrafted Ice Cream Story" loading="lazy">
             </div>
             <div class="story-content">
                 <span class="section-label">Our Story</span>

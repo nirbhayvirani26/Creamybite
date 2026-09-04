@@ -66,7 +66,7 @@ $policyBody  = <<<HTML
         Call us as soon as you can. If the order has not been made up yet we can
         change or cancel it and refund you in full. Once it has been packed and
         loaded we may not be able to — but talk to us rather than assuming.
-        See <a href="{$base}/pages/returns.php">Returns &amp; Refunds</a>.
+        See <a href="{$base}/returns">Returns &amp; Refunds</a>.
     </p>
 </details>
 
@@ -92,7 +92,7 @@ $policyBody  = <<<HTML
     <p>
         Enter your postcode at checkout and the exact distance and charge appear
         before you pay. Full detail on the
-        <a href="{$base}/pages/shipping.php">Shipping &amp; Delivery</a> page.
+        <a href="{$base}/shipping">Shipping &amp; Delivery</a> page.
     </p>
 </details>
 
@@ -161,7 +161,7 @@ $policyBody  = <<<HTML
     <p>
         Allergen information is listed per product, because it genuinely differs
         flavour by flavour and a general answer here would be worse than none.
-        See the <a href="{$base}/pages/allergens.php">allergen &amp; nutrition
+        See the <a href="{$base}/allergens">allergen &amp; nutrition
         information</a> for the current list.
     </p>
     <p>
@@ -186,7 +186,7 @@ $policyBody  = <<<HTML
 <details class="cbfaq-item">
     <summary>How do I open a trade account?</summary>
     <p>
-        Apply on the <a href="{$base}/pages/trade_register.php">trade
+        Apply on the <a href="{$base}/trade_register">trade
         registration</a> page. We will review it and get in touch. Once approved
         you will see wholesale pricing when you log in, and you can order in case
         quantities.
@@ -198,7 +198,7 @@ $policyBody  = <<<HTML
     <ul>
         <li>Wholesale pricing across the range</li>
         <li>Case quantities and a downloadable
-            <a href="{$base}/pages/catalogue.php">product catalogue</a></li>
+            <a href="{$base}/catalogue">product catalogue</a></li>
         <li>Proper VAT invoices, with your details saved</li>
         <li>Order history you can reorder from</li>
         <li>Collection from the warehouse at no charge</li>
@@ -209,7 +209,7 @@ $policyBody  = <<<HTML
     <summary>Can I get a copy of an old invoice?</summary>
     <p>
         Yes — they are all in your account under
-        <a href="{$base}/pages/trade_profile.php">your profile</a>, and you can
+        <a href="{$base}/trade_profile">your profile</a>, and you can
         open or print any of them. If one is missing, email
         <a href="mailto:{$email}">{$email}</a> and we will send it over.
     </p>

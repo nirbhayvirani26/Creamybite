@@ -53,7 +53,7 @@ $policyUpdated = $policyUpdated ?? date('F Y');
 <?php
 $cbNavActive = '';
 ob_start(); ?>
-<a href="order.php" class="btn-primary cbpol-nav-btn">Order Now</a>
+<a href="<?= cbUrl('order') ?>" class="btn-primary cbpol-nav-btn">Order Now</a>
 <?php $cbNavRight = ob_get_clean();
 require __DIR__ . '/site_header.php';
 ?>
@@ -61,7 +61,7 @@ require __DIR__ . '/site_header.php';
 <main class="cbpol-page">
     <div class="container cbpol-shell">
         <nav class="cbpol-breadcrumb" aria-label="Breadcrumb">
-            <a href="../index.php">Home</a> <span aria-hidden="true">›</span>
+            <a href="<?= cbUrl() ?>">Home</a> <span aria-hidden="true">›</span>
             <span><?= htmlspecialchars($policyTitle) ?></span>
         </nav>
 

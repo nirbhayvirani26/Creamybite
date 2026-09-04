@@ -8,13 +8,13 @@ require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/db.php';
 
 $code = trim($_GET['code'] ?? '');
-if (empty($code)) { header('Location: order.php'); exit; }
+if (empty($code)) { header('Location: ' . cbUrl('order')); exit; }
 
 // Fetch order from DB
 $stmt = $pdo->prepare("SELECT * FROM orders WHERE order_code = :code LIMIT 1");
 $stmt->execute(['code' => $code]);
 $order = $stmt->fetch();
-if (!$order) { header('Location: order.php'); exit; }
+if (!$order) { header('Location: ' . cbUrl('order')); exit; }
 
 // ── Who is allowed to see this order? ────────────────────────
 // Order codes are 'CB-' plus six digits — about 900,000 values, which is
@@ -30,7 +30,7 @@ $isAdmin    = !empty($_SESSION['admin_logged_in']);
 
 if (!$justPlaced && !$ownTrade && !$isAdmin) {
     http_response_code(403);
-    header('Location: order.php?not_your_order=1');
+    header('Location: ' . cbUrl('order') . '?not_your_order=1');
     exit;
 }
 
@@ -59,12 +59,12 @@ $items = json_decode($order['items_json'], true) ?? [];
 
 <header class="navbar">
     <div class="container nav-container">
-        <a href="../index.php" class="logo"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="logo-img"></a>
+        <a href="<?= cbUrl() ?>" class="logo"><img src="<?= cbUrl('assets/images/logo.png') ?>" alt="<?= SHOP_NAME ?>" class="logo-img"></a>
         <nav><ul class="nav-links">
-            <li><a href="../index.php">Home</a></li>
-            <li><a href="order.php">Order</a></li>
-            <li><a href="gallery.php">Gallery</a></li>
-            <li><a href="about.php">About Us</a></li>
+            <li><a href="<?= cbUrl() ?>">Home</a></li>
+            <li><a href="<?= cbUrl('order') ?>">Order</a></li>
+            <li><a href="<?= cbUrl('gallery') ?>">Gallery</a></li>
+            <li><a href="<?= cbUrl('about') ?>">About Us</a></li>
         </ul></nav>
     </div>
 </header>
@@ -181,7 +181,7 @@ $items = json_decode($order['items_json'], true) ?? [];
 
         <!-- CTA Buttons -->
         <div class="cboc-cta-row">
-            <a href="order.php" class="btn-primary">
+            <a href="<?= cbUrl('order') ?>" class="btn-primary">
                 <i class="fa-solid fa-ice-cream"></i> Order More Scoops
             </a>
             <button onclick="window.print()" class="btn-secondary">
@@ -193,7 +193,7 @@ $items = json_decode($order['items_json'], true) ?? [];
 
 <footer class="footer">
     <div class="container footer-inner">
-        <a href="../index.php"><img src="../assets/images/logo.png" alt="<?= SHOP_NAME ?>" class="footer-logo-img cboc-footer-logo-sm"></a>
+        <a href="<?= cbUrl() ?>"><img src="<?= cbUrl('assets/images/logo.png') ?>" alt="<?= SHOP_NAME ?>" class="footer-logo-img cboc-footer-logo-sm"></a>
         <span class="footer-copy">© <?= date('Y') ?> <?= SHOP_NAME ?>. Thank you for your order!</span>
     </div>
 </footer>

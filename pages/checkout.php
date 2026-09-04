@@ -41,7 +41,7 @@ if ($summaryJson) {
 
     // Redirect if cart empty
     if (empty($cart)) {
-        header('Location: order.php?empty_cart=1');
+        header('Location: ' . cbUrl('order') . '?empty_cart=1');
         exit;
     }
 }
@@ -508,12 +508,12 @@ if ($summaryJson) {
 <?php
 $cbNavActive = '';
 ob_start(); ?>
-<a href="order.php" class="btn-secondary cbco-nav-back-btn">
+<a href="<?= cbUrl('order') ?>" class="btn-secondary cbco-nav-back-btn">
     <i class="fa-solid fa-arrow-left"></i> Back to Menu
 </a>
 <?php $cbNavRight = ob_get_clean();
 ob_start(); ?>
-<a href="order.php" class="btn-secondary cbco-drawer-back-btn">
+<a href="<?= cbUrl('order') ?>" class="btn-secondary cbco-drawer-back-btn">
     <i class="fa-solid fa-arrow-left"></i> Back to Menu
 </a>
 <?php $cbNavDrawerRight = ob_get_clean();
@@ -584,7 +584,7 @@ require __DIR__ . '/../includes/site_header.php';
                         Your basket is safe — everything in it will still be here when we open back up.
                     </p>
                     <div class="cbco-paused-actions">
-                        <a href="order.php" class="btn-secondary cbco-paused-btn">
+                        <a href="<?= cbUrl('order') ?>" class="btn-secondary cbco-paused-btn">
                             <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to the menu
                         </a>
                         <a href="tel:<?= htmlspecialchars(SHOP_PHONE) ?>" class="btn-primary cbco-paused-btn">
@@ -609,7 +609,7 @@ require __DIR__ . '/../includes/site_header.php';
 
                     <h2><i class="fa-solid fa-user-check cbco-icon-primary"></i> Contact & Delivery Instructions</h2>
 
-                    <form action="../checkout_handler.php" method="POST" id="checkoutForm">
+                    <form action="<?= cbUrl('checkout_handler.php') ?>" method="POST" id="checkoutForm">
                         <?= csrfField() ?>
 
                         <!-- Bot protection (honeypot) -->
@@ -675,7 +675,7 @@ require __DIR__ . '/../includes/site_header.php';
                     <!-- ── RETAIL CUSTOMER CHECKOUT ────────────────────────── -->
                     <h2><i class="fa-solid fa-user cbco-icon-primary"></i> Delivery Details</h2>
 
-                    <form action="../checkout_handler.php" method="POST" id="checkoutForm">
+                    <form action="<?= cbUrl('checkout_handler.php') ?>" method="POST" id="checkoutForm">
                         <?= csrfField() ?>
 
                         <!-- ── Bot protection (honeypot) ─────────── -->
@@ -963,7 +963,7 @@ require __DIR__ . '/../includes/site_header.php';
                         ) ?></div>
 
                     <div class="cbco-add-more-row">
-                        <a href="order.php" class="cbco-add-more-link">
+                        <a href="<?= cbUrl('order') ?>" class="cbco-add-more-link">
                             <i class="fa-solid fa-arrow-left"></i> Add more items
                         </a>
                     </div>
@@ -1021,7 +1021,7 @@ function refreshSummary() {
         postcode:   isCollection ? '' : totalsPostcode,
     });
 
-    return fetch('checkout.php', {
+    return fetch('<?= cbUrl('checkout') ?>', {
         method:  'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body:    body.toString(),
@@ -1125,7 +1125,7 @@ function applyPromo() {
 }
 
 function removePromo() {
-    fetch('../promo_handler.php?action=remove').then(() => location.reload());
+    fetch('<?= cbUrl('promo_handler.php') ?>?action=remove').then(() => location.reload());
 }
 
 function showPromoMsg(msg, type, iconClass) {
@@ -1170,7 +1170,7 @@ function reEvaluateCharges() {
             appliedPromo = null;
 
             // Remove from session silently
-            fetch('../promo_handler.php?action=remove');
+            fetch('<?= cbUrl('promo_handler.php') ?>?action=remove');
 
             // Restore input field with code pre-filled + warning
             const inputRow    = document.getElementById('promoInputRow');
@@ -1212,7 +1212,7 @@ function summaryUpdateQty(cartKey, domKey, direction, step) {
     // back up to where it already was.
     if (qty < step) { summaryRemoveItem(cartKey, domKey); return; }
 
-    fetch('../cart_handler.php', {
+    fetch('<?= cbUrl('cart_handler.php') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=update&cart_key=' + encodeURIComponent(cartKey) + '&quantity=' + qty,
@@ -1257,7 +1257,7 @@ function summaryUpdateQty(cartKey, domKey, direction, step) {
 }
 
 function summaryRemoveItem(cartKey, domKey) {
-    fetch('../cart_handler.php', {
+    fetch('<?= cbUrl('cart_handler.php') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=remove&cart_key=' + encodeURIComponent(cartKey),
@@ -1313,7 +1313,7 @@ const CB_IS_TRADE = <?= json_encode((bool)$isTradeUser) ?>;
 // Initialise Stripe on page load
 (async () => {
     try {
-        const res  = await fetch('../stripe_intent.php');
+        const res  = await fetch('<?= cbUrl('stripe_intent.php') ?>');
         const data = await res.json();
 
         if (data.error) {
@@ -2155,7 +2155,7 @@ function triggerStripeAmountUpdate() {
     const isCollection = document.querySelector('input[name="order_type"]:checked')?.value === 'collection';
     const pc = document.getElementById('delivery_postcode')?.value || '';
     
-    fetch('../stripe_intent.php', {
+    fetch('<?= cbUrl('stripe_intent.php') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `order_type=${isCollection ? 'collection' : 'delivery'}&postcode=${encodeURIComponent(pc)}`

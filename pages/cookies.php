@@ -174,7 +174,7 @@ $policyBody  = <<<HTML
 
 <h2>Related</h2>
 <p>
-    Our <a href="{$base}/pages/privacy.php">Privacy Policy</a> covers the
+    Our <a href="{$base}/privacy">Privacy Policy</a> covers the
     information we hold about you and what we do with it. Questions about either
     are welcome — <a href="mailto:{$email}">{$email}</a> or
     <a href="tel:{$phone}">{$phone}</a>.

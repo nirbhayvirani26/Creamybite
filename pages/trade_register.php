@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $cbNavActive = '';
 $cbNavShowTrade = false; // already on the register page — a trade-account pill would be redundant
 ob_start(); ?>
-<a href="trade_login.php" class="btn-secondary cbtr-nav-login-btn">
+<a href="<?= cbUrl('trade_login') ?>" class="btn-secondary cbtr-nav-login-btn">
     <i class="fa-solid fa-right-to-bracket"></i> Trade Login
 </a>
 <?php $cbNavRight = ob_get_clean();
@@ -160,7 +160,7 @@ require __DIR__ . '/../includes/site_header.php';
                     <?= $successMsg ?>
                 </div>
                 <div class="cbtr-success-actions">
-                    <a href="trade_login.php" class="btn-primary cbtr-login-btn">Proceed to Trade Login</a>
+                    <a href="<?= cbUrl('trade_login') ?>" class="btn-primary cbtr-login-btn">Proceed to Trade Login</a>
                 </div>
             <?php else: ?>
 
@@ -170,7 +170,7 @@ require __DIR__ . '/../includes/site_header.php';
                     </div>
                 <?php endif; ?>
 
-                <form method="POST" action="trade_register.php" class="cbtr-form">
+                <form method="POST" action="<?= cbUrl('trade_register') ?>" class="cbtr-form">
                     <?= csrfField() ?>
                     <div class="form-row cbtr-form-row">
                         <div class="form-group">
@@ -231,7 +231,7 @@ require __DIR__ . '/../includes/site_header.php';
                     </button>
 
                     <div class="cbtr-form-footer">
-                        Already have an approved trade account? <a href="trade_login.php" class="cbtr-login-link">Login Here</a>
+                        Already have an approved trade account? <a href="<?= cbUrl('trade_login') ?>" class="cbtr-login-link">Login Here</a>
                     </div>
                 </form>
             <?php endif; ?>

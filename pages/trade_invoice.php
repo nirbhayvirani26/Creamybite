@@ -13,7 +13,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 
 if (empty($_SESSION['trade_user'])) {
-    header('Location: trade_login.php');
+    header('Location: ' . cbUrl('trade_login'));
     exit;
 }
 
@@ -21,7 +21,7 @@ $userId = (int)($_SESSION['trade_user']['id'] ?? 0);
 $code   = trim($_GET['code'] ?? '');
 
 if ($code === '') {
-    header('Location: trade_profile.php?tab=invoices');
+    header('Location: ' . cbUrl('trade_profile') . '?tab=invoices');
     exit;
 }
 
@@ -69,7 +69,7 @@ $customerNo = 'TC-' . str_pad((string)$userId, 5, '0', STR_PAD_LEFT);
 <body>
 
 <div class="actions">
-    <a href="trade_profile.php?tab=invoices" class="btn btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Invoices</a>
+    <a href="<?= cbUrl('trade_profile') ?>?tab=invoices" class="btn btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Invoices</a>
     <?php if (!$notFound): ?>
     <button class="btn btn-print" onclick="window.print()"><i class="fa-solid fa-print"></i> Print / Save as PDF</button>
     <?php endif; ?>

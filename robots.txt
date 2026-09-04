@@ -14,9 +14,13 @@ Disallow: /checkout_handler.php
 Disallow: /promo_handler.php
 Disallow: /stripe_intent.php
 Disallow: /invoice.php
+Disallow: /checkout
 Disallow: /pages/checkout.php
+Disallow: /order_confirmation
 Disallow: /pages/order_confirmation.php
+Disallow: /trade_profile
 Disallow: /pages/trade_profile.php
+Disallow: /trade_invoice
 Disallow: /pages/trade_invoice.php
 
 Allow: /

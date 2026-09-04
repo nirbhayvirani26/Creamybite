@@ -13,5 +13,8 @@
 //  The original file is not needed; recover it from version control or the
 //  session backup if it is ever wanted.
 // ============================================================
-header('Location: order.php', true, 301);
+// cbUrl() needs SITE_BASE, so config.php has to be loaded even though this
+// file does nothing but redirect.
+require_once __DIR__ . '/../includes/config.php';
+header('Location: ' . cbUrl('order'), true, 301);
 exit;

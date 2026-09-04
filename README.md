@@ -20,6 +20,7 @@ orders/
 │   ├── trade_*.php            B2B portal (login/register/profile/invoice/logout)
 │   └── shop.php  admin.php  login.php  trade_history.php
 │                              Retired URLs kept as redirects — do not delete
+│                              (all pages are served at /name, without .php)
 │
 ├── includes/                  Server-side only, never a URL (HTTP-blocked)
 │   ├── config.php             Site constants + local/live environment switch
@@ -59,16 +60,31 @@ orders/
 
 ## Conventions
 
-- **Public pages live in `pages/`; the old flat URLs still work.** `/order.php`
-  and friends were already live and indexed, so `.htaccess` 301-redirects them
-  to `/pages/order.php`. It is a redirect, not an internal rewrite, so the
-  browser lands on the real URL and each page's `../assets/...` links resolve.
-- **`index.php` and the four handlers stay at the root.** `index.php` is the
-  site entry point, and the handlers are endpoints the pages POST/fetch to.
-- **Links in shared partials use `SITE_BASE`.** A partial included by both
-  `index.php` (root) and `pages/*.php` (one level down) cannot use a relative
-  link — it would resolve to two different places. `SITE_BASE` is the URL path
-  to the project root (`/orders` locally, `` at a domain root).
+- **Public pages are served at clean URLs.** `pages/order.php` is reached at
+  `/order` — no folder, no extension. `.htaccess` rewrites the clean address
+  onto the file internally, and 301-redirects both older forms (`/order.php`
+  and `/pages/order.php`) onto it, so every address that was ever live
+  converges on one canonical URL.
+- **`index.php` and the handlers stay at the root, extension and all.**
+  `index.php` is the site entry point and is served at `/`; the handlers are
+  endpoints scripts call, not pages anyone reads, so they keep `.php` and are
+  deliberately excluded from the rewrite.
+- **Never write an internal link relative.** Use `cbUrl('order')` for a page,
+  `cbUrl('cart_handler.php')` for an endpoint, and `cbAsset('../assets/...')`
+  for a stylesheet, script or image. All three return a path from the site
+  root, built on `SITE_BASE` so a subfolder install still works.
+
+  This is not a style preference. A relative link resolves against the ADDRESS
+  the browser is showing, and that address no longer matches the folder the
+  file lives in: `/order` and `/pages/order.php` run the same script, so
+  `href="checkout.php"` written on that page means two different things
+  depending on which address the customer arrived at, and `../assets/x.css`
+  means a URL above the site root. Both fail silently — an unstyled page or a
+  dead link, with nothing in the logs.
+
+  `cbAsset()` resolves against the running script's own folder, which is what
+  keeps `admin/` working: `cbAsset('assets/css/admin.css')` on an admin page
+  means `/admin/assets/...`, not the storefront's.
 - **`includes/` is unreachable over HTTP** (`includes/.htaccess` denies all).
   `require`/`include` are filesystem reads and are unaffected.
 - **Paths are written as `__DIR__ . '/...'`**, so a file works regardless of

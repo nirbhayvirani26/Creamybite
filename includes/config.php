@@ -250,6 +250,35 @@ define('SITE_BASE', ($docRoot !== '' && str_starts_with($projRoot, $docRoot))
     ? rtrim(substr($projRoot, strlen($docRoot)), '/')
     : '');
 
+/**
+ * A URL for something on this site, from the site root.
+ *
+ *     cbUrl('order')             ->  /order            (a page)
+ *     cbUrl('cart_handler.php')  ->  /cart_handler.php (an endpoint)
+ *     cbUrl()                    ->  /                 (the home page)
+ *
+ * Pages are addressed WITHOUT the .php — /order, not /pages/order.php — and
+ * the rewrite rules in .htaccess map the clean address onto the file. Handlers
+ * keep their extension because they are endpoints a script calls, not pages
+ * anyone reads, and nothing links to them from an address bar.
+ *
+ * Everything internal goes through this rather than being written relative
+ * ("order.php", "../cart_handler.php"). A relative link resolves against the
+ * ADDRESS the browser is showing, and under clean URLs that address no longer
+ * matches the folder the file lives in: /order and /pages/order.php run the
+ * same script, and "checkout.php" written on that page means two different
+ * things depending on which one the customer arrived at.
+ *
+ * Built on SITE_BASE so the site still works from a subfolder — "/orders/order"
+ * under MAMP, "/order" on the live domain.
+ */
+function cbUrl(string $path = ''): string
+{
+    $path = ltrim($path, '/');
+    $base = rtrim(SITE_BASE, '/');
+    return $path === '' ? ($base === '' ? '/' : $base . '/') : $base . '/' . $path;
+}
+
 define('IS_LOCAL', $isLocal);
 define('DB_HOST', $db['host']);
 define('DB_PORT', $db['port']);

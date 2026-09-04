@@ -13,11 +13,14 @@
 //  trade_profile.php scopes strictly by trade_user_id.
 // ============================================================
 require_once __DIR__ . '/../includes/session.php';
+// cbUrl() needs SITE_BASE. session.php does not pull config.php in, so a file
+// that only redirects still has to ask for it.
+require_once __DIR__ . '/../includes/config.php';
 
 if (empty($_SESSION['trade_user'])) {
-    header('Location: trade_login.php');
+    header('Location: ' . cbUrl('trade_login'));
     exit;
 }
 
-header('Location: trade_profile.php?tab=orders');
+header('Location: ' . cbUrl('trade_profile') . '?tab=orders');
 exit;

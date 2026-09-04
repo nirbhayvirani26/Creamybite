@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $cbNavActive = '';
 $cbNavShowTrade = false; // already on the login page — showing a trade-account pill too would be redundant
 ob_start(); ?>
-<a href="trade_register.php" class="btn-secondary cbtl-nav-apply-btn">
+<a href="<?= cbUrl('trade_register') ?>" class="btn-secondary cbtl-nav-apply-btn">
     <i class="fa-solid fa-user-plus"></i> Apply for Trade
 </a>
 <?php $cbNavRight = ob_get_clean();
@@ -164,7 +164,7 @@ require __DIR__ . '/../includes/site_header.php';
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="trade_login.php" class="cbtl-login-form">
+            <form method="POST" action="<?= cbUrl('trade_login') ?>" class="cbtl-login-form">
                 <?= csrfField() ?>
                 <?php // Carried through the POST, or the destination is lost the
                       // moment the form submits and everyone lands on order.php. ?>
@@ -184,7 +184,7 @@ require __DIR__ . '/../includes/site_header.php';
                 </button>
 
                 <div class="cbtl-login-signup-note">
-                    Don't have a Trade Account yet? <a href="trade_register.php" class="cbtl-login-signup-link">Apply Here</a>
+                    Don't have a Trade Account yet? <a href="<?= cbUrl('trade_register') ?>" class="cbtl-login-signup-link">Apply Here</a>
                 </div>
             </form>
         </div>

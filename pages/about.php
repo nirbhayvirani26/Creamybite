@@ -103,12 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
 <?php
 $cbNavActive = 'about';
 ob_start(); ?>
-<a href="order.php" class="btn-primary cbab-nav-order-btn">
+<a href="<?= cbUrl('order') ?>" class="btn-primary cbab-nav-order-btn">
     <i class="fa-solid fa-bolt"></i> Order Now
 </a>
 <?php $cbNavRight = ob_get_clean();
 ob_start(); ?>
-<a href="order.php" class="btn-primary cbab-drawer-order-btn">
+<a href="<?= cbUrl('order') ?>" class="btn-primary cbab-drawer-order-btn">
     <i class="fa-solid fa-bolt"></i> Order Now
 </a>
 <?php $cbNavDrawerRight = ob_get_clean();
@@ -129,7 +129,7 @@ require __DIR__ . '/../includes/site_header.php';
     <div class="container">
         <div class="about-story-grid">
             <div class="about-story-img">
-                <img src="../assets/images/about_story.jpg" alt="About Creamy Bite Artisanal Ice Cream" loading="lazy">
+                <img src="<?= cbUrl('assets/images/about_story.jpg') ?>" alt="About Creamy Bite Artisanal Ice Cream" loading="lazy">
             </div>
             <div class="about-story-content">
                 <span class="section-label">Our Story</span>
@@ -204,7 +204,7 @@ require __DIR__ . '/../includes/site_header.php';
                     <h3 class="cbab-panel-title">
                         <i class="fa-solid fa-envelope"></i> Send an Enquiry
                     </h3>
-                    <form action="about.php" method="POST" id="contactForm">
+                    <form action="<?= cbUrl('about') ?>" method="POST" id="contactForm">
                         <?= csrfField() ?>
                         <?php /* Honeypot: hidden from people, filled in by bots. */ ?>
                         <div class="cbab-honeypot" aria-hidden="true">

@@ -16,79 +16,79 @@
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/order.php</loc>
+        <loc>https://creamybite.com/order</loc>
         <lastmod>2026-08-08</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/about.php</loc>
+        <loc>https://creamybite.com/about</loc>
         <lastmod>2026-08-07</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/gallery.php</loc>
+        <loc>https://creamybite.com/gallery</loc>
         <lastmod>2026-08-07</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/trade_register.php</loc>
+        <loc>https://creamybite.com/trade_register</loc>
         <lastmod>2026-08-07</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/trade_login.php</loc>
+        <loc>https://creamybite.com/trade_login</loc>
         <lastmod>2026-08-07</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/shipping.php</loc>
+        <loc>https://creamybite.com/shipping</loc>
         <lastmod>2026-08-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/returns.php</loc>
+        <loc>https://creamybite.com/returns</loc>
         <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.4</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/faq.php</loc>
+        <loc>https://creamybite.com/faq</loc>
         <lastmod>2026-08-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/allergens.php</loc>
+        <loc>https://creamybite.com/allergens</loc>
         <lastmod>2026-08-04</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.5</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/storage.php</loc>
+        <loc>https://creamybite.com/storage</loc>
         <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.4</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/cookies.php</loc>
+        <loc>https://creamybite.com/cookies</loc>
         <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/privacy.php</loc>
+        <loc>https://creamybite.com/privacy</loc>
         <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>
     </url>
     <url>
-        <loc>https://creamybite.com/pages/terms.php</loc>
+        <loc>https://creamybite.com/terms</loc>
         <lastmod>2026-08-04</lastmod>
         <changefreq>yearly</changefreq>
         <priority>0.3</priority>

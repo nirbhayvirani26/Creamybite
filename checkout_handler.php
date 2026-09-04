@@ -41,7 +41,7 @@ try {
 
 // Only accept POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: pages/checkout.php');
+    header('Location: ' . cbUrl('checkout'));
     exit;
 }
 
@@ -67,14 +67,14 @@ if (!csrfValid()) {
         'That page had been open a while, so we did not put the order through. '
         . 'Your basket is still here — please check it over and press Place Order again.',
     ];
-    header('Location: pages/checkout.php');
+    header('Location: ' . cbUrl('checkout'));
     exit;
 }
 
 // ── Validate cart ─────────────────────────────────────────
 $cart = $_SESSION['cart'] ?? [];
 if (empty($cart)) {
-    header('Location: pages/order.php?empty_cart=1');
+    header('Location: ' . cbUrl('order') . '?empty_cart=1');
     exit;
 }
 
@@ -147,7 +147,7 @@ if (($_POST['payment_method'] ?? '') === 'online' && $stripeIntentId && class_ex
 function abandonCheckout(array $messages): void
 {
     $_SESSION['checkout_errors'] = $messages;
-    header('Location: pages/checkout.php');
+    header('Location: ' . cbUrl('checkout'));
     exit;
 }
 
@@ -616,7 +616,7 @@ try {
 
     $_SESSION['checkout_errors'] = ['Sorry, we could not place your order. Please try again.'];
     error_log("Order save error: " . $e->getMessage());
-    header('Location: pages/checkout.php');
+    header('Location: ' . cbUrl('checkout'));
     exit;
 }
 }
@@ -714,5 +714,5 @@ $_SESSION['own_order_codes'] = array_slice(
 );
 
 // ── Redirect to confirmation ──────────────────────────────
-header('Location: pages/order_confirmation.php?code=' . urlencode($orderCode));
+header('Location: ' . cbUrl('order_confirmation') . '?code=' . urlencode($orderCode));
 exit;

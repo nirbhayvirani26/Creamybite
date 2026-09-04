@@ -25,20 +25,39 @@
  * The version is the mtime rather than a hand-kept number precisely so that no
  * one has to remember to bump it — uploading the file IS the bump.
  *
- * WHY IT TAKES THE URL AS WRITTEN
+ * WHY IT RETURNS AN ABSOLUTE PATH
  * -------------------------------
- * Pages sit at three depths and link assets relative to themselves:
- * "assets/..." from the site root, "../assets/..." from pages/ and admin/, and
- * "../../assets/..." from admin/print/. Rewriting those to absolute paths would
- * break the site the moment it moved into a subfolder, so the relative URL is
- * passed straight through and only the ?v= is added. The filesystem path is
- * worked out separately, from this file's own location.
+ * Callers still WRITE the URL relative to their own file — "assets/..." from
+ * the site root, "../assets/..." from pages/ and admin/, "../../assets/..."
+ * from admin/print/ — and this resolves it to a path from the site root:
+ *
+ *     ../assets/css/style.css   (called from pages/)   ->  /assets/css/style.css
+ *     assets/css/admin.css      (called from admin/)   ->  /admin/assets/css/admin.css
+ *
+ * It used to pass the relative URL straight through, which was correct while
+ * every page was served at the same URL depth as its own file. Clean URLs
+ * ended that: /order is served BY pages/order.php but sits at the site root as
+ * far as the browser is concerned, so "../assets/css/style.css" resolved to
+ * "/../assets/css/style.css" and every page came out unstyled.
+ *
+ * Resolving against the RUNNING SCRIPT's directory rather than assuming the
+ * site root is what keeps admin working: admin/ has its own assets/ folder, so
+ * "assets/css/admin.css" on an admin page must mean admin/assets/..., not the
+ * storefront's.
+ *
+ * The original worry — that absolute paths break when the site moves into a
+ * subfolder — is handled by building on SITE_BASE, which is exactly the URL
+ * prefix of the project root ("/orders" under MAMP, "" on the live domain).
+ * If any of that cannot be worked out, the URL is returned relative, as before.
  *
  * FAILS SAFE
  * ----------
- * If the file cannot be found or stat'd, the URL is returned exactly as given.
- * A missing version parameter means a stale cache — an inconvenience. A thrown
- * error, or a mangled href, would mean an unstyled page.
+ * If the file cannot be found or stat'd, the path is still resolved but no
+ * ?v= is added. A missing version parameter means a stale cache — an
+ * inconvenience. A thrown error, or a mangled href, would mean an unstyled
+ * page. If even the resolution cannot be done confidently (no SCRIPT_FILENAME,
+ * no SITE_BASE, a script outside the project) the URL is returned exactly as
+ * given, which is what the site did before clean URLs existed.
  */
 
 if (!function_exists('cbAsset')) {
@@ -92,10 +111,68 @@ if (!function_exists('cbAsset')) {
             }
         }
         if ($stamp === false) {
-            return $cache[$relUrl] = $relUrl;
+            // Still resolve the path, just without a version. Returning the
+            // relative URL here would have been the old fail-safe, but under
+            // clean URLs a relative asset path is not a stale cache — it is a
+            // 404, because /order is not served from the folder the page lives
+            // in. An unversioned absolute URL is the safe half of the two.
+            return $cache[$relUrl] = cbAssetAbsolute($relUrl);
         }
 
         $sep = str_contains($relUrl, '?') ? '&' : '?';
-        return $cache[$relUrl] = $relUrl . $sep . 'v=' . $stamp;
+        return $cache[$relUrl] = cbAssetAbsolute($relUrl) . $sep . 'v=' . $stamp;
+    }
+}
+
+if (!function_exists('cbAssetAbsolute')) {
+    /**
+     * A caller-relative asset URL, as a path from the site root.
+     *
+     * Returns $relUrl untouched when it cannot be resolved with confidence. An
+     * unversioned or relative URL is a stale cache at worst; a wrong absolute
+     * one is a missing stylesheet on every page, so the uncertain case keeps
+     * the old behaviour rather than guessing.
+     */
+    function cbAssetAbsolute(string $relUrl): string
+    {
+        if ($relUrl === '' || $relUrl[0] === '/') {
+            return $relUrl;                       // already absolute
+        }
+        if (!defined('SITE_BASE')) {
+            return $relUrl;                       // config.php not loaded
+        }
+
+        $projRoot  = str_replace('\\', '/', dirname(__DIR__));
+        $script    = str_replace('\\', '/', (string)($_SERVER['SCRIPT_FILENAME'] ?? ''));
+        if ($script === '') {
+            return $relUrl;
+        }
+        $scriptDir = dirname($script);
+
+        // The script has to sit inside this project for its URL directory to
+        // be derivable from SITE_BASE. A symlinked or aliased script does not,
+        // and gets the relative URL rather than a wrong absolute one.
+        if ($scriptDir !== $projRoot && !str_starts_with($scriptDir . '/', $projRoot . '/')) {
+            return $relUrl;
+        }
+
+        $urlDir = rtrim(SITE_BASE, '/') . substr($scriptDir, strlen($projRoot));
+
+        // Resolve "." and ".." the way a browser would, rather than leaving
+        // them in the href for it to work out — the whole point is that the
+        // browser's idea of "here" is no longer the script's folder.
+        $parts = [];
+        foreach (explode('/', $urlDir . '/' . $relUrl) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+            if ($segment === '..') {
+                array_pop($parts);
+                continue;
+            }
+            $parts[] = $segment;
+        }
+
+        return '/' . implode('/', $parts);
     }
 }
