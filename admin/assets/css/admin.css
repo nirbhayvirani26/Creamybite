@@ -2508,3 +2508,23 @@ select.cbst-input { appearance: none; background-image:
     .cbtv-search   { flex: 1 1 100%; }
     .cbtv-bar-label{ font-size: 9px; }
 }
+
+/* ── Audience (countries / towns) ── */
+.cbtv-audience     { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 4px; }
+.cbtv-sub-h        { font-size: 12px; font-weight: 700; text-transform: uppercase;
+                     letter-spacing: .05em; color: var(--text-muted); margin: 0 0 12px; }
+.cbtv-rank         { margin-bottom: 11px; }
+.cbtv-rank-top     { display: flex; justify-content: space-between; align-items: baseline;
+                     gap: 12px; font-size: 13px; margin-bottom: 5px; }
+.cbtv-rank-name    { font-weight: 600; color: var(--text-primary);
+                     overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cbtv-rank-val     { color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* The flag needs a font that has them; the label beside it carries the meaning
+   either way, so a browser without flag glyphs loses nothing but decoration. */
+.cbtv-flag         { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+                     margin-right: 6px; }
+.cbtv-note-quiet   { font-size: 12.5px; color: var(--text-muted); margin: 14px 0 0; }
+
+@media (max-width: 900px) {
+    .cbtv-audience { grid-template-columns: 1fr; gap: 22px; }
+}

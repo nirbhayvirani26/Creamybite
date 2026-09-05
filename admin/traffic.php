@@ -85,6 +85,10 @@ $topPages = [];
 $topRefs  = [];
 $devices  = [];
 $browsers = [];
+$countries = [];
+$cities    = [];
+$geoTotal  = 0;
+$geoLocated = 0;
 $ipRows   = [];
 $ipTotal  = 0;
 $ipDetail = [];
@@ -176,6 +180,47 @@ if ($ready) {
           ORDER BY views DESC",
         [$since]
     );
+
+    // ── Audience: where they are ────────────────────────────
+    //
+    // Grouped on the columns recorded at write time, so these figures do not
+    // move when the GeoIP database is next refreshed.
+    $countries = $ask(
+        "SELECT country_code, country,
+                COUNT(*) AS views, COUNT(DISTINCT ip_address) AS ips
+           FROM page_views
+          WHERE occurred_at >= ? AND country_code <> ''" . $botWhere . "
+          GROUP BY country_code, country
+          ORDER BY views DESC
+          LIMIT 12",
+        [$since]
+    );
+
+    $cities = $ask(
+        "SELECT city, country_code,
+                COUNT(*) AS views, COUNT(DISTINCT ip_address) AS ips
+           FROM page_views
+          WHERE occurred_at >= ? AND city <> ''" . $botWhere . "
+          GROUP BY city, country_code
+          ORDER BY views DESC
+          LIMIT 15",
+        [$since]
+    );
+
+    // How much of the period could be located at all. Shown on the panel,
+    // because a top-cities list means something different when it covers 90%
+    // of visitors than when it covers 8% — and the reader cannot tell which
+    // from the list alone.
+    $rows = $ask(
+        "SELECT COUNT(*) AS total, SUM(country_code <> '') AS located
+           FROM page_views
+          WHERE occurred_at >= ?" . $botWhere,
+        [$since]
+    );
+    if ($rows) {
+        $geoTotal   = (int)$rows[0]['total'];
+        $geoLocated = (int)$rows[0]['located'];
+    }
 
     $browsers = $ask(
         "SELECT browser, COUNT(*) AS views
@@ -542,6 +587,111 @@ require __DIR__ . '/_sidebar.php';
             <?php endif; ?>
         </section>
     </div>
+
+    <!-- ── Audience: where they are ───────────────────────── -->
+    <?php
+        require_once __DIR__ . '/../includes/geoip.php';
+        $geoReady = cbGeoReady();
+        $geoMeta  = cbGeoMeta();
+        $geoPct   = $geoTotal > 0 ? round($geoLocated / $geoTotal * 100) : 0;
+
+        // Shares are measured against the located rows, not all traffic, or
+        // every bar would be shrunk by however many addresses could not be
+        // placed and the percentages would not add up to anything.
+        $cShare = fn(int $v) => $geoLocated > 0 ? round($v / $geoLocated * 100, 1) : 0;
+        $cTop   = $countries ? max(array_column($countries, 'views')) : 0;
+        $tTop   = $cities    ? max(array_column($cities,    'views')) : 0;
+    ?>
+    <section class="cbtv-panel">
+        <h2 class="cbtv-panel-title">
+            <i class="fa-solid fa-earth-europe" aria-hidden="true"></i> Audience
+            <?php if ($geoReady && $geoTotal > 0): ?>
+            <span class="cbtv-count"><?= (int)$geoPct ?>% located</span>
+            <?php endif; ?>
+        </h2>
+
+        <?php if (!$geoReady): ?>
+            <p class="cbtv-panel-note">
+                Location needs a lookup database, which is not installed on this
+                server yet. <a href="migrations/geoip_install.php">Install it</a> —
+                it is a free download, it lives on this server, and no visitor
+                data is sent anywhere to produce these figures.
+            </p>
+        <?php elseif (!$countries): ?>
+            <p class="cbtv-empty">No located visitors in this period yet.</p>
+        <?php else: ?>
+
+        <p class="cbtv-panel-note">
+            Worked out from each visitor's IP address, on this server.
+            <strong>Country is reliable; town is an estimate</strong> — it is
+            based on where a block of addresses was allocated, and UK mobile
+            networks routinely report their hub rather than the customer, so a
+            genuine Harrow visitor often shows as London. Useful for shape,
+            never for a delivery decision.
+        </p>
+
+        <div class="cbtv-audience">
+            <div class="cbtv-audience-col">
+                <h3 class="cbtv-sub-h">Countries</h3>
+                <?php foreach ($countries as $c): ?>
+                <div class="cbtv-rank">
+                    <div class="cbtv-rank-top">
+                        <span class="cbtv-rank-name">
+                            <span class="cbtv-flag" aria-hidden="true"><?= $h(cbFlagEmoji((string)$c['country_code'])) ?></span>
+                            <?= $h($c['country'] !== '' ? $c['country'] : $c['country_code']) ?>
+                        </span>
+                        <span class="cbtv-rank-val"><?= $cShare((int)$c['views']) ?>% · <?= number_format((int)$c['views']) ?></span>
+                    </div>
+                    <div class="cbtv-meter-track">
+                        <div class="cbtv-meter-fill" style="width: <?= $cTop > 0 ? round($c['views'] / $cTop * 100) : 0 ?>%"></div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="cbtv-audience-col">
+                <h3 class="cbtv-sub-h">Towns &amp; cities</h3>
+                <?php if (!$cities): ?>
+                    <p class="cbtv-empty">
+                        No town names recorded. The country-only database is
+                        installed; the city edition adds these.
+                    </p>
+                <?php else: foreach ($cities as $c): ?>
+                <div class="cbtv-rank">
+                    <div class="cbtv-rank-top">
+                        <span class="cbtv-rank-name">
+                            <span class="cbtv-flag" aria-hidden="true"><?= $h(cbFlagEmoji((string)$c['country_code'])) ?></span>
+                            <?= $h($c['city']) ?>
+                        </span>
+                        <span class="cbtv-rank-val"><?= $cShare((int)$c['views']) ?>% · <?= number_format((int)$c['views']) ?></span>
+                    </div>
+                    <div class="cbtv-meter-track">
+                        <div class="cbtv-meter-fill" style="width: <?= $tTop > 0 ? round($c['views'] / $tTop * 100) : 0 ?>%"></div>
+                    </div>
+                </div>
+                <?php endforeach; endif; ?>
+            </div>
+        </div>
+
+        <?php if ($geoPct < 90 && $geoTotal > 0): ?>
+        <p class="cbtv-panel-note cbtv-note-quiet">
+            <?= (int)(100 - $geoPct) ?>% of views in this period could not be placed —
+            addresses the database does not list, and any traffic recorded before
+            the database was installed.
+        </p>
+        <?php endif; ?>
+
+        <?php if ($geoMeta): ?>
+        <p class="cbtv-panel-note cbtv-note-quiet">
+            <?= $h($geoMeta['type']) ?><?php if (!empty($geoMeta['built'])): ?>,
+            built <?= $h(date('j M Y', $geoMeta['built'])) ?><?php endif; ?>.
+            <a href="migrations/geoip_install.php">Refresh it</a> — it is published monthly.
+            IP data from <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">DB-IP</a> (CC BY 4.0).
+        </p>
+        <?php endif; ?>
+
+        <?php endif; ?>
+    </section>
 
     <!-- ── Device and browser ─────────────────────────────── -->
     <div class="cbtv-cols">

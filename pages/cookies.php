@@ -136,6 +136,16 @@ $policyBody  = <<<HTML
     reports about itself.
 </p>
 <p>
+    We also work out an approximate <strong>country and town</strong> from that
+    IP address, so we know roughly where our customers are. This is done on our
+    own server using a downloaded lookup table — your address is not sent to
+    anyone to do it. It is an estimate based on where a block of addresses was
+    issued, not your actual location: it is often out by many miles, and on a
+    mobile network it usually points at the network's equipment rather than
+    you. We cannot tell your street or your device's GPS position, and we do
+    not try to.
+</p>
+<p>
     <strong>This is not a cookie and it is not analytics software.</strong>
     Nothing is stored in or read from your browser, no third party is involved,
     and none of it leaves our server. It cannot follow you to other websites,

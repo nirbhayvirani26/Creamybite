@@ -371,6 +371,18 @@ function cbTrafficRecord(): void
 
     $ua    = mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
     $agent = cbTrafficAgent($ua);
+    $ip    = mb_substr(cbTrafficClientIp(), 0, 45);
+
+    // Where the address says they are, resolved NOW rather than when the
+    // report is read. Addresses get reassigned between countries and cities,
+    // so resolving at read time would rewrite history: last month's figures
+    // would change every time the database file is refreshed.
+    //
+    // Returns nulls when no database is installed, which is the normal state
+    // until somebody runs admin/migrations/geoip_install.php — the columns
+    // stay empty and everything else on the page still works.
+    require_once __DIR__ . '/geoip.php';
+    $geo = cbGeoLookup($ip);
 
     // Only the referring HOST is kept, never the full URL. The host answers
     // the question the shop actually has ("is Instagram sending anyone?"),
@@ -403,15 +415,18 @@ function cbTrafficRecord(): void
     try {
         $stmt = $pdo->prepare(
             "INSERT INTO page_views
-                (path, `query`, referrer_host, ip_address, user_agent,
-                 browser, os, device, is_bot, session_key, trade_user_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                (path, `query`, referrer_host, ip_address, country_code, country, city,
+                 user_agent, browser, os, device, is_bot, session_key, trade_user_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->execute([
             mb_substr(cbTrafficPath(), 0, 190),
             mb_substr((string)($_SERVER['QUERY_STRING'] ?? ''), 0, 190),
             $referrerHost,
-            mb_substr(cbTrafficClientIp(), 0, 45),
+            $ip,
+            mb_substr((string)($geo['country_code'] ?? ''), 0, 2),
+            mb_substr((string)($geo['country'] ?? ''), 0, 80),
+            mb_substr((string)($geo['city'] ?? ''), 0, 90),
             $ua,
             $agent['browser'],
             $agent['os'],

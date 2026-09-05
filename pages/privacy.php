@@ -46,10 +46,12 @@ $policyBody  = <<<HTML
 </ul>
 <p><strong>If you send us a message:</strong> your name, email, phone and the message itself.</p>
 <p><strong>Whenever a page is opened,</strong> our own server records the time, the
-page address, the site you followed a link from, your IP address, and what your
-browser reports about itself. This is a log on our server, not a cookie and not
-an analytics service — see <a href="{$base}/cookies#visit-log">our own
-visit record</a> for what it does and does not do.</p>
+page address, the site you followed a link from, your IP address, what your
+browser reports about itself, and an approximate country and town worked out
+from that address on our own server. This is a log on our server, not a cookie
+and not an analytics service — see <a href="{$base}/cookies#visit-log">our own
+visit record</a> for what it does and does not do, including how rough the town
+estimate is.</p>
 
 <h2>Card details</h2>
 <p>

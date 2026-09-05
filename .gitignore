@@ -15,3 +15,12 @@ admin/migrations/catalogue_data.php
 # protection is what caught it.
 includes/secrets.php
 secrets.php
+
+# ── GeoIP database ───────────────────────────────────────────
+#  Not committed, for three reasons: it is 8-120MB, it is refreshed monthly
+#  (a copy in git is out of date the moment it is committed), and DB-IP Lite
+#  is CC-BY licensed rather than ours to redistribute.
+#
+#  Install it with admin/migrations/geoip_install.php, or download it from
+#  https://db-ip.com/db/lite.php and upload it as includes/geoip/city.mmdb.
+includes/geoip/*.mmdb

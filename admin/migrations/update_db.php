@@ -721,6 +721,9 @@ $tables = [
         `query`         VARCHAR(190) NOT NULL DEFAULT '',
         `referrer_host` VARCHAR(120) NOT NULL DEFAULT '',
         `ip_address`    VARCHAR(45)  NOT NULL DEFAULT '',
+        `country_code`  CHAR(2)      NOT NULL DEFAULT '',
+        `country`       VARCHAR(80)  NOT NULL DEFAULT '',
+        `city`          VARCHAR(90)  NOT NULL DEFAULT '',
         `user_agent`    VARCHAR(255) NOT NULL DEFAULT '',
         `browser`       VARCHAR(40)  NOT NULL DEFAULT '',
         `os`            VARCHAR(40)  NOT NULL DEFAULT '',
@@ -732,7 +735,8 @@ $tables = [
         KEY `idx_when` (`occurred_at`),
         KEY `idx_ip` (`ip_address`, `occurred_at`),
         KEY `idx_path` (`path`, `occurred_at`),
-        KEY `idx_human` (`is_bot`, `occurred_at`)
+        KEY `idx_human` (`is_bot`, `occurred_at`),
+        KEY `idx_country` (`country_code`, `occurred_at`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 ];
 
@@ -779,6 +783,15 @@ foreach ($tables as $name => $sql) {
 
 // ── 2. Columns added on top of the base schema.sql tables ──
 $columns = [
+    // Where the visitor's IP says they are, resolved by includes/geoip.php when
+    // the row is written rather than when it is read. An address is reassigned
+    // between countries and cities over time, so resolving at read time would
+    // silently rewrite history — last month's report would change every time
+    // the database file is refreshed.
+    ['page_views', 'country_code', "ALTER TABLE `page_views` ADD COLUMN `country_code` CHAR(2)     NOT NULL DEFAULT '' AFTER `ip_address`"],
+    ['page_views', 'country',      "ALTER TABLE `page_views` ADD COLUMN `country`      VARCHAR(80) NOT NULL DEFAULT '' AFTER `country_code`"],
+    ['page_views', 'city',         "ALTER TABLE `page_views` ADD COLUMN `city`         VARCHAR(90) NOT NULL DEFAULT '' AFTER `country`"],
+
     ['products',    'wholesale_price', "ALTER TABLE `products` ADD COLUMN `wholesale_price` DECIMAL(8,2) NOT NULL DEFAULT 0.00 AFTER `price`"],
     ['products',    'badge',           "ALTER TABLE `products` ADD COLUMN `badge` VARCHAR(50) NOT NULL DEFAULT '' AFTER `image`"],
     ['products',    'trade_only',      "ALTER TABLE `products` ADD COLUMN `trade_only` TINYINT(1) NOT NULL DEFAULT 0 AFTER `available`"],
@@ -988,6 +1001,27 @@ foreach ($columns as [$table, $col, $sql]) {
     } catch (PDOException $e) {
         $results[] = ['table' => $table, 'col' => $col, 'status' => '[err] ' . $e->getMessage(), 'ok' => false];
     }
+}
+
+// ── 2i. Index the audience queries on an existing traffic table ──
+//
+// The columns above arrive by ALTER on a server that already had page_views,
+// and an ALTER cannot add the index the country/city grouping needs. Without
+// it the Audience panel scans the whole table on every load.
+try {
+    $has = $pdo->prepare(
+        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'page_views' AND INDEX_NAME = 'idx_country'"
+    );
+    $has->execute();
+    if (cb_table_exists($pdo, 'page_views') && (int)$has->fetchColumn() === 0) {
+        $pdo->exec("ALTER TABLE `page_views` ADD KEY `idx_country` (`country_code`, `occurred_at`)");
+        $results[] = ['table' => 'page_views', 'col' => 'idx_country', 'status' => '[ok] index added', 'ok' => true];
+    } else {
+        $results[] = ['table' => 'page_views', 'col' => 'idx_country', 'status' => 'already exists ✓', 'ok' => true];
+    }
+} catch (Throwable $e) {
+    $results[] = ['table' => 'page_views', 'col' => 'idx_country', 'status' => '[warn] ' . $e->getMessage(), 'ok' => false];
 }
 
 // ── 2h. One external batch number can only mean one run ─────
