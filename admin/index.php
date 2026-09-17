@@ -1053,6 +1053,11 @@ $pageTitles = [
                             data-to="<?= htmlspecialchars($iv['to_name'], ENT_QUOTES) ?>"
                             data-sort5="<?= htmlspecialchars($iv['rep_name'] ?: 'zzz', ENT_QUOTES) ?>"
                             data-total="<?= number_format((float)$iv['total'], 2, '.', '') ?>"
+                            <?php /* Read by the running totals in the footer. data-sort4 holds
+                                     the same number, but that one exists for the comparator and
+                                     could be changed for sorting reasons without anyone
+                                     realising the money figures were reading it. */ ?>
+                            data-balance="<?= number_format($bal, 2, '.', '') ?>"
                             data-status="<?= htmlspecialchars($iv['status'], ENT_QUOTES) ?>">
                             <td class="cbi-inv-number-cell">
                                 <?= htmlspecialchars($iv['invoice_number']) ?>
@@ -1085,6 +1090,30 @@ $pageTitles = [
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
+                    <?php /* Running totals, filled in by cbInvoiceTotals() in JavaScript
+                             rather than printed from PHP.
+
+                             PHP could only ever total the whole list, which is the one
+                             figure the stat cards above already give. The point of these
+                             is to follow the SEARCH — type a customer's name and read
+                             what they owe, without exporting the table and adding it up
+                             by hand. The search is done in the browser, so the sum has
+                             to be too.
+
+                             Sits in <tfoot>, which sortTable() leaves alone: it moves
+                             rows within <tbody> only, so sorting cannot scatter these
+                             cells or drag them into the sort. */ ?>
+                    <tfoot>
+                        <tr class="cbi-inv-totals-row">
+                            <td colspan="3" class="cbi-inv-totals-label">
+                                <span id="invTotalsScope">Totals</span>
+                                <span id="invTotalsNote" class="cbi-inv-totals-note"></span>
+                            </td>
+                            <td class="cbi-inv-totals-value" id="invTotalSum">—</td>
+                            <td class="cbi-inv-totals-value is-due" id="invBalanceSum">—</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
             <?php endif; ?>
@@ -4573,7 +4602,65 @@ function filterInvoices(query) {
     });
     const el = document.getElementById('invoiceFilterCount');
     if (el) el.textContent = q ? (shown ? `Showing ${shown} of ${rows.length}` : 'No invoices match') : '';
+    cbInvoiceTotals(q !== '');
 }
+
+// ── Running totals under the Total and Balance columns ──────
+//
+// Adds up whatever the search has left on screen, so "what does this customer
+// still owe me" is read off the table instead of exported and totted up by
+// hand.
+//
+// VOID INVOICES ARE LEFT OUT. A void invoice is a cancelled sale: it is
+// neither money billed nor money owed, and the stat cards above this table
+// already exclude it. Including it here would put two totals on one screen
+// that disagree, and the one in the footer would be the wrong one. When a void
+// invoice is among the matches the footer says so, so the figures cannot look
+// like they have quietly lost a row.
+//
+// Summed in WHOLE PENCE. Adding pounds as floats drifts — the classic
+// 0.1 + 0.2 = 0.30000000000000004 — and across a few hundred invoices that
+// surfaces as a total a penny or two off what the customer's own adding
+// machine says, which is exactly the kind of number nobody can explain later.
+function cbInvoiceTotals(isFiltered) {
+    const table = document.getElementById('invoicesTable');
+    if (!table) return;
+
+    const pence = (v) => Math.round(parseFloat(v || '0') * 100) || 0;
+
+    let totalP = 0, balanceP = 0, counted = 0, voided = 0;
+
+    table.querySelectorAll('.invoice-row').forEach(r => {
+        if (r.style.display === 'none') return;          // filtered out
+        if (r.dataset.status === 'void') { voided++; return; }
+        totalP   += pence(r.dataset.total);
+        balanceP += pence(r.dataset.balance);
+        counted++;
+    });
+
+    const money = (p) => '£' + (p / 100).toLocaleString('en-GB',
+        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+
+    set('invTotalSum',   money(totalP));
+    set('invBalanceSum', money(balanceP));
+    set('invTotalsScope',
+        isFiltered ? `Totals — ${counted} matching invoice${counted === 1 ? '' : 's'}`
+                   : `Totals — all ${counted} invoice${counted === 1 ? '' : 's'}`);
+    set('invTotalsNote', voided ? `${voided} void invoice${voided === 1 ? '' : 's'} not counted` : '');
+
+    // Nothing owed reads better in the ordinary colour than in the red the
+    // column uses for money outstanding.
+    const balEl = document.getElementById('invBalanceSum');
+    if (balEl) balEl.classList.toggle('is-due', balanceP > 0);
+}
+
+// The table is there from the first paint, so show the full totals before
+// anyone types anything.
+document.addEventListener('DOMContentLoaded', function () {
+    if (document.getElementById('invoicesTable')) { cbInvoiceTotals(false); }
+});
 
 function clearOrderFilter() {
     const input = document.getElementById('orderNameFilter');
