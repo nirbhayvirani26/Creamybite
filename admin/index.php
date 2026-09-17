@@ -1043,20 +1043,28 @@ $pageTitles = [
                     <tbody>
                     <?php foreach ($invoices as $iv):
                         [$lbl, $bg, $fg, $bd] = invoiceStatusLabel($iv['status']);
-                        $bal = (float)$iv['balance_due'];
+                        $bal    = (float)$iv['balance_due'];
+                        $isVoid = ($iv['status'] === 'void');
                     ?>
                         <tr class="invoice-row"
                             data-sort1="<?= strtotime($iv['issue_date']) ?>"
                             data-sort3="<?= number_format((float)$iv['total'], 2, '.', '') ?>"
-                            data-sort4="<?= number_format((float)$iv['balance_due'], 2, '.', '') ?>"
+                            <?php /* Void sorts as zero, to match the dash the column shows.
+                                     Sorting by Balance is how the owner finds who owes the
+                                     most; leaving a cancelled invoice at its raised amount put
+                                     it straight to the top of that list. */ ?>
+                            data-sort4="<?= number_format($isVoid ? 0.0 : $bal, 2, '.', '') ?>"
                             data-number="<?= htmlspecialchars($iv['invoice_number'], ENT_QUOTES) ?>"
                             data-to="<?= htmlspecialchars($iv['to_name'], ENT_QUOTES) ?>"
                             data-sort5="<?= htmlspecialchars($iv['rep_name'] ?: 'zzz', ENT_QUOTES) ?>"
                             data-total="<?= number_format((float)$iv['total'], 2, '.', '') ?>"
-                            <?php /* Read by the running totals in the footer. data-sort4 holds
-                                     the same number, but that one exists for the comparator and
-                                     could be changed for sorting reasons without anyone
-                                     realising the money figures were reading it. */ ?>
+                            <?php /* Read by the running totals in the footer. Deliberately
+                                     separate from data-sort4: that one is the sort key and is
+                                     forced to zero for a void invoice so the column sorts the
+                                     way it reads, while this stays the real figure from the
+                                     database. The footer skips void rows itself, so the rule
+                                     about what counts as owed lives in one place rather than
+                                     being baked into an attribute. */ ?>
                             data-balance="<?= number_format($bal, 2, '.', '') ?>"
                             data-status="<?= htmlspecialchars($iv['status'], ENT_QUOTES) ?>">
                             <td class="cbi-inv-number-cell">
@@ -1070,8 +1078,18 @@ $pageTitles = [
                             </td>
                             <td class="cbi-inv-to-cell"><?= htmlspecialchars($iv['to_name']) ?: '<span class="cbi-muted">—</span>' ?></td>
                             <td class="cbi-inv-total-cell">£<?= number_format((float)$iv['total'], 2) ?></td>
-                            <td class="cbi-inv-balance-cell <?= $bal > 0.001 ? 'is-due' : 'is-clear' ?>">
-                                £<?= number_format($bal, 2) ?>
+                            <?php /* A void invoice has no balance to show. It is a cancelled
+                                     sale, so the figure it was raised for is not money anyone
+                                     owes — printing it here, in the red this column uses for a
+                                     debt, put a £500 alarm next to a total that (correctly)
+                                     did not include it. The Total column still shows what the
+                                     invoice was raised for, because that did happen. */ ?>
+                            <td class="cbi-inv-balance-cell <?= $isVoid ? '' : ($bal > 0.001 ? 'is-due' : 'is-clear') ?>">
+                                <?php if ($isVoid): ?>
+                                    <span class="cbi-muted" title="Cancelled — nothing outstanding">&mdash;</span>
+                                <?php else: ?>
+                                    £<?= number_format($bal, 2) ?>
+                                <?php endif; ?>
                             </td>
                             <td class="cbi-inv-rep-cell">
                                 <?= $iv['rep_name'] !== null && $iv['rep_name'] !== ''
