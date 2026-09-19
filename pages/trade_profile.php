@@ -21,6 +21,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/postcode.php';
+require_once __DIR__ . '/../includes/company_number.php';
 require_once __DIR__ . '/../includes/db.php';
 // invoicePublicToken() — the Invoices tab mints a customer link on demand.
 require_once __DIR__ . '/../includes/invoice.php';
@@ -80,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     // VAT number is optional. Having one is what makes the account VAT
     // registered, which is what triggers VAT on their orders.
     $vatNumber   = strtoupper(preg_replace('/\s+/', '', $_POST['vat_number'] ?? ''));
+    $companyNo   = trim($_POST['company_number'] ?? '');
 
     // Worth more here than on most forms. This one writes the delivery
     // address every future order goes to, and the VAT number that decides
@@ -95,6 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
         $errorMsg = 'Please enter a valid contact number.';
     } elseif (mb_strlen($address) < 5) {
         $errorMsg = 'Please enter the store address.';
+    } elseif ($companyNo !== '' && ($companyNoClean = cbCompanyNumberNormalise($companyNo)) === null) {
+        $errorMsg = 'That does not look like a UK company number. It is 8 characters — either 8 digits (12345678) or two characters and 6 digits (SC123456). Leave it blank if you are not a registered company.';
     } elseif (($postcodeClean = cbUkPostcodeNormalise($postcode)) === null) {
         // The same rule the application form applies. Checking only one of the
         // two would have been no rule at all: this page writes the delivery
@@ -102,20 +106,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
         // could simply be saved here a minute later.
         $errorMsg = 'Please enter a valid UK postcode, for example HA1 2SP.';
     } else {
-        $postcode = $postcodeClean;
+        $postcode  = $postcodeClean;
+        $companyNo = $companyNo === '' ? '' : $companyNoClean;
 
         try {
             $pdo->prepare(
                 "UPDATE trade_users
-                    SET contact_name = :cn, phone = :ph, address = :ad, postcode = :pc, vat_number = :vat
+                    SET contact_name = :cn, phone = :ph, address = :ad, postcode = :pc,
+                        company_number = :company, vat_number = :vat
                   WHERE id = :id"
             )->execute([
                 'cn'  => $contactName,
                 'ph'  => $phone,
                 'ad'  => $address,
-                'pc'  => $postcode,
-                'vat' => $vatNumber,
-                'id'  => $userId,
+                'pc'      => $postcode,
+                'company' => $companyNo,
+                'vat'     => $vatNumber,
+                'id'      => $userId,
             ]);
 
             // Keep the session copy in step — checkout prefills from it and
@@ -123,14 +130,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
             $_SESSION['trade_user']['contact_name'] = $contactName;
             $_SESSION['trade_user']['phone']        = $phone;
             $_SESSION['trade_user']['address']      = $address;
-            $_SESSION['trade_user']['postcode']     = $postcode;
-            $_SESSION['trade_user']['vat_number']   = $vatNumber;
+            $_SESSION['trade_user']['postcode']       = $postcode;
+            $_SESSION['trade_user']['company_number'] = $companyNo;
+            $_SESSION['trade_user']['vat_number']     = $vatNumber;
 
             $account['contact_name'] = $contactName;
             $account['phone']        = $phone;
             $account['address']      = $address;
-            $account['postcode']     = $postcode;
-            $account['vat_number']   = $vatNumber;
+            $account['postcode']       = $postcode;
+            $account['company_number'] = $companyNo;
+            $account['vat_number']     = $vatNumber;
 
             $savedMsg = $vatNumber !== ''
                 ? 'Your details have been updated. VAT at ' . (int)(TRADE_VAT_RATE * 100) . '% will be applied to your orders.'
@@ -400,6 +409,23 @@ require __DIR__ . '/../includes/site_header.php';
                 <div class="cbtp-field-block">
                     <label class="form-label">Store Address <span class="cbtp-accent">*</span></label>
                     <textarea name="address" class="form-control" rows="3" required><?= htmlspecialchars($account['address']) ?></textarea>
+                </div>
+
+                <div class="cbtp-field-block">
+                    <label class="form-label">Company Number <small class="cbtp-label-optional">(optional)</small></label>
+                    <input type="text" name="company_number" class="form-control cbtp-upper"
+                           value="<?= htmlspecialchars($account['company_number'] ?? '') ?>"
+                           maxlength="10"
+                           pattern="<?= htmlspecialchars(cbCompanyNumberHtmlPattern(), ENT_QUOTES, 'UTF-8') ?>"
+                           title="A UK company number: 8 digits, or two characters and 6 digits"
+                           placeholder="e.g. 12345678 or SC123456">
+                    <small class="cbtp-help-block">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Your Companies House registration number. Leave it blank if you
+                        trade as a sole trader or a partnership. This is
+                        <strong>not</strong> the same as a VAT number and does not affect
+                        what you are charged.
+                    </small>
                 </div>
 
                 <div class="cbtp-field-block">

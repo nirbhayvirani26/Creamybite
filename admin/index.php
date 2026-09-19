@@ -1747,7 +1747,7 @@ $pageTitles = [
                             <th>Email & Phone</th>
                             <th><i class="fa-solid fa-key" aria-hidden="true"></i> Password</th>
                             <th>Delivery Address</th>
-                            <th>VAT / Reg No</th>
+                            <th>VAT &amp; Company No</th>
                             <th class="inv-sort" onclick="sortTrade(6,'number',this)">Status <i class="fa-solid fa-sort"></i></th>
                             <th class="cbi-col-right">Actions</th>
                         </tr>
@@ -1805,8 +1805,29 @@ $pageTitles = [
                                 <div><?= htmlspecialchars($tu['address']) ?></div>
                                 <span class="cbi-trade-postcode"><?= htmlspecialchars($tu['postcode']) ?></span>
                             </td>
+                            <?php /* Shown as two labelled values rather than one number with
+                                     no clue which it is. They were collected through a single
+                                     box labelled "VAT / Company Reg No.", so on older accounts
+                                     whichever one the customer happened to type is sitting in
+                                     vat_number — and a company number in there is what makes
+                                     the shop add 20% to their orders. Labelling them is how
+                                     the owner spots that on an account they are approving. */ ?>
                             <td class="cbi-trade-vat-cell">
-                                <?= !empty($tu['vat_number']) ? '<span class="cbi-trade-vat">' . htmlspecialchars($tu['vat_number']) . '</span>' : '<span class="cbi-muted">None</span>' ?>
+                                <?php if (!empty($tu['vat_number'])): ?>
+                                    <div class="cbi-trade-idline">
+                                        <span class="cbi-trade-idlabel">VAT</span>
+                                        <span class="cbi-trade-vat"><?= htmlspecialchars($tu['vat_number']) ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (!empty($tu['company_number'])): ?>
+                                    <div class="cbi-trade-idline">
+                                        <span class="cbi-trade-idlabel">Co.</span>
+                                        <span class="cbi-trade-company"><?= htmlspecialchars($tu['company_number']) ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if (empty($tu['vat_number']) && empty($tu['company_number'])): ?>
+                                    <span class="cbi-muted">None</span>
+                                <?php endif; ?>
                             </td>
                             <td class="cbi-nowrap">
                                 <?= $stBadge ?>

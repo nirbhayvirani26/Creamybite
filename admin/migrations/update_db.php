@@ -783,6 +783,14 @@ foreach ($tables as $name => $sql) {
 
 // ── 2. Columns added on top of the base schema.sql tables ──
 $columns = [
+    // Companies House registration number, asked for separately from the VAT
+    // number. They were one field labelled "VAT / Company Reg No." and that
+    // was not cosmetic: includes/pricing.php treats ANY value in vat_number as
+    // proof the customer is VAT registered and adds 20% to their orders, so a
+    // sole trader who helpfully typed their company number into it was charged
+    // VAT they do not owe. Separate fields, separate meanings.
+    ['trade_users', 'company_number', "ALTER TABLE `trade_users` ADD COLUMN `company_number` VARCHAR(20) NOT NULL DEFAULT '' AFTER `postcode`"],
+
     // Where the visitor's IP says they are, resolved by includes/geoip.php when
     // the row is written rather than when it is read. An address is reassigned
     // between countries and cities over time, so resolving at read time would

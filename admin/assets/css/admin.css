@@ -2551,3 +2551,14 @@ select.cbst-input { appearance: none; background-image:
     .cbi-inv-totals-label   { font-size: 12.5px; }
     .cbi-inv-totals-value   { font-size: 14px; }
 }
+
+/* ── Trade account identifiers ──────────────────────────────
+   VAT and company number stacked and labelled. Unlabelled, an eight-digit
+   number and a nine-digit one look alike at a glance, and which is which
+   decides whether the customer gets charged 20% VAT. */
+.cbi-trade-idline   { display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; }
+.cbi-trade-idlabel  { font-size: 10px; font-weight: 700; text-transform: uppercase;
+                      letter-spacing: .04em; color: var(--text-muted);
+                      min-width: 26px; flex: 0 0 auto; }
+.cbi-trade-company  { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                      font-size: 12.5px; color: var(--text-primary); }

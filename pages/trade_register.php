@@ -8,6 +8,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/postcode.php';
+require_once __DIR__ . '/../includes/company_number.php';
 
 $successMsg = '';
 $errorMsg   = '';
@@ -21,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $address      = trim($_POST['address'] ?? '');
     $postcode     = strtoupper(trim($_POST['postcode'] ?? ''));
     $vatNumber    = trim($_POST['vat_number'] ?? '');
+    $companyNo    = trim($_POST['company_number'] ?? '');
 
     // Same token as the login form, for a plainer reason: without it any other
     // site can post this form from a visitor's browser, and every application
@@ -40,6 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMsg = 'Please enter a valid email address';
     } elseif (strlen($password) < 6) {
         $errorMsg = 'Password must be at least 6 characters long';
+    } elseif ($companyNo !== '' && ($companyNoClean = cbCompanyNumberNormalise($companyNo)) === null) {
+        // Optional, because plenty of genuine customers are not companies:
+        // a corner shop run as a sole trader, or a partnership, has no
+        // registration number and never will. Refusing them for the lack of
+        // one would turn away exactly the sort of customer this form exists
+        // for. Checked only when something was typed.
+        $errorMsg = 'That does not look like a UK company number. It is 8 characters — either 8 digits (12345678) or two characters and 6 digits (SC123456). Leave it blank if the business is not a registered company.';
     } elseif (($postcodeClean = cbUkPostcodeNormalise($postcode)) === null) {
         // The server decides, whatever the browser allowed — the pattern on
         // the input is a convenience, and a form can always be posted without
@@ -51,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Store the printed form, not what was typed. "ha12sp" and "HA1 2SP"
         // are the same address and should not become two different partners.
-        $postcode = $postcodeClean;
+        $postcode  = $postcodeClean;
+        $companyNo = $companyNo === '' ? '' : $companyNoClean;
 
         try {
             // Check if email already registered
@@ -72,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // passwords, and partners commonly reuse them elsewhere.
                     // If that ever stops being acceptable, drop the column and
                     // replace the admin display with a "send reset link" button.
-                    $stmt = $pdo->prepare("INSERT INTO trade_users (business_name, contact_name, email, password, raw_password, phone, address, postcode, vat_number, status) VALUES (:bname, :cname, :email, :pass, :rpass, :phone, :address, :postcode, :vat, 'pending')");
+                    $stmt = $pdo->prepare("INSERT INTO trade_users (business_name, contact_name, email, password, raw_password, phone, address, postcode, company_number, vat_number, status) VALUES (:bname, :cname, :email, :pass, :rpass, :phone, :address, :postcode, :company, :vat, 'pending')");
                     $stmt->execute([
                         'bname'    => $businessName,
                         'cname'    => $contactName,
@@ -82,11 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'phone'    => $phone,
                         'address'  => $address,
                         'postcode' => $postcode,
+                        'company'  => $companyNo,
                         'vat'      => $vatNumber,
                     ]);
                 } catch (PDOException $e) {
                     // Fallback if raw_password column not created yet
-                    $stmt = $pdo->prepare("INSERT INTO trade_users (business_name, contact_name, email, password, phone, address, postcode, vat_number, status) VALUES (:bname, :cname, :email, :pass, :phone, :address, :postcode, :vat, 'pending')");
+                    $stmt = $pdo->prepare("INSERT INTO trade_users (business_name, contact_name, email, password, phone, address, postcode, company_number, vat_number, status) VALUES (:bname, :cname, :email, :pass, :phone, :address, :postcode, :company, :vat, 'pending')");
                     $stmt->execute([
                         'bname'    => $businessName,
                         'cname'    => $contactName,
@@ -95,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'phone'    => $phone,
                         'address'  => $address,
                         'postcode' => $postcode,
+                        'company'  => $companyNo,
                         'vat'      => $vatNumber,
                     ]);
                 }
@@ -221,8 +233,44 @@ require __DIR__ . '/../includes/site_header.php';
                             <small id="tr_postcode_hint" class="cbtr-field-hint">UK postcodes only — we do not deliver outside the UK.</small>
                         </div>
                         <div class="form-group">
-                            <label class="form-label cbtr-field-label" for="tr_vat_number">VAT / Company Reg No. (Optional)</label>
-                            <input id="tr_vat_number" type="text" name="vat_number" class="form-control" placeholder="GB123456789" value="<?= htmlspecialchars($_POST['vat_number'] ?? '') ?>">
+                            <?php /* TWO FIELDS, NOT ONE. This was a single box labelled
+                                     "VAT / Company Reg No.", and that was not just untidy:
+                                     includes/pricing.php treats ANY value in vat_number as
+                                     proof the customer is VAT registered and adds 20% to
+                                     every order. A sole trader who helpfully typed their
+                                     company number into a box that invited it was charged
+                                     VAT they do not owe, on every order, until somebody
+                                     noticed. The two numbers mean different things and are
+                                     now asked for separately. */ ?>
+                            <label class="form-label cbtr-field-label" for="tr_vat_number">VAT Number (Optional)</label>
+                            <input id="tr_vat_number" type="text" name="vat_number" class="form-control cbtr-input-uppercase"
+                                   placeholder="GB123456789"
+                                   maxlength="15"
+                                   aria-describedby="tr_vat_hint"
+                                   value="<?= htmlspecialchars($_POST['vat_number'] ?? '') ?>">
+                            <small id="tr_vat_hint" class="cbtr-field-hint">Only if you are VAT registered — it puts VAT on your invoices.</small>
+                        </div>
+                    </div>
+
+                    <div class="form-row cbtr-form-row">
+                        <div class="form-group">
+                            <label class="form-label cbtr-field-label" for="tr_company_number">Company Number (Optional)</label>
+                            <?php /* Optional on purpose. A great many of these customers are
+                                     sole traders or partnerships — a corner shop, a market
+                                     stall, a cafe run by one person — and they have no
+                                     registration number and never will. Requiring one would
+                                     turn away exactly the customer this form exists for. */ ?>
+                            <input id="tr_company_number" type="text" name="company_number"
+                                   class="form-control cbtr-input-uppercase"
+                                   placeholder="12345678 or SC123456"
+                                   maxlength="10"
+                                   pattern="<?= htmlspecialchars(cbCompanyNumberHtmlPattern(), ENT_QUOTES, 'UTF-8') ?>"
+                                   title="A UK company number: 8 digits, or two characters and 6 digits"
+                                   aria-describedby="tr_company_hint"
+                                   value="<?= htmlspecialchars($_POST['company_number'] ?? '') ?>">
+                            <small id="tr_company_hint" class="cbtr-field-hint">
+                                From Companies House. Leave blank if you are a sole trader or partnership.
+                            </small>
                         </div>
                     </div>
 
