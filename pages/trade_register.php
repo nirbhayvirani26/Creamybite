@@ -242,7 +242,7 @@ require __DIR__ . '/../includes/site_header.php';
                                      VAT they do not owe, on every order, until somebody
                                      noticed. The two numbers mean different things and are
                                      now asked for separately. */ ?>
-                            <label class="form-label cbtr-field-label" for="tr_vat_number">VAT Number (Optional)</label>
+                            <label class="form-label cbtr-field-label" for="tr_vat_number">VAT Number</label>
                             <input id="tr_vat_number" type="text" name="vat_number" class="form-control cbtr-input-uppercase"
                                    placeholder="GB123456789"
                                    maxlength="15"
@@ -254,7 +254,7 @@ require __DIR__ . '/../includes/site_header.php';
 
                     <div class="form-row cbtr-form-row">
                         <div class="form-group">
-                            <label class="form-label cbtr-field-label" for="tr_company_number">Company Number (Optional)</label>
+                            <label class="form-label cbtr-field-label" for="tr_company_number">Company Number</label>
                             <?php /* Optional on purpose. A great many of these customers are
                                      sole traders or partnerships — a corner shop, a market
                                      stall, a cafe run by one person — and they have no
