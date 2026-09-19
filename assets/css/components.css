@@ -343,7 +343,6 @@
 .trade-page .cbtp-input-locked  { background:var(--bg-main); cursor:not-allowed; opacity:0.75; }
 .trade-page .cbtp-input-mono    { font-family:monospace; letter-spacing:1px; }
 .trade-page .cbtp-field-block   { margin-bottom:22px; }
-.trade-page .cbtp-label-optional { color:var(--text-muted); font-weight:600; }
 .trade-page .cbtp-vat-input     { max-width:320px; }
 .trade-page .cbtp-help-block    { display:block; margin-top:6px; font-size:12px; color:var(--text-muted); }
 .trade-page .cbtp-btn-save      { padding:12px 26px; font-size:14px; }

@@ -412,7 +412,7 @@ require __DIR__ . '/../includes/site_header.php';
                 </div>
 
                 <div class="cbtp-field-block">
-                    <label class="form-label">Company Number <small class="cbtp-label-optional">(optional)</small></label>
+                    <label class="form-label">Company Number</label>
                     <input type="text" name="company_number" class="form-control cbtp-upper"
                            value="<?= htmlspecialchars($account['company_number'] ?? '') ?>"
                            maxlength="10"
@@ -429,7 +429,7 @@ require __DIR__ . '/../includes/site_header.php';
                 </div>
 
                 <div class="cbtp-field-block">
-                    <label class="form-label">VAT Number <small class="cbtp-label-optional">(optional)</small></label>
+                    <label class="form-label">VAT Number</label>
                     <input type="text" name="vat_number" class="form-control cbtp-upper cbtp-vat-input"
                            value="<?= htmlspecialchars($account['vat_number']) ?>"
                            placeholder="e.g. GB123456789">
