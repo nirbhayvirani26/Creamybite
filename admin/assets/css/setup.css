@@ -138,3 +138,7 @@
 .su-log-line          { color: #d6d3d1; white-space: pre; }
 .su-log-line.is-warn  { color: #fcd34d; }
 .su-log-line.is-fatal { color: #fca5a5; font-weight: 600; }
+
+/* A form whose only control is a button needs room under it, or the next
+   heading sits on the button — and btn-primary's glow bleeds into the text. */
+.su-form-block { margin-bottom: 26px; }

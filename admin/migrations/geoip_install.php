@@ -277,14 +277,14 @@ $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
         <?php endif; ?>
 
         <h2 class="su-h2">Download it</h2>
-        <form method="POST">
+        <form method="POST" class="su-form-block">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="download">
             <p class="su-lead">
                 <label><input type="radio" name="edition" value="city" checked> <strong>City</strong> — countries and towns, about 120MB</label><br>
                 <label><input type="radio" name="edition" value="country"> <strong>Country only</strong> — about 8MB, for a server tight on space</label>
             </p>
-            <button type="submit" class="su-btn su-btn-next">Download &amp; install</button>
+            <button type="submit" class="btn-primary su-btn su-btn-next">Download &amp; install</button>
         </form>
 
         <h2 class="su-h2">Fill in past visits</h2>
@@ -293,10 +293,10 @@ $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
             This works them out from the addresses already stored — 20,000 at a
             time, so run it more than once if it says there are more to do.
         </p>
-        <form method="POST">
+        <form method="POST" class="su-form-block">
             <?= csrfField() ?>
             <input type="hidden" name="action" value="backfill">
-            <button type="submit" class="su-btn" <?= $meta ? '' : 'disabled' ?>>Fill in past visits</button>
+            <button type="submit" class="btn-secondary su-btn" <?= $meta ? '' : 'disabled' ?>>Fill in past visits</button>
         </form>
 
         <h2 class="su-h2">If the download is blocked</h2>
@@ -320,7 +320,7 @@ $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
             Country is dependable; town is an estimate — see the note on the Traffic page.
         </p>
 
-        <p><a class="su-btn su-btn-back" href="../traffic.php">← Back to Traffic &amp; Visitors</a></p>
+        <p><a class="btn-secondary su-btn-back" href="../traffic.php">← Back to Traffic &amp; Visitors</a></p>
     </div>
 </div>
 </body>
