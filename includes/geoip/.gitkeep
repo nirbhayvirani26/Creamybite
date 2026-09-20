@@ -1,0 +1,19 @@
+This folder holds the IP-to-location database (city.mmdb or country.mmdb).
+
+The database itself is NOT in git — it is 8-120MB, republished monthly, and
+DB-IP Lite is CC-BY licensed rather than ours to redistribute. This file is
+here only so the FOLDER ships with a deploy.
+
+Without it the folder does not exist on a new server, and
+admin/migrations/geoip_install.php has to create it before it can download
+anything. That works on most hosts and fails on the ones that do not let PHP
+create directories — a failure that reads as "could not create includes/geoip"
+and sends somebody looking at permissions for a folder that was simply never
+there.
+
+Install the database from Admin -> Traffic & Visitors -> Install it, or
+download it by hand from https://db-ip.com/db/lite.php and upload it here as
+city.mmdb.
+
+Nothing in includes/ is reachable over HTTP — includes/.htaccess denies all,
+and that applies to this folder too, so the database can never be served.
