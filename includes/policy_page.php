@@ -88,5 +88,12 @@ require __DIR__ . '/site_header.php';
 
 <?php require __DIR__ . '/site_footer.php'; ?>
 
+<?php // A policy page that carries an interactive widget needs somewhere to put
+      // its behaviour. Optional, and empty for every page that does not set it,
+      // so nothing changes for the ones that are pure prose.
+      if (isset($policyScript) && $policyScript !== ''): ?>
+<script><?= $policyScript ?></script>
+<?php endif; ?>
+
 </body>
 </html>

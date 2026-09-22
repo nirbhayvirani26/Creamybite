@@ -49,8 +49,6 @@ require_once __DIR__ . '/offers.php';
  */
 function calculateDeliveryCharge(string $postcode, float $subtotal = 0.0): float
 {
-    $shopLat   = 51.5729;
-    $shopLon   = -0.3356;   // HA1 2SP
     $freeMiles = FREE_DELIVERY_MILES;
     $charge    = DELIVERY_CHARGE;
 
@@ -63,41 +61,78 @@ function calculateDeliveryCharge(string $postcode, float $subtotal = 0.0): float
         return (float)$_SESSION['_delivery_cache'][$clean];
     }
 
-    $result = 0.0;
+    // The lookup and the distance sum moved into cbPostcodeLookup() so that the
+    // public postcode checker asks the same question this does. Two copies of
+    // this arithmetic is how the order page ended up quoting a delivery radius
+    // the checkout did not honour.
+    $look = cbPostcodeLookup($clean);
+
+    if ($look['status'] === 'unavailable') {
+        $result = 0.0;               // do not charge for delivery we cannot verify
+    } elseif ($look['status'] === 'unknown') {
+        $result = $charge;           // unknown postcode: standard charge
+    } else {
+        $result = $look['miles'] <= $freeMiles ? 0.0 : $charge;
+    }
+
+    $_SESSION['_delivery_cache'][$clean] = $result;
+    return $result;
+}
+
+/**
+ * How far a postcode is from the warehouse, in estimated driving miles.
+ *
+ * Returns ['status' => 'ok'|'unknown'|'unavailable', 'miles' => ?float].
+ *
+ *   ok          – postcodes.io knew it; 'miles' is set
+ *   unknown     – a well-formed request that matched no postcode
+ *   unavailable – the lookup itself failed (timeout, network, bad JSON)
+ *
+ * Those three are NOT interchangeable, and the charge rule above treats each
+ * differently: an unverifiable lookup must not cost the customer money, while
+ * a postcode that genuinely does not exist is charged the standard rate.
+ * Collapsing them into "no distance" would quietly start giving free delivery
+ * every time the API had a bad minute.
+ */
+function cbPostcodeLookup(string $postcode): array
+{
+    $shopLat = 51.5729;
+    $shopLon = -0.3356;   // HA1 2SP
+
+    $clean = str_replace(' ', '', strtoupper(trim($postcode)));
+    if ($clean === '') {
+        return ['status' => 'unknown', 'miles' => null];
+    }
+
     try {
         $url  = 'https://api.postcodes.io/postcodes/' . urlencode($clean);
         $ctx  = stream_context_create(['http' => ['timeout' => 4]]);
         $json = @file_get_contents($url, false, $ctx);
 
         if (!$json) {
-            // Lookup unavailable — do not charge for delivery we cannot verify.
             error_log('Delivery lookup failed for ' . $clean . ' (no response)');
-            $result = 0.0;
-        } else {
-            $data = json_decode($json, true);
-            if (empty($data['result'])) {
-                $result = $charge;   // unknown postcode: standard charge
-            } else {
-                $lat2  = (float)$data['result']['latitude'];
-                $lon2  = (float)$data['result']['longitude'];
-                $R     = 3958.8;
-                $dLat  = deg2rad($lat2 - $shopLat);
-                $dLon  = deg2rad($lon2 - $shopLon);
-                $a     = sin($dLat / 2) ** 2 + cos(deg2rad($shopLat)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
-                $straightLine = $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
-                // Scaled toward a realistic driving distance — see
-                // DELIVERY_DISTANCE_FACTOR in config.php for why.
-                $miles = $straightLine * DELIVERY_DISTANCE_FACTOR;
-                $result = $miles <= $freeMiles ? 0.0 : $charge;
-            }
+            return ['status' => 'unavailable', 'miles' => null];
         }
+
+        $data = json_decode($json, true);
+        if (empty($data['result'])) {
+            return ['status' => 'unknown', 'miles' => null];
+        }
+
+        $lat2 = (float)$data['result']['latitude'];
+        $lon2 = (float)$data['result']['longitude'];
+        $R    = 3958.8;
+        $dLat = deg2rad($lat2 - $shopLat);
+        $dLon = deg2rad($lon2 - $shopLon);
+        $a    = sin($dLat / 2) ** 2 + cos(deg2rad($shopLat)) * cos(deg2rad($lat2)) * sin($dLon / 2) ** 2;
+        $straightLine = $R * 2 * atan2(sqrt($a), sqrt(1 - $a));
+        // Scaled toward a realistic driving distance — see
+        // DELIVERY_DISTANCE_FACTOR in config.php for why.
+        return ['status' => 'ok', 'miles' => $straightLine * DELIVERY_DISTANCE_FACTOR];
     } catch (Throwable $e) {
         error_log('Delivery lookup error for ' . $clean . ': ' . $e->getMessage());
-        $result = 0.0;
+        return ['status' => 'unavailable', 'miles' => null];
     }
-
-    $_SESSION['_delivery_cache'][$clean] = $result;
-    return $result;
 }
 
 /** Forget cached delivery charges — call once an order completes. */

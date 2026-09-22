@@ -2168,3 +2168,41 @@ body.about-page .cbab-social-icon > svg { font-size: max(14px, 0.5em); width: 1e
     .cbpd-title { font-size: 18px; }
     .cbpd-facts { gap: 8px 16px; }
 }
+
+/* ══ Shipping page: live status + postcode checker ════════════════════ */
+.cbsh-status {
+    padding: 14px 18px; margin: 0 0 24px;
+    border-radius: var(--radius-md); font-size: 14px; line-height: 1.65;
+}
+.cbsh-status.is-paused { background: var(--color-secondary-bg); border: 1px solid rgba(199,136,41,.25); color: #8a5c12; }
+.cbsh-status strong { color: #7a4f0c; }
+
+.cbsh-check {
+    padding: 22px 24px; margin: 0 0 30px;
+    border-radius: var(--radius-md);
+    background: var(--color-primary-bg, #fff7ef);
+    border: 1px solid var(--border-light);
+}
+.cbsh-check-h { margin: 0 0 6px; font-size: 19px; }
+.cbsh-check-p { margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: var(--text-secondary); }
+.cbsh-check-label { display: block; font-size: 12.5px; font-weight: 700; margin-bottom: 6px; }
+.cbsh-check-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.cbsh-check-input { flex: 1 1 200px; max-width: 260px; text-transform: uppercase; }
+.cbsh-check-btn { flex: 0 0 auto; }
+.cbsh-check-out {
+    margin-top: 14px; padding: 12px 15px;
+    border-radius: 10px; font-size: 14px; line-height: 1.6;
+}
+.cbsh-check-out[hidden] { display: none; }
+/* Colour follows the verdict. A green box saying "we cannot deliver there"
+   reads as a yes at a glance, which is worse than no colour at all. */
+.cbsh-check-out.is-yes  { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+.cbsh-check-out.is-no   { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.cbsh-check-out.is-info { background: #f3f4f6; border: 1px solid #e5e7eb; color: #4b5563; }
+.cbsh-check-out.is-busy { background: #f3f4f6; border: 1px solid #e5e7eb; color: #6b7280; }
+
+@media (max-width: 520px) {
+    .cbsh-check { padding: 18px 16px; }
+    .cbsh-check-input { max-width: none; }
+    .cbsh-check-btn { flex: 1 1 100%; justify-content: center; }
+}

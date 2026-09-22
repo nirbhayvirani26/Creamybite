@@ -14,9 +14,51 @@ $freeM = rtrim(rtrim(number_format(FREE_DELIVERY_MILES, 1), '0'), '.');
 $maxM  = rtrim(rtrim(number_format(DELIVERY_RADIUS_MILES, 1), '0'), '.');
 $chg   = number_format(DELIVERY_CHARGE, 2);
 
+// The page described delivery in the present tense whether or not the shop was
+// taking delivery orders. A customer reading "we deliver within 6 miles" on a
+// day it is switched off has been told something untrue by the page whose whole
+// job is to be the reliable answer.
+require_once __DIR__ . '/../includes/store_settings.php';
+$deliveryOpen   = cbOrderingOpen('delivery');
+$collectionOpen = cbOrderingOpen('collection');
+
+$statusBlock = '';
+if (!$deliveryOpen) {
+    $statusBlock = '<div class="cbsh-status is-paused">'
+        . '<strong>Deliveries are paused at the moment.</strong> '
+        . htmlspecialchars(cbOrderingClosedNote('delivery'))
+        . ' Everything below is what happens when deliveries are running again.'
+        . '</div>';
+} elseif (!$collectionOpen) {
+    $statusBlock = '<div class="cbsh-status is-paused">'
+        . '<strong>Collection is paused at the moment.</strong> '
+        . htmlspecialchars(cbOrderingClosedNote('collection'))
+        . '</div>';
+}
+
+$checker = <<<CHK
+<div class="cbsh-check">
+    <h2 class="cbsh-check-h">Do we deliver to you?</h2>
+    <p class="cbsh-check-p">
+        Put your postcode in and we will tell you before you start an order,
+        rather than at the payment step.
+    </p>
+    <form class="cbsh-check-form" id="cbshForm" autocomplete="off">
+        <label class="cbsh-check-label" for="cbshPc">Your postcode</label>
+        <div class="cbsh-check-row">
+            <input id="cbshPc" name="postcode" type="text" class="form-control cbsh-check-input"
+                   placeholder="HA1 2SP" maxlength="10" required
+                   autocapitalize="characters" spellcheck="false">
+            <button type="submit" class="btn-primary cbsh-check-btn">Check</button>
+        </div>
+    </form>
+    <div class="cbsh-check-out" id="cbshOut" role="status" aria-live="polite" hidden></div>
+</div>
+CHK;
+
 $policyTitle = 'Shipping & Delivery';
 $policyIntro = 'Where we deliver, what it costs, and when to expect your order.';
-$policyBody  = <<<HTML
+$policyBody  = $statusBlock . $checker . <<<HTML
 <h2>Where we deliver</h2>
 <p>
     We deliver within a <strong>{$maxM} mile radius</strong> of our Harrow warehouse
@@ -74,5 +116,39 @@ $policyBody  = <<<HTML
     time-sensitive and the sooner we know, the more we can do about it.
 </p>
 HTML;
+
+$checkUrl = cbUrl('postcode_check.php');
+$policyScript = <<<JS
+(function () {
+    var form = document.getElementById('cbshForm');
+    var out  = document.getElementById('cbshOut');
+    var pc   = document.getElementById('cbshPc');
+    if (!form || !out || !pc) return;
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var v = pc.value.trim();
+        if (!v) { return; }
+        out.hidden = false;
+        out.className = 'cbsh-check-out is-busy';
+        out.textContent = 'Checking…';
+        fetch('{$checkUrl}?postcode=' + encodeURIComponent(v), { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                // The class carries the verdict so the colour matches the words —
+                // a green box saying "we cannot deliver there" reads as a yes.
+                var kind = d.status === 'ok' ? 'is-yes'
+                         : (d.status === 'outside' || d.status === 'closed') ? 'is-no'
+                         : 'is-info';
+                out.className = 'cbsh-check-out ' + kind;
+                out.textContent = d.message || 'Sorry — we could not check that one.';
+            })
+            .catch(function () {
+                out.className = 'cbsh-check-out is-info';
+                out.textContent = 'We could not check just now. Please call us and we will tell you.';
+            });
+    });
+})();
+JS;
 
 require __DIR__ . '/../includes/policy_page.php';
