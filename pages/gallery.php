@@ -10,6 +10,17 @@ $gallery = [];
 try {
     $gallery = $pdo->query("SELECT * FROM gallery ORDER BY sort_order ASC, created_at DESC")->fetchAll();
 } catch (PDOException $e) { }
+
+// A row whose file is no longer on disk rendered a broken-image icon in the
+// middle of the grid — worse than showing one photo fewer, and it looks like
+// the site is broken rather than like a file is missing. Dropped here rather
+// than in the loop so that the empty state still fires when every row has
+// lost its file.
+$gallery = array_values(array_filter($gallery, static function (array $img): bool {
+    $name = (string)($img['filename'] ?? '');
+    // basename() so a stored path can never walk out of the gallery folder.
+    return $name !== '' && is_file(__DIR__ . '/../assets/images/gallery/' . basename($name));
+}));
 ?>
 <!DOCTYPE html>
 <html lang="en">

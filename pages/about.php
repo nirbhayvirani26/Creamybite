@@ -171,6 +171,73 @@ require __DIR__ . '/../includes/site_header.php';
     </div>
 </section>
 
+<!-- ══ How it is made ═══════════════════════════════════════ -->
+<?php
+// The audit's note was that the page tells a warm story and offers no proof
+// of it. This is the proof the shop actually has — every claim below is a
+// system that exists in this codebase, not copy:
+//
+//   · batch runs, with every tub assigned to one (includes/traceability.php)
+//   · an order traced back to the batches that filled it
+//   · a recall path that works from a batch to the orders it went out in
+//   · allergens recorded per product and signed off (includes/product_spec.php)
+//
+// Nothing here is a claim about ingredients, sourcing or a founder. Those are
+// the owner's to write, and inventing them would be worse than leaving the
+// section out.
+?>
+<section class="about-process-section">
+    <div class="container">
+        <div class="section-header cbab-process-head">
+            <span class="section-label">How we make it</span>
+            <h2>Every tub is traceable to the batch it came from</h2>
+            <p class="cbab-process-lead">
+                Small-batch production is only worth claiming if you can show it.
+                Here is what we record on every order.
+            </p>
+        </div>
+        <div class="cbab-process-grid">
+            <div class="cbab-process-card">
+                <span class="cbab-process-icon"><i class="fa-solid fa-layer-group" aria-hidden="true"></i></span>
+                <h3>Batch production</h3>
+                <p>
+                    Everything is made in numbered batches rather than a continuous run.
+                    Each batch records what went into it and the day it was made.
+                </p>
+            </div>
+            <div class="cbab-process-card">
+                <span class="cbab-process-icon"><i class="fa-solid fa-link" aria-hidden="true"></i></span>
+                <h3>Tub to order</h3>
+                <p>
+                    Every tub that leaves us is assigned to its batch against your order,
+                    so we can say exactly which batch you received.
+                </p>
+            </div>
+            <div class="cbab-process-card">
+                <span class="cbab-process-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+                <h3>Recall in one step</h3>
+                <p>
+                    If a batch ever needs pulling, we can list every order it went out in
+                    and contact those customers directly — not issue a vague notice.
+                </p>
+            </div>
+            <div class="cbab-process-card">
+                <span class="cbab-process-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
+                <h3>Allergens on record</h3>
+                <p>
+                    Allergens are recorded per flavour and signed off, and a flavour that
+                    has not been checked says so rather than showing an empty list.
+                </p>
+            </div>
+        </div>
+        <p class="cbab-process-foot">
+            The full allergen and nutrition information for every flavour is on the
+            <a href="<?= cbUrl('allergens') ?>">allergen page</a>, and on each product in the
+            <a href="<?= cbUrl('order') ?>">menu</a>.
+        </p>
+    </div>
+</section>
+
 <!-- ══ Contact & Map ════════════════════════════════════════ -->
 <section class="contact-map-section" id="contact">
     <div class="container">

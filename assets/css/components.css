@@ -2283,3 +2283,37 @@ body.about-page .cbab-social-icon > svg { font-size: max(14px, 0.5em); width: 1e
 }
 .cbtl-why i { color: var(--color-primary); margin-top: 3px; flex-shrink: 0; }
 .cbtl-why a { color: var(--color-primary); font-weight: 700; }
+
+/* ══ About: proof of process ══════════════════════════════════════════ */
+.about-process-section { padding: 70px 0; background: var(--bg-muted, #faf7f5); }
+.cbab-process-head { text-align: center; margin-bottom: 36px; }
+.cbab-process-lead { max-width: 560px; margin: 10px auto 0; font-size: 15px;
+    line-height: 1.7; color: var(--text-secondary); }
+.cbab-process-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 18px;
+}
+.cbab-process-card {
+    padding: 24px 22px;
+    background: var(--bg-surface, #fff);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+}
+.cbab-process-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 12px;
+    background: var(--color-primary-bg, #fff7ef);
+    color: var(--color-primary); font-size: 18px;
+    margin-bottom: 14px;
+}
+.cbab-process-card h3 { margin: 0 0 7px; font-size: 16px; color: var(--color-primary); }
+.cbab-process-card p  { margin: 0; font-size: 13.5px; line-height: 1.7; color: var(--text-secondary); }
+.cbab-process-foot {
+    margin: 26px auto 0; max-width: 620px; text-align: center;
+    font-size: 13.5px; line-height: 1.7; color: var(--text-secondary);
+}
+.cbab-process-foot a { color: var(--color-primary); font-weight: 700; }
+
+@media (max-width: 640px) {
+    .about-process-section { padding: 48px 0; }
+}
