@@ -640,6 +640,12 @@ $failures = array_values(array_filter($checks, fn($c) => !$c['ok']));
         </p>
         <?php endif; ?>
 
+        <?php // Mail is the one thing this page can only half-answer: it reads the
+              // settings, but only an actual send proves delivery. ?>
+        <p><a href="mail_test.php" class="btn-primary su-btn-back">
+            <i class="fa-solid fa-envelope"></i> Test outgoing email
+        </a></p>
+
         <a href="../index.php" class="btn-secondary su-btn-back">
             <i class="fa-solid fa-arrow-left"></i> Back to Admin
         </a>

@@ -142,3 +142,10 @@
 /* A form whose only control is a button needs room under it, or the next
    heading sits on the button — and btn-primary's glow bleeds into the text. */
 .su-form-block { margin-bottom: 26px; }
+
+/* mail_test.php — the "how to fix it" line under a failed check. Deliberately
+   NOT su-cell-mono: these are full sentences, and monospace at this width
+   wraps badly enough that people stop reading them. */
+.su-fixnote   { padding: 2px 8px 12px; font-size: 13px; line-height: 1.6;
+                color: #b45309; background: #fffbeb; }
+.su-input     { max-width: 340px; margin-top: 6px; }
