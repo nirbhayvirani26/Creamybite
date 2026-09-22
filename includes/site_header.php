@@ -54,6 +54,7 @@ function cbNavActiveAttr(string $key, string $current): string
                 <li><a href="<?= $cbBase ?>/pages/order.php"<?= cbNavActiveAttr('order', $cbNavActive) ?>>Order</a></li>
                 <li><a href="<?= $cbBase ?>/pages/gallery.php"<?= cbNavActiveAttr('gallery', $cbNavActive) ?>>Gallery</a></li>
                 <li><a href="<?= $cbBase ?>/pages/about.php"<?= cbNavActiveAttr('about', $cbNavActive) ?>>About Us</a></li>
+                <li><a href="<?= $cbBase ?>/pages/about.php#contact">Contact</a></li>
             </ul>
         </nav>
 
@@ -62,6 +63,20 @@ function cbNavActiveAttr(string $key, string $current): string
         </a>
 
         <div class="nav-actions nav-right">
+            <?php // Tap-to-call and WhatsApp. Icon-only up here because the bar
+                  // already carries a trade pill, a page CTA and the hamburger;
+                  // the labelled versions live in the drawer, where there is room.
+                  // Hidden below 768px by responsive.css for the same reason. ?>
+            <a href="tel:<?= preg_replace('/[^0-9+]/', '', SHOP_PHONE) ?>"
+               class="nav-contact-btn" title="Call <?= htmlspecialchars(SHOP_PHONE) ?>"
+               aria-label="Call <?= htmlspecialchars(SHOP_PHONE) ?>">
+                <i class="fa-solid fa-phone"></i>
+            </a>
+            <a href="<?= SHOP_WHATSAPP ?>" class="nav-contact-btn nav-contact-wa"
+               target="_blank" rel="noopener" title="Message us on WhatsApp"
+               aria-label="Message us on WhatsApp">
+                <i class="fa-brands fa-whatsapp"></i>
+            </a>
             <?php if ($cbNavShowTrade): ?>
             <?php include __DIR__ . '/trade_nav_button.php'; ?>
             <?php endif; ?>
@@ -81,8 +96,21 @@ function cbNavActiveAttr(string $key, string $current): string
             <li><a href="<?= $cbBase ?>/pages/order.php"<?= cbNavActiveAttr('order', $cbNavActive) ?>>Order</a></li>
             <li><a href="<?= $cbBase ?>/pages/gallery.php"<?= cbNavActiveAttr('gallery', $cbNavActive) ?>>Gallery</a></li>
             <li><a href="<?= $cbBase ?>/pages/about.php"<?= cbNavActiveAttr('about', $cbNavActive) ?>>About Us</a></li>
+            <li><a href="<?= $cbBase ?>/pages/about.php#contact">Contact</a></li>
         </ul>
         <div class="mobile-nav-actions">
+            <?php // First in the drawer, not last: on a phone, calling the shop is
+                  // more often the intent than anything a page-specific CTA offers. ?>
+            <a href="tel:<?= preg_replace('/[^0-9+]/', '', SHOP_PHONE) ?>" class="btn-secondary mobile-contact-btn">
+                <i class="fa-solid fa-phone"></i> Call <?= htmlspecialchars(SHOP_PHONE) ?>
+            </a>
+            <a href="<?= SHOP_WHATSAPP ?>" class="btn-secondary mobile-contact-btn mobile-contact-wa"
+               target="_blank" rel="noopener">
+                <i class="fa-brands fa-whatsapp"></i> WhatsApp
+            </a>
+            <a href="<?= $cbBase ?>/pages/about.php#contact" class="btn-secondary mobile-contact-btn">
+                <i class="fa-solid fa-envelope"></i> Contact us
+            </a>
             <?= $cbNavDrawerRight ?>
         </div>
     </div>

@@ -738,6 +738,25 @@ $tables = [
         KEY `idx_human` (`is_bot`, `occurred_at`),
         KEY `idx_country` (`country_code`, `occurred_at`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+
+    // Failed admin logins, counted per address.
+    //
+    // The login already refused a sixth attempt, but it counted them in
+    // $_SESSION — so the lockout applied to a browser, and a script that
+    // discarded its cookie each time never carried a count at all. The
+    // throttle stopped a person and not the thing it was written for.
+    //
+    // The address is the primary key, so this holds one row per address
+    // currently failing rather than one row per guess, and a successful
+    // login deletes its own row. VARCHAR(45) fits an IPv6 address in full.
+    'admin_login_attempts' => "CREATE TABLE IF NOT EXISTS `admin_login_attempts` (
+        `ip`           VARCHAR(45)     NOT NULL,
+        `attempts`     INT UNSIGNED    NOT NULL DEFAULT 0,
+        `locked_until` INT UNSIGNED    NOT NULL DEFAULT 0,
+        `last_attempt` INT UNSIGNED    NOT NULL DEFAULT 0,
+        PRIMARY KEY (`ip`),
+        KEY `idx_last` (`last_attempt`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
 ];
 
 foreach ($tables as $name => $sql) {

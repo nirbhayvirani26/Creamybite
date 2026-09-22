@@ -1036,6 +1036,55 @@ a.btn-primary.cboc-directions-btn {
     font-weight: 700;
 }
 
+/* "Forgotten your password?" — a plain button, styled as the link it reads as,
+   because it toggles content on the page rather than navigating anywhere. */
+.cbtl-forgot { text-align: right; margin-top: 6px; }
+.cbtl-forgot-link {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: underline;
+    padding: 2px;
+}
+.cbtl-forgot-help {
+    margin-top: 8px;
+    padding: 12px 14px;
+    background: var(--color-primary-bg, #fff7ef);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+}
+.cbtl-forgot-help a { color: var(--color-primary); font-weight: 700; }
+
+/* What is actually behind the login. */
+.cbtl-benefits {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+.cbtl-benefits li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.cbtl-benefits i { color: var(--color-primary); width: 16px; text-align: center; flex-shrink: 0; }
+
+.cbtl-support {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+.cbtl-support a { color: var(--color-primary); font-weight: 700; white-space: nowrap; }
+
 /* Footer copyright line */
 .cbtl-footer-note {
     text-align: center;

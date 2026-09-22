@@ -46,6 +46,54 @@ const LOGIN_LOCKOUT_SECS = 900;
 $attempts  = (int)($_SESSION['admin_login_attempts'] ?? 0);
 $lockedTil = (int)($_SESSION['admin_login_locked_until'] ?? 0);
 
+// ── And the same count, kept against the address ─────────────
+//
+// The counter above lives in $_SESSION, so it locks out a BROWSER. A script
+// that throws away its cookie between requests never carries a count at all
+// and is not slowed down by a single attempt — which is every password
+// guesser worth worrying about. A session throttle stops a person leaning on
+// the form; it does not stop the thing it was written for.
+//
+// So the same five-strikes rule is also kept per address, where the client
+// cannot reach it. cbTrafficClientIp() is reused rather than REMOTE_ADDR
+// because the shop may sit behind Cloudflare, and there REMOTE_ADDR is the
+// edge — every visitor in the world would share one counter.
+$cbLoginIp     = function_exists('cbTrafficClientIp') ? cbTrafficClientIp() : (string)($_SERVER['REMOTE_ADDR'] ?? '');
+$cbIpAttempts  = 0;
+$cbIpLockedTil = 0;
+$cbIpTracked   = false;
+
+/**
+ * Read this address's standing, and say whether the table was there to read.
+ *
+ * Every call is wrapped, and a missing table is treated as "no record" rather
+ * than an error. That is deliberate and it is the one place this control fails
+ * OPEN: if the migration has not been run, refusing the login would lock the
+ * owner out of the only panel from which the migration can be run, with no way
+ * back in. The session throttle still applies in the meantime.
+ */
+function cbLoginIpState(PDO $pdo, string $ip): ?array
+{
+    if ($ip === '') {
+        return null;
+    }
+    try {
+        $st = $pdo->prepare("SELECT attempts, locked_until FROM admin_login_attempts WHERE ip = ?");
+        $st->execute([$ip]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: ['attempts' => 0, 'locked_until' => 0];
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+$cbIpState = cbLoginIpState($pdo, $cbLoginIp);
+if ($cbIpState !== null) {
+    $cbIpTracked   = true;
+    $cbIpAttempts  = (int)$cbIpState['attempts'];
+    $cbIpLockedTil = (int)$cbIpState['locked_until'];
+}
+
 // A server with no .env has ADMIN_USERNAME and ADMIN_PASSWORD as empty
 // strings, and hash_equals('', '') is TRUE — so posting a blank username and
 // a blank password would have logged anyone straight into the admin panel.
@@ -88,9 +136,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
         // out of their own admin panel by posting rubbish at this form.
         error_log('Admin login rejected: no valid form token, from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
         $error = 'This page had been open a while and the login form expired. Please enter your password again.';
-    } elseif ($lockedTil > time()) {
+    } elseif ($lockedTil > time() || $cbIpLockedTil > time()) {
+        $until = max($lockedTil, $cbIpLockedTil);
         $error = 'Too many failed attempts. Try again in '
-               . (int)ceil(($lockedTil - time()) / 60) . ' minute(s).';
+               . (int)ceil(($until - time()) / 60) . ' minute(s).';
     } else {
         $u = trim($_POST['username'] ?? '');
         $p = trim($_POST['password'] ?? '');
@@ -156,19 +205,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $adminCredsConfigured) {
                 unset($_SESSION['admin_staff_id'], $_SESSION['admin_staff_name'], $_SESSION['admin_staff_perms']);
             }
             unset($_SESSION['admin_login_attempts'], $_SESSION['admin_login_locked_until']);
+            if ($cbIpTracked && $cbLoginIp !== '') {
+                try {
+                    $pdo->prepare("DELETE FROM admin_login_attempts WHERE ip = ?")->execute([$cbLoginIp]);
+                } catch (Throwable $e) {
+                    error_log('Could not clear login attempts for ' . $cbLoginIp . ': ' . $e->getMessage());
+                }
+            }
             header('Location: ' . $dest); exit;
         }
 
         $attempts++;
         $_SESSION['admin_login_attempts'] = $attempts;
-        if ($attempts >= LOGIN_MAX_ATTEMPTS) {
+
+        // The address's count is what actually bites; the session's is kept so
+        // that clearing cookies does not also clear the visible warning.
+        $ipLockedNow = false;
+        if ($cbIpTracked && $cbLoginIp !== '') {
+            try {
+                $cbIpAttempts++;
+                $lockUntil = ($cbIpAttempts >= LOGIN_MAX_ATTEMPTS) ? time() + LOGIN_LOCKOUT_SECS : 0;
+                // One row per address, upserted, so the table stays the size of
+                // the set of addresses currently failing rather than growing by
+                // one row per guess.
+                $pdo->prepare(
+                    "INSERT INTO admin_login_attempts (ip, attempts, locked_until, last_attempt)
+                     VALUES (:ip, :n, :until, :now)
+                     ON DUPLICATE KEY UPDATE attempts = :n2, locked_until = :until2, last_attempt = :now2"
+                )->execute([
+                    'ip' => $cbLoginIp, 'n' => $cbIpAttempts, 'until' => $lockUntil, 'now' => time(),
+                    'n2' => $cbIpAttempts, 'until2' => $lockUntil, 'now2' => time(),
+                ]);
+                $ipLockedNow = $lockUntil > 0;
+
+                // Drop rows that have served their purpose, so the table stays
+                // the size of "who is failing right now" rather than growing a
+                // permanent row for every address that ever guessed once. Runs
+                // only on a failure, which is rare, and the column is indexed.
+                $pdo->prepare(
+                    "DELETE FROM admin_login_attempts
+                      WHERE locked_until < :now AND last_attempt < :cutoff"
+                )->execute(['now' => time(), 'cutoff' => time() - LOGIN_LOCKOUT_SECS]);
+            } catch (Throwable $e) {
+                error_log('Could not record login attempt for ' . $cbLoginIp . ': ' . $e->getMessage());
+            }
+        }
+
+        if ($attempts >= LOGIN_MAX_ATTEMPTS || $ipLockedNow) {
             $_SESSION['admin_login_locked_until'] = time() + LOGIN_LOCKOUT_SECS;
             $_SESSION['admin_login_attempts']     = 0;
             $error = 'Too many failed attempts. Locked for 15 minutes.';
         } else {
             $error = 'Incorrect username or password.';
         }
-        error_log('Admin login failed from ' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+        error_log('Admin login failed from ' . ($cbLoginIp !== '' ? $cbLoginIp : 'unknown'));
     }
 }
 ?>

@@ -77,6 +77,11 @@
     /* Nav actions: keep view-cart visible, hide Order Now btn */
     .nav-actions .btn-primary { display: none !important; }
 
+    /* Call and WhatsApp move into the drawer here. The bar already holds a
+       trade pill, the cart and the hamburger; a fourth and fifth control
+       overflows it on a 380px phone. The drawer shows them labelled. */
+    .nav-contact-btn { display: none !important; }
+
     /* Hero */
     .landing-title   { font-size: 40px; }
     .landing-subtitle { font-size: 15px; }

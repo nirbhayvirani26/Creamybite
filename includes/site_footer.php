@@ -64,7 +64,12 @@ $cbBase = defined('SITE_BASE') ? SITE_BASE : '';
                 <ul>
                     <li><a href="<?= $cbBase ?>/pages/trade_register.php">Apply for Trade</a></li>
                     <li><a href="<?= $cbBase ?>/pages/trade_login.php">Trade Login</a></li>
-                    <li><a href="<?= $cbBase ?>/admin/login.php">Admin Login</a></li>
+                    <?php // The Admin Login link used to sit here, in the public footer of
+                          // every page. It is not a hole on its own — the login throttles —
+                          // but advertising the door to every crawler and every visitor
+                          // invites traffic at it for no benefit whatsoever: nobody who
+                          // belongs in the admin panel needs a link to find it.
+                          // It is still at /admin/login.php. ?>
                 </ul>
             </div>
         </div>

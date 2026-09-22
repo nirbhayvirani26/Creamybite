@@ -2006,3 +2006,40 @@ select.form-control { appearance: none; background-image: url("data:image/svg+xm
     font-weight: 900;
     flex-shrink: 0;
 }
+
+/* ── Call / WhatsApp in the navbar ──────────────────────────────────────
+   The site had no phone or contact action anywhere in the main navigation:
+   a customer wanting to ask about an allergen, a collection time or a large
+   order had to find the number in the footer. For a local shop that is the
+   commonest reason someone opens the site at all.
+
+   Sized to match .cart-btn so the row keeps one rhythm. Icon-only here;
+   responsive.css hides both below 768px, where the drawer carries the
+   labelled versions instead — the mobile bar is already full. */
+.nav-contact-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border-light);
+    color: var(--text-primary);
+    font-size: 15px;
+    flex-shrink: 0;
+    transition: var(--transition);
+}
+.nav-contact-btn:hover {
+    border-color: var(--color-primary);
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+}
+/* WhatsApp's own green, because an unbranded circle is not recognised as
+   WhatsApp and the icon alone is doing all the explaining up here. */
+.nav-contact-wa:hover { border-color: #25D366; background: #25D36615; color: #128C7E; }
+
+.mobile-contact-btn {
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.mobile-contact-wa { border-color: #25D366; color: #128C7E; }

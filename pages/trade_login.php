@@ -177,6 +177,21 @@ require __DIR__ . '/../includes/site_header.php';
                 <div class="form-group">
                     <label class="form-label cbtl-login-label" for="tl_password">Password</label>
                     <input id="tl_password" type="password" name="password" class="form-control" placeholder="Enter your password" required>
+                    <?php // Not a self-service reset, and deliberately so. A token
+                          // link would have to be emailed, and there is no point
+                          // routing a locked-out customer through a mailbox when
+                          // the shop can confirm who they are on the phone in less
+                          // time. If outgoing email is ever made reliable, this is
+                          // the place a proper reset flow would replace it. ?>
+                    <div class="cbtl-forgot">
+                        <button type="button" class="cbtl-forgot-link" id="tlForgot">Forgotten your password?</button>
+                    </div>
+                    <div class="cbtl-forgot-help" id="tlForgotHelp" hidden>
+                        Call <a href="tel:<?= preg_replace('/[^0-9+]/', '', SHOP_PHONE) ?>"><?= htmlspecialchars(SHOP_PHONE) ?></a>
+                        or email <a href="mailto:<?= htmlspecialchars(SHOP_EMAIL) ?>"><?= htmlspecialchars(SHOP_EMAIL) ?></a>
+                        from your registered address and we will get you back in.
+                        Please have your business name to hand.
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-primary cbtl-login-submit">
@@ -185,6 +200,24 @@ require __DIR__ . '/../includes/site_header.php';
 
                 <div class="cbtl-login-signup-note">
                     Don't have a Trade Account yet? <a href="<?= cbUrl('trade_register') ?>" class="cbtl-login-signup-link">Apply Here</a>
+                </div>
+
+                <?php // A login page that says nothing about what is behind it gives
+                      // a business owner who arrived from a search no reason to
+                      // apply, and no reminder of why they registered in the first
+                      // place. Three lines, no pricing — the figures belong on the
+                      // registration page where they can be kept current. ?>
+                <ul class="cbtl-benefits">
+                    <li><i class="fa-solid fa-tags"></i> Wholesale pricing across the full range</li>
+                    <li><i class="fa-solid fa-box"></i> Case quantities and repeat ordering</li>
+                    <li><i class="fa-solid fa-file-invoice"></i> Invoices and account terms</li>
+                </ul>
+
+                <div class="cbtl-support">
+                    Trade support:
+                    <a href="tel:<?= preg_replace('/[^0-9+]/', '', SHOP_PHONE) ?>"><?= htmlspecialchars(SHOP_PHONE) ?></a>
+                    &middot;
+                    <a href="mailto:<?= htmlspecialchars(SHOP_EMAIL) ?>"><?= htmlspecialchars(SHOP_EMAIL) ?></a>
                 </div>
             </form>
         </div>
@@ -197,6 +230,20 @@ require __DIR__ . '/../includes/site_header.php';
         &copy; <?= date('Y') ?> CreamyBite.com — B2B Wholesale Login
     </div>
 </footer>
+<script>
+// Kept behind a click rather than shown outright: it is reassurance for the
+// person who needs it, not another block of text for everyone else to read
+// past on their way to the password field.
+(function () {
+    var btn = document.getElementById('tlForgot');
+    var help = document.getElementById('tlForgotHelp');
+    if (!btn || !help) return;
+    btn.addEventListener('click', function () {
+        help.hidden = !help.hidden;
+        btn.setAttribute('aria-expanded', help.hidden ? 'false' : 'true');
+    });
+})();
+</script>
 <script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
 <script src="<?= cbAsset('../assets/js/animations.js') ?>" defer></script>
 

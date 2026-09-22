@@ -172,7 +172,7 @@ require __DIR__ . '/../includes/site_header.php';
 </section>
 
 <!-- ══ Contact & Map ════════════════════════════════════════ -->
-<section class="contact-map-section">
+<section class="contact-map-section" id="contact">
     <div class="container">
         <div class="section-header cbab-contact-header">
             <span class="section-label">Get In Touch</span>
