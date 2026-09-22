@@ -1900,9 +1900,18 @@ $pageTitles = [
                     You can tick every product in one screen instead of editing them one by one.
                 </p>
             </div>
-            <a href="allergens_bulk.php" class="btn-primary cbi-allergen-cta">
-                <i class="fa-solid fa-list-check"></i> Set allergens
-            </a>
+            <div class="cbi-allergen-actions">
+                <a href="allergens_bulk.php" class="btn-primary cbi-allergen-cta">
+                    <i class="fa-solid fa-list-check"></i> Set allergens
+                </a>
+                <?php // Ticking allergens is one of several gaps. The report covers
+                      // the rest — missing ingredients, half-filled nutrition panels,
+                      // and products signed off whose own description names an
+                      // allergen that is not ticked. ?>
+                <a href="migrations/allergen_check.php" class="btn-secondary cbi-allergen-cta">
+                    <i class="fa-solid fa-clipboard-check"></i> What else is missing
+                </a>
+            </div>
         </div>
         <?php endif; ?>
         <div class="glass-panel cbi-panel">

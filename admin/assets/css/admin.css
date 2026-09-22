@@ -2562,3 +2562,11 @@ select.cbst-input { appearance: none; background-image:
                       min-width: 26px; flex: 0 0 auto; }
 .cbi-trade-company  { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
                       font-size: 12.5px; color: var(--text-primary); }
+
+/* Two ways into the product-data work: tick the allergens, or see the full
+   list of what is still missing. Stacked on a phone so neither is clipped. */
+.cbi-allergen-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+@media (max-width: 640px) {
+    .cbi-allergen-actions { width: 100%; }
+    .cbi-allergen-actions .cbi-allergen-cta { flex: 1 1 100%; justify-content: center; }
+}

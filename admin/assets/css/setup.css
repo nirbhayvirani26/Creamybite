@@ -149,3 +149,37 @@
 .su-fixnote   { padding: 2px 8px 12px; font-size: 13px; line-height: 1.6;
                 color: #b45309; background: #fffbeb; }
 .su-input     { max-width: 340px; margin-top: 6px; }
+
+/* allergen_check.php — the "what is still missing" report. */
+.cbac-wrap  { max-width: 900px; }
+.cbac-tiles { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 22px; }
+.cbac-tile  {
+    flex: 1 1 160px; padding: 14px 16px; border-radius: 12px;
+    background: var(--bg-muted, #f7f3f0); border: 1px solid var(--border-light);
+    display: flex; flex-direction: column; gap: 3px;
+}
+.cbac-tile.is-ok   { background: #f0fdf4; border-color: #bbf7d0; }
+.cbac-tile.is-warn { background: #fffbeb; border-color: #fde68a; }
+.cbac-tile.is-bad  { background: #fef2f2; border-color: #fecaca; }
+.cbac-tile-n { font-size: 24px; font-weight: 800; color: #5C1D24; line-height: 1.1; }
+.cbac-tile-l { font-size: 12px; color: #6b7280; line-height: 1.4; }
+
+.cbac-table td { vertical-align: top; padding-top: 12px; padding-bottom: 12px; }
+.cbac-live   { padding: 12px 8px; }
+.cbac-yes    { color: #166534; font-weight: 700; font-size: 12.5px; }
+.cbac-no     { color: #9ca3af; font-size: 12.5px; }
+.cbac-done   { color: #16a34a; font-size: 11.5px; font-weight: 700; margin-left: 6px; }
+
+.cbac-missing { list-style: none; margin: 0; padding: 0; display: flex;
+                flex-direction: column; gap: 5px; }
+.cbac-missing li { font-size: 12.5px; line-height: 1.5; padding-left: 16px; position: relative; }
+.cbac-missing li::before { position: absolute; left: 0; top: 0; }
+/* Colour carries the priority, so the list can be skimmed without reading it. */
+.cbac-missing li.is-critical { color: #991b1b; font-weight: 600; }
+.cbac-missing li.is-critical::before { content: '●'; color: #dc2626; }
+.cbac-missing li.is-warn     { color: #92400e; }
+.cbac-missing li.is-warn::before { content: '●'; color: #f59e0b; }
+.cbac-missing li.is-info     { color: #6b7280; }
+.cbac-missing li.is-info::before { content: '○'; color: #9ca3af; }
+
+.cbac-note { font-size: 13px; line-height: 1.7; color: #6b7280; margin: 18px 0 22px; }
