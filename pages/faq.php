@@ -40,7 +40,15 @@ $policyBody  = <<<HTML
     <a href="mailto:{$email}">{$email}</a>. A real person answers.
 </p>
 
-<h2>Ordering</h2>
+<nav class="cbfaq-jump" aria-label="Jump to a section">
+    <a href="#faq-ordering">Ordering</a>
+    <a href="#faq-delivery">Delivery &amp; collection</a>
+    <a href="#faq-payment">Payment</a>
+    <a href="#faq-allergens">Allergens &amp; storage</a>
+    <a href="#faq-trade">Trade accounts</a>
+</nav>
+
+<h2 id="faq-ordering">Ordering</h2>
 
 <details class="cbfaq-item">
     <summary>Do I need an account to order?</summary>
@@ -79,7 +87,9 @@ $policyBody  = <<<HTML
     </p>
 </details>
 
-<h2>Delivery &amp; collection</h2>
+
+<p class="cbfaq-more"><a href="{$base}/order">Browse the menu <span aria-hidden="true">&rarr;</span></a></p>
+<h2 id="faq-delivery">Delivery &amp; collection</h2>
 
 <details class="cbfaq-item">
     <summary>Where do you deliver, and what does it cost?</summary>
@@ -126,7 +136,9 @@ $policyBody  = <<<HTML
     </p>
 </details>
 
-<h2>Payment</h2>
+
+<p class="cbfaq-more"><a href="{$base}/shipping">Full delivery &amp; collection policy <span aria-hidden="true">&rarr;</span></a></p>
+<h2 id="faq-payment">Payment</h2>
 
 <details class="cbfaq-item">
     <summary>How can I pay?</summary>
@@ -154,7 +166,9 @@ $policyBody  = <<<HTML
     </p>
 </details>
 
-<h2>Allergens &amp; storage</h2>
+
+<p class="cbfaq-more"><a href="{$base}/terms">Terms &amp; conditions <span aria-hidden="true">&rarr;</span></a></p>
+<h2 id="faq-allergens">Allergens &amp; storage</h2>
 
 <details class="cbfaq-item">
     <summary>Which flavours contain nuts or other allergens?</summary>
@@ -181,7 +195,9 @@ $policyBody  = <<<HTML
     </p>
 </details>
 
-<h2>Trade accounts</h2>
+
+<p class="cbfaq-more"><a href="{$base}/allergens">Allergen &amp; nutrition information <span aria-hidden="true">&rarr;</span></a></p>
+<h2 id="faq-trade">Trade accounts</h2>
 
 <details class="cbfaq-item">
     <summary>How do I open a trade account?</summary>
@@ -214,6 +230,8 @@ $policyBody  = <<<HTML
         <a href="mailto:{$email}">{$email}</a> and we will send it over.
     </p>
 </details>
+<p class="cbfaq-more"><a href="{$base}/trade_register">Apply for a trade account <span aria-hidden="true">&rarr;</span></a></p>
+
 HTML;
 
 require __DIR__ . '/../includes/policy_page.php';

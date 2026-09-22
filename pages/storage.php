@@ -44,6 +44,9 @@ ob_start();
     one thing: get it into a freezer quickly and keep it there.
 </div>
 
+<?php // Icons so the four rules read at a glance rather than having to be
+      // read. Someone standing at an open freezer with a bag of shopping is
+      // the person this grid is for; they are not going to read paragraphs. ?>
 <div class="cbdoc-storage-grid">
     <div class="cbdoc-storage-card">
         <div class="cbdoc-temp">&minus;18&deg;C</div>
@@ -51,17 +54,27 @@ ob_start();
         <p>Or colder. This is the temperature your freezer should already be set to.</p>
     </div>
     <div class="cbdoc-storage-card">
-        <h3>On arrival</h3>
+        <div class="cbdoc-storage-icon"><i class="fa-solid fa-bolt" aria-hidden="true"></i></div>
+        <h3>Freeze immediately</h3>
         <p>
             Into the freezer straight away. Ice cream left out during unpacking is the
             most common reason a tub disappoints later.
         </p>
     </div>
     <div class="cbdoc-storage-card">
+        <div class="cbdoc-storage-icon is-warn"><i class="fa-solid fa-ban" aria-hidden="true"></i></div>
         <h3>Never refreeze</h3>
         <p>
             Once thawed, do not refreeze. Refrozen ice cream grows ice crystals, turns
             grainy, and is no longer safe to keep.
+        </p>
+    </div>
+    <div class="cbdoc-storage-card">
+        <div class="cbdoc-storage-icon"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i></div>
+        <h3>Best before</h3>
+        <p>
+            Printed on the tub. Kept at &minus;18&deg;C it holds its texture until then;
+            a tub that has thawed and been refrozen will not, whatever the date says.
         </p>
     </div>
 </div>

@@ -2206,3 +2206,49 @@ body.about-page .cbab-social-icon > svg { font-size: max(14px, 0.5em); width: 1e
     .cbsh-check-input { max-width: none; }
     .cbsh-check-btn { flex: 1 1 100%; justify-content: center; }
 }
+
+/* ══ Jump-to-section nav (FAQ, Terms) ═════════════════════════════════
+   Seventeen questions and eleven clauses are both too many to scroll
+   through looking for the one that applies to you. */
+.cbfaq-jump {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin: 0 0 28px; padding: 16px 18px;
+    border-radius: var(--radius-md);
+    background: var(--bg-muted, #faf7f5);
+    border: 1px solid var(--border-light);
+}
+.cbfaq-jump a {
+    padding: 6px 13px; border-radius: 999px;
+    background: var(--bg-surface, #fff);
+    border: 1px solid var(--border-light);
+    font-size: 12.5px; font-weight: 600; color: var(--text-secondary);
+    white-space: nowrap;
+}
+.cbfaq-jump a:hover { border-color: var(--color-primary); color: var(--color-primary); }
+/* The anchor would otherwise land the heading flush against the top of the
+   viewport, under a sticky header, where it reads as the wrong section. */
+.cbpol-body h2[id] { scroll-margin-top: 90px; }
+
+.cbfaq-more { margin: 4px 0 26px; font-size: 13.5px; }
+.cbfaq-more a { color: var(--color-primary); font-weight: 700; }
+
+/* ══ Numbered steps (Returns) ═════════════════════════════════════════ */
+.cbstep-box {
+    padding: 22px 24px; margin: 0 0 30px;
+    border-radius: var(--radius-md);
+    background: var(--color-primary-bg, #fff7ef);
+    border: 1px solid var(--border-light);
+}
+.cbstep-h { margin: 0 0 16px !important; font-size: 19px; }
+.cbsteps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.cbsteps li { display: flex; align-items: flex-start; gap: 13px; }
+.cbstep-n {
+    flex: 0 0 auto;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--color-primary); color: #fff;
+    font-size: 13px; font-weight: 800;
+}
+.cbstep-t { font-size: 14px; line-height: 1.6; }
+.cbstep-t strong { display: block; margin-bottom: 2px; }
+.cbstep-t a { color: var(--color-primary); font-weight: 700; }

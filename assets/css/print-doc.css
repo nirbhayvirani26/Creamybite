@@ -209,6 +209,18 @@
     line-height: 1;
     margin-bottom: 5px;
 }
+/* Sized to sit on the same baseline as the −18°C card, so the four cards
+   line up rather than one starting higher than the rest. */
+.cbdoc-storage-icon {
+    font-size: 24px;
+    line-height: 1;
+    height: 27px;
+    display: flex;
+    align-items: center;
+    color: var(--color-primary);
+    margin-bottom: 5px;
+}
+.cbdoc-storage-icon.is-warn { color: #b91c1c; }
 
 .cbdoc-foot {
     margin-top: 34px;

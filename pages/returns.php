@@ -15,6 +15,28 @@ $email = htmlspecialchars(SHOP_EMAIL);
 $policyTitle = 'Returns & Refunds';
 $policyIntro = 'What happens if something is wrong with your order.';
 $policyBody  = <<<HTML
+<div class="cbstep-box">
+    <h2 class="cbstep-h">Something wrong with your order?</h2>
+    <ol class="cbsteps">
+        <li>
+            <span class="cbstep-n">1</span>
+            <span class="cbstep-t"><strong>Tell us within 24 hours</strong>
+            Call <a href="tel:{$phone}">{$phone}</a> or email
+            <a href="mailto:{$email}">{$email}</a>.</span>
+        </li>
+        <li>
+            <span class="cbstep-n">2</span>
+            <span class="cbstep-t"><strong>Send your order number and a photo</strong>
+            A picture of the problem settles it in one message instead of three.</span>
+        </li>
+        <li>
+            <span class="cbstep-n">3</span>
+            <span class="cbstep-t"><strong>We refund or replace</strong>
+            Refunds go back to the card you paid with, within 5&ndash;10 working days.</span>
+        </li>
+    </ol>
+</div>
+
 <h2>Ice cream is different</h2>
 <p>
     Under the Consumer Contracts Regulations, perishable food is exempt from the
