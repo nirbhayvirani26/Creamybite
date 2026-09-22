@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../includes/product_icons.php';
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/flavour_colours.php';
+require_once __DIR__ . '/../includes/product_detail.php';
 
 require_once __DIR__ . '/../includes/trade_cart.php';
 // The offers a customer is shown and the money they are charged come from the
@@ -553,6 +554,16 @@ require __DIR__ . '/../includes/site_header.php';
 ?>
 
 <!-- ══ Variant Picker Modal ════════════════════════════════ -->
+<div class="cbpd-overlay" id="cbpdModal" hidden>
+    <div class="cbpd-card" role="dialog" aria-modal="true" aria-labelledby="cbpdTitle">
+        <button class="cbpd-close" id="cbpdClose" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <h3 class="cbpd-title" id="cbpdTitle"></h3>
+        <div class="cbpd-body" id="cbpdBody"></div>
+    </div>
+</div>
+
 <div class="variant-picker-overlay" id="variantPicker">
     <div class="variant-picker-card" id="variantPickerCard">
         <button class="variant-picker-close" onclick="closeVariantPicker()" aria-label="Close">
@@ -793,6 +804,23 @@ require __DIR__ . '/../includes/site_header.php';
                         <i class="fa-solid fa-triangle-exclamation"></i> Contains Nuts
                     </div>
                     <?php endif; ?>
+
+                    <?php // Everything the shop knows about this product was already
+                          // in the database and reachable only from the allergen
+                          // sheet. A customer choosing a flavour could not see the
+                          // ingredients, the nutrition or how long it keeps without
+                          // leaving the menu, so most never saw them at all. ?>
+                    <button type="button" class="cbpd-open" data-cbpd="<?= (int)$product['id'] ?>">
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                        Ingredients, allergens &amp; nutrition
+                    </button>
+                    <?php // Rendered here and hidden, rather than fetched: the rows are
+                          // already loaded for the card above it, so an endpoint would
+                          // be a second query for data the page is holding. ?>
+                    <div class="cbpd-source" id="cbpd-src-<?= (int)$product['id'] ?>" hidden
+                         data-name="<?= htmlspecialchars($product['name']) ?>"><?=
+                        cbProductDetailHtml($product, cbRelatedProducts($product, $products), SHOP_EMAIL)
+                    ?></div>
 
                     <div class="product-footer">
                         <div>
@@ -1337,6 +1365,55 @@ function cbIconHtml(value) {
 fetch('<?= cbUrl('cart_handler.php') ?>?action=get')
     .then(r => r.json())
     .then(data => { cartState = data; renderCart(); updateBadge(); updateInCartIndicators(); });
+
+// ── Product detail panel ────────────────────────────────────
+// The content is already on the page, hidden, one block per product. This
+// only moves it into the dialog, so there is no request to fail and nothing
+// to keep in sync with the card it came from.
+(function () {
+    const modal = document.getElementById('cbpdModal');
+    const body  = document.getElementById('cbpdBody');
+    const title = document.getElementById('cbpdTitle');
+    if (!modal || !body || !title) return;
+    let lastOpener = null;
+
+    function open(id, opener) {
+        const src = document.getElementById('cbpd-src-' + id);
+        if (!src) return;
+        title.textContent = src.dataset.name || '';
+        body.innerHTML = src.innerHTML;
+        modal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        lastOpener = opener || null;
+        const c = document.getElementById('cbpdClose');
+        if (c) c.focus();
+    }
+    function close() {
+        modal.hidden = true;
+        document.body.style.overflow = '';
+        // Focus goes back where it came from, or a keyboard user is dropped
+        // at the top of the document with their place in the menu lost.
+        if (lastOpener) { lastOpener.focus(); lastOpener = null; }
+    }
+
+    document.addEventListener('click', function (e) {
+        const opener = e.target.closest('[data-cbpd]');
+        if (opener) { e.preventDefault(); open(opener.dataset.cbpd, opener); return; }
+        if (e.target.closest('#cbpdClose') || e.target === modal) { close(); return; }
+        // "You might also like" closes this panel and scrolls to that card,
+        // rather than stacking a second dialog on top of the first.
+        const jump = e.target.closest('[data-cbpd-jump]');
+        if (jump) {
+            e.preventDefault();
+            const card = document.getElementById('pcard-' + jump.dataset.cbpdJump);
+            close();
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) close();
+    });
+})();
 
 function showDeliveryRadiusPopup() {
     const pop = document.getElementById('deliveryRadiusPopup');
