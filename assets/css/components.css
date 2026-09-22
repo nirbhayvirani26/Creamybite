@@ -2252,3 +2252,34 @@ body.about-page .cbab-social-icon > svg { font-size: max(14px, 0.5em); width: 1e
 .cbstep-t { font-size: 14px; line-height: 1.6; }
 .cbstep-t strong { display: block; margin-bottom: 2px; }
 .cbstep-t a { color: var(--color-primary); font-weight: 700; }
+
+/* ══ Trade: say what the account is for, before asking for nine fields ══ */
+.cbtr-sell {
+    padding: 22px 24px; margin: 0 0 28px;
+    border-radius: var(--radius-md);
+    background: var(--color-primary-bg, #fff7ef);
+    border: 1px solid var(--border-light);
+}
+.cbtr-sell-h { margin: 0 0 14px; font-size: 18px; color: var(--color-primary); }
+.cbtr-sell-list { list-style: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: 11px; }
+.cbtr-sell-list li { display: flex; align-items: flex-start; gap: 11px;
+    font-size: 14px; line-height: 1.6; }
+.cbtr-sell-list i { color: var(--color-primary); font-size: 14px;
+    width: 18px; text-align: center; flex-shrink: 0; margin-top: 3px; }
+.cbtr-sell-foot { margin: 16px 0 0; padding-top: 14px;
+    border-top: 1px solid var(--border-light);
+    font-size: 13.5px; line-height: 1.65; color: var(--text-secondary); }
+.cbtr-sell-foot a { color: var(--color-primary); font-weight: 700; white-space: nowrap; }
+
+/* Why you were sent to the login instead of the catalogue. */
+.cbtl-why {
+    display: flex; align-items: flex-start; gap: 11px;
+    padding: 13px 15px; margin-bottom: 20px;
+    border-radius: 10px;
+    background: var(--color-primary-bg, #fff7ef);
+    border: 1px solid var(--border-light);
+    font-size: 13px; line-height: 1.6; text-align: left;
+}
+.cbtl-why i { color: var(--color-primary); margin-top: 3px; flex-shrink: 0; }
+.cbtl-why a { color: var(--color-primary); font-weight: 700; }

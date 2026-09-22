@@ -158,6 +158,28 @@ require __DIR__ . '/../includes/site_header.php';
                 </p>
             </div>
 
+            <?php
+            // A visitor who clicked "Product Catalogue (trade)" in the footer
+            // was bounced here with no explanation, which reads as a broken
+            // link rather than a locked door. The catalogue stays behind the
+            // login — publishing case quantities and wholesale prices openly
+            // undercuts the partners who buy on the understanding that their
+            // price is not the public one — but being sent here should at
+            // least say so.
+            if (str_contains($cbNext, 'catalogue')):
+            ?>
+            <div class="cbtl-why">
+                <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                <span>
+                    <strong>The catalogue is for trade accounts.</strong>
+                    It carries case sizes and wholesale prices, so it is not published
+                    openly. Sign in below, or
+                    <a href="<?= cbUrl('trade_register') ?>">apply for an account</a> —
+                    most are approved within a working day.
+                </span>
+            </div>
+            <?php endif; ?>
+
             <?php if ($errorMsg): ?>
                 <div class="alert alert-danger cbtl-login-alert">
                     <?= $errorMsg ?>

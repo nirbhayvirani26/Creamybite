@@ -166,6 +166,59 @@ require __DIR__ . '/../includes/site_header.php';
                 </p>
             </div>
 
+            <?php
+            // The page asked for nine fields and a password before saying what
+            // the account was for. Everything stated here is read from the shop
+            // rather than written into the page, so it cannot drift: the flavour
+            // and range counts are counted, and the VAT rule is the one the
+            // pricing code actually applies.
+            //
+            // Deliberately NOT stated: a minimum order or example wholesale
+            // prices. Those are the owner's commercial terms, there is no
+            // setting holding them, and inventing a figure here would be a
+            // promise the checkout has never heard of.
+            $cbFlavours = 0; $cbRanges = 0;
+            try {
+                $row = $pdo->query(
+                    "SELECT COUNT(*) AS n, COUNT(DISTINCT category) AS c FROM products WHERE available = 1"
+                )->fetch(PDO::FETCH_ASSOC);
+                $cbFlavours = (int)($row['n'] ?? 0);
+                $cbRanges   = (int)($row['c'] ?? 0);
+            } catch (Throwable $e) { /* the block simply says less */ }
+            ?>
+            <?php if (!$successMsg): ?>
+            <div class="cbtr-sell">
+                <h2 class="cbtr-sell-h">What a trade account gets you</h2>
+                <ul class="cbtr-sell-list">
+                    <li><i class="fa-solid fa-tags" aria-hidden="true"></i>
+                        <span><strong>Wholesale pricing</strong> on every flavour
+                        <?php if ($cbFlavours > 0): ?>&mdash; <?= $cbFlavours ?> of them<?php
+                        if ($cbRanges > 1): ?> across <?= $cbRanges ?> ranges<?php endif;
+                        endif; ?>, shown once you are signed in.</span></li>
+                    <li><i class="fa-solid fa-box-open" aria-hidden="true"></i>
+                        <span><strong>Case quantities and catering tubs</strong>, with the case
+                        size listed against each size in the catalogue.</span></li>
+                    <li><i class="fa-solid fa-truck" aria-hidden="true"></i>
+                        <span><strong>Delivery to your registered address</strong>, not charged
+                        per drop. Set your opening hours and drop-off instructions at
+                        checkout so the driver knows where to go.</span></li>
+                    <li><i class="fa-solid fa-file-invoice" aria-hidden="true"></i>
+                        <span><strong>Invoices and account terms.</strong> VAT at
+                        <?= (int)(TRADE_VAT_RATE * 100) ?>% is added only for accounts that
+                        give us a VAT number.</span></li>
+                    <li><i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                        <span><strong>Repeat ordering</strong> from your order history, so a
+                        weekly restock is a few clicks rather than a fresh basket.</span></li>
+                </ul>
+                <p class="cbtr-sell-foot">
+                    Not sure yet? Call <a href="tel:<?= preg_replace('/[^0-9+]/', '', SHOP_PHONE) ?>"><?= htmlspecialchars(SHOP_PHONE) ?></a>
+                    or email <a href="mailto:<?= htmlspecialchars(SHOP_EMAIL) ?>"><?= htmlspecialchars(SHOP_EMAIL) ?></a>
+                    and we will talk through pricing and minimum order for your kind of business
+                    before you fill anything in.
+                </p>
+            </div>
+            <?php endif; ?>
+
             <?php if ($successMsg): ?>
                 <div class="alert alert-success cbtr-alert-success">
                     <i class="fa-solid fa-circle-check cbtr-alert-icon"></i>
