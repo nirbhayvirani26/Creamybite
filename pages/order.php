@@ -608,6 +608,30 @@ require __DIR__ . '/../includes/site_header.php';
                 <span class="cbor-paused-notice-text"><?= htmlspecialchars($cbClosedNote) ?></span>
             </div>
         </div>
+        <?php
+        // Saying "delivery is paused" tells a customer what they CANNOT do and
+        // stops there. If collection is running, that is still a way to get
+        // the order — but only if they are told where to come and that there
+        // is no minimum. Without this the page reads as closed, and a shopper
+        // who would happily have driven over leaves instead.
+        if (!$cbDeliveryOpen && $cbCollectionOpen):
+        ?>
+        <div class="cbor-collect-notice">
+            <div class="cbor-collect-head">
+                <i class="fa-solid fa-store" aria-hidden="true"></i>
+                <strong>Collection is open — order now, pick up from us</strong>
+            </div>
+            <div class="cbor-collect-body">
+                <div class="cbor-collect-addr"><?= nl2br(htmlspecialchars(SHOP_ADDRESS)) ?></div>
+                <ul class="cbor-collect-points">
+                    <li><i class="fa-solid fa-check"></i> No minimum order for collection</li>
+                    <li><i class="fa-solid fa-check"></i> No delivery charge</li>
+                    <li><i class="fa-solid fa-check"></i> Choose <strong>Collection</strong> at checkout</li>
+                </ul>
+                <a class="cbor-collect-link" href="<?= cbUrl('shipping') ?>">Collection times and details</a>
+            </div>
+        </div>
+        <?php endif; ?>
         <?php endif; ?>
         <?php
         $cartNotice = $_SESSION['cart_notice'] ?? null;
@@ -873,6 +897,28 @@ require __DIR__ . '/../includes/site_header.php';
                 <span class="cart-total-amount" id="cartTotal">£0.00</span>
             </div>
             <?php endif; ?></div>
+        <?php
+        // The banner at the top of the page has been scrolled past by now. This
+        // is the moment the customer commits, and finding out at the checkout
+        // that the only way to get the order is to drive over is a wasted
+        // journey through a form. Same figures, said where the decision is.
+        if (!$cbDeliveryOpen && $cbCollectionOpen): ?>
+        <div class="cbor-cart-status is-collect">
+            <i class="fa-solid fa-store" aria-hidden="true"></i>
+            <span><strong>Collection only</strong> just now — no minimum, no delivery charge.</span>
+        </div>
+        <?php elseif (!$cbCollectionOpen && $cbDeliveryOpen): ?>
+        <div class="cbor-cart-status is-collect">
+            <i class="fa-solid fa-truck" aria-hidden="true"></i>
+            <span><strong>Delivery only</strong> just now — minimum order
+                  £<?= number_format((float)MIN_DELIVERY_ORDER, 2) ?>.</span>
+        </div>
+        <?php elseif (!$cbDeliveryOpen && !$cbCollectionOpen): ?>
+        <div class="cbor-cart-status is-shut">
+            <i class="fa-solid fa-clock" aria-hidden="true"></i>
+            <span>We are not taking orders just now. Your basket will keep.</span>
+        </div>
+        <?php endif; ?>
         <a href="<?= cbUrl('checkout') ?>" class="btn-primary btn-checkout">
             <i class="fa-solid fa-arrow-right"></i> Proceed to Checkout
         </a>
@@ -1302,27 +1348,52 @@ function closeDeliveryPopup() {
 }
 </script>
 
-<!-- ── Delivery 6-Mile Radius Notification Pop-up ────────────── -->
+<!-- ── Delivery radius notification pop-up ───────────────────── -->
+<?php
+// Two things were wrong with this box.
+//
+// It announced the delivery service on days the owner had switched delivery
+// OFF, which is the one message a customer must not be given when the answer
+// at the checkout is going to be no.
+//
+// And the radius, the free-delivery distance and the postcodes were typed
+// into the markup, while the real figures live in store settings and are
+// editable from the admin panel. Changing the radius there left this box
+// quoting the old one — a promise the checkout would not honour. Both
+// numbers now come from the same constants the charge is calculated from.
+if ($cbDeliveryOpen):
+    $cbRadius   = (float)DELIVERY_RADIUS_MILES;
+    $cbFreeMile = (float)FREE_DELIVERY_MILES;
+    $cbNum      = fn(float $v) => rtrim(rtrim(number_format($v, 1), '0'), '.');
+?>
 <div id="deliveryRadiusPopup" class="cbor-delivery-popup">
     <div class="cbor-delivery-popup-row">
         <div class="cbor-delivery-popup-emoji"><i class="fa-solid fa-truck-fast"></i></div>
         <div class="cbor-delivery-popup-body">
             <strong class="cbor-delivery-popup-title">
-                <i class="fa-solid fa-location-dot"></i> Harrow Delivery Area Notice
+                <i class="fa-solid fa-location-dot"></i> Delivery Area Notice
             </strong>
             <p class="cbor-delivery-popup-text">
-                We deliver fresh handcrafted ice cream within a <strong>6-mile radius of Harrow (HA1 4EX / HA1 2SP)</strong>.<br>
-                <span class="cbor-delivery-popup-highlight"><i class="fa-solid fa-gift"></i> Free delivery under 3 miles!</span>
+                We deliver fresh handcrafted ice cream within a
+                <strong><?= $cbNum($cbRadius) ?>-mile radius of Harrow</strong>.<br>
+                <?php if ($cbFreeMile > 0): ?>
+                <span class="cbor-delivery-popup-highlight">
+                    <i class="fa-solid fa-gift"></i> Free delivery under <?= $cbNum($cbFreeMile) ?> miles!
+                </span>
+                <?php endif; ?>
             </p>
+            <?php if ($cbCollectionOpen): ?>
             <div class="cbor-delivery-popup-foot">
                 <i class="fa-solid fa-store cbor-delivery-popup-foot-icon"></i> Warehouse collection is also available!
             </div>
+            <?php endif; ?>
         </div>
         <button onclick="closeDeliveryPopup()" class="cbor-delivery-popup-close" aria-label="Close">
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
 </div>
+<?php endif; ?>
 <script src="<?= cbAsset('../assets/js/modal.js') ?>" defer></script>
 <script src="<?= cbAsset('../assets/js/animations.js') ?>" defer></script>
 </body>

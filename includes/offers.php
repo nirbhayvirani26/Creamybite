@@ -600,7 +600,16 @@ if (!function_exists('cbCartMessages')) {
         //    one that can stop them checking out at all. Ahead of the nudges
         //    below on purpose: being told the minimum order is £20 matters
         //    more than being invited to buy one more tub.
-        if ($orderType === 'delivery') {
+        // ...and only while the shop is actually delivering. With delivery
+        // switched off, "add £13.01 to have this brought to your door" invites
+        // the customer to spend more to unlock a service they cannot have, and
+        // the checkout then refuses the very thing the basket just sold them.
+        // The drawer defaults $orderType to 'delivery' because it has no
+        // order-type control of its own, so without this check the wrong
+        // message is the DEFAULT one on a collection-only day.
+        $cbDeliveringNow = !function_exists('cbOrderingOpen') || cbOrderingOpen('delivery');
+
+        if ($orderType === 'delivery' && $cbDeliveringNow) {
             // Only worth saying anything about spending your way to free
             // delivery if delivery is not already free for this address.
             // Inside the free radius it costs nothing whatever the basket
