@@ -145,6 +145,22 @@ body.admin-wrapper.has-sidebar {
     transition: margin-left .28s cubic-bezier(.4, 0, .2, 1);
 }
 
+/* Page wrappers sit in the shell's flex column and are centred with
+   `margin: 0 auto`. Auto margins switch off the column's stretch, so each
+   wrapper sized itself to its widest table — on a phone the whole page
+   became as wide as that table (Recall & trace: 855px on a 375px screen)
+   instead of the table scrolling inside its own box. Full width, capped by
+   each wrapper's own max-width, puts the scrolling back where it belongs. */
+.admin-shell { min-width: 0; }
+.admin-shell > .cbab-wrap, .admin-shell > .cbdoc-wrap, .admin-shell > .cbpr-wrap,
+.admin-shell > .cbst-wrap, .admin-shell > .cbtr-wrap, .admin-shell > .cbtv-wrap,
+.admin-shell > .cbie-shell, .admin-shell > .cbtr-shell,
+.admin-shell > .admin-content, .admin-shell > .cbpf-main {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
 .admin-topbar {
     position: sticky; top: 0; z-index: 200;
     display: flex; align-items: center; gap: 14px;
@@ -2718,3 +2734,61 @@ tr.cbtr-overship td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
 .cbi-topscroll        { display: none; overflow-x: auto; overflow-y: hidden; height: 14px; margin-bottom: 4px; }
 .cbi-topscroll.is-on  { display: block; }
 .cbi-topscroll-inner  { height: 1px; }
+
+/* ── Phone and tablet fixes found by the admin-wide responsive pass ──── */
+
+/* Trade chip on the orders list: a long store name was cut off by the
+   customer cell's overflow:hidden. It now wraps inside the cell instead. */
+.admin-wrapper.has-sidebar .cbi-ord-trade-chip { max-width: 100%; white-space: normal; line-height: 1.35; }
+.admin-wrapper.has-sidebar .order-row td:nth-child(3) > div.cbi-ord-trade-chip { white-space: normal; }
+
+/* Stock summary: five fixed columns could not fit below tablet width and
+   the last two cards were cut off by the panel. Let them wrap. */
+@media (max-width: 900px) {
+    .admin-wrapper.has-sidebar .cbi-stock-summary-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+}
+@media (max-width: 480px) {
+    .admin-wrapper.has-sidebar .cbi-stock-summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .admin-wrapper.has-sidebar .cbi-stock-summary-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+@media (max-width: 620px) {
+    /* Top stat cards: five full-size cards filled the whole first screen of
+       every tab on a phone. Compact, icon beside the label, same numbers. */
+    .admin-wrapper.has-sidebar .stats-grid { gap: 8px !important; margin-bottom: 18px !important; }
+    .admin-wrapper.has-sidebar .stat-card { padding: 10px 12px !important; display: grid;
+        grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; }
+    .admin-wrapper.has-sidebar .stat-card-icon { font-size: 30px; line-height: 1; margin: 0; grid-row: 1; }
+    .admin-wrapper.has-sidebar .stat-label { margin: 0; grid-row: 1; grid-column: 2; font-size: 10px; }
+    .admin-wrapper.has-sidebar .stat-value { grid-column: 1 / -1; font-size: 20px !important; margin-top: 4px; }
+    .admin-wrapper.has-sidebar .stat-value.cbi-stat-value-sm { font-size: 17px !important; }
+    .admin-wrapper.has-sidebar .stat-card .cbi-stat-subnote { grid-column: 1 / -1; }
+    .admin-wrapper.has-sidebar .stats-grid > .stat-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+    /* Print-station note on the orders tab: the sentence was squeezed into a
+       thin column beside two buttons. Sentence on its own line, buttons below. */
+    .admin-wrapper.has-sidebar .cbi-ord-filter-bar { flex-wrap: wrap; padding: 10px 12px; }
+    .admin-wrapper.has-sidebar .cbi-ord-filter-bar > .cbi-muted-xs { flex: 1 1 calc(100% - 30px); }
+    .admin-wrapper.has-sidebar .cbi-ord-filter-bar > .cbi-ord-print-btn { flex: 1 1 0; justify-content: center; text-align: center; }
+}
+
+@media (max-width: 620px) {
+    /* Revenue: one money card per row made a very long scroll. Two per row,
+       compact, the same way the stat cards above them now sit. */
+    .admin-wrapper.has-sidebar .cbi-rev-source-grid,
+    .admin-wrapper.has-sidebar .cbi-rev-method-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+    .admin-wrapper.has-sidebar .cbi-rev-source-grid > :last-child:nth-child(odd),
+    .admin-wrapper.has-sidebar .cbi-rev-method-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+    /* Allergens: the sticky save bar carried a three-line note beside the
+       button, which squeezed both and covered the table rows behind it.
+       Button full width, note small underneath. */
+    .cbab-save-bar  { padding: 10px 12px; gap: 6px; }
+    .cbab-save-bar > .btn-primary { width: 100%; justify-content: center; }
+    .cbab-save-note { flex-basis: 100%; font-size: 11px; line-height: 1.4; }
+}
+
+/* The allergens table pins its product column (z-index 2–3), and the save
+   bar is sticky too but had no z-index, so product names were painted on
+   top of the Save button while scrolling. Keep the bar above the table. */
+.cbab-save-bar { z-index: 5; }
