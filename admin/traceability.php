@@ -268,14 +268,23 @@ require __DIR__ . '/_sidebar.php';
     </div>
     <?php else: ?>
 
+    <div class="cbtr-orders-bar">
+        <span class="cbtr-muted"><?= count($rows) ?> order<?= count($rows) === 1 ? '' : 's' ?> — click one to see its items and link batches.</span>
+        <button type="button" class="btn-sm btn-sm-outline" id="cbtrToggleAll">Expand all</button>
+    </div>
     <div class="cbtr-orders">
     <?php foreach ($rows as $row):
         $o = $row['order'];
         $isTrade = (int)$o['trade_user_id'] > 0;
     ?>
-        <article class="cbtr-order glass-panel is-<?= $h($row['state']) ?>">
-            <header class="cbtr-order-head">
-                <div>
+        <?php // A <details> per order so the list reads as one line each —
+              // order, customer, how traced — and opens to the items. Which
+              // ones are open survives the reload after linking a batch
+              // (traceability.js keeps it in sessionStorage). ?>
+        <details class="cbtr-order glass-panel is-<?= $h($row['state']) ?>" data-order-id="<?= (int)$o['id'] ?>">
+            <summary class="cbtr-order-head">
+                <div class="cbtr-order-sumleft">
+                    <i class="fa-solid fa-chevron-right cbtr-order-caret" aria-hidden="true"></i>
                     <span class="cbtr-ordercode"><?= $h($o['order_code'] ?: ('#' . $o['id'])) ?></span>
                     <span class="cbtr-chan <?= $isTrade ? 'is-trade' : 'is-retail' ?>">
                         <?= $isTrade ? 'Trade' : 'Retail' ?>
@@ -287,9 +296,13 @@ require __DIR__ . '/_sidebar.php';
                            : ($row['state'] === 'over' ? 'Over-assigned' : 'Not traced'));
                         ?>
                     </span>
+                    <span class="cbtr-order-who"><?= $h($isTrade && $o['trade_business_name'] ? $o['trade_business_name'] : $o['customer_name']) ?></span>
                 </div>
-                <div class="cbtr-order-when"><?= $h(date('j M Y, H:i', strtotime((string)$o['created_at']))) ?></div>
-            </header>
+                <div class="cbtr-order-when">
+                    <?= count($row['lines']) ?> item<?= count($row['lines']) === 1 ? '' : 's' ?> ·
+                    <?= $h(date('j M Y, H:i', strtotime((string)$o['created_at']))) ?>
+                </div>
+            </summary>
 
             <div class="cbtr-cust">
                 <strong><?= $h($isTrade && $o['trade_business_name'] ? $o['trade_business_name'] : $o['customer_name']) ?></strong>
@@ -332,6 +345,11 @@ require __DIR__ . '/_sidebar.php';
                             <?php endforeach; endif; ?>
                         </td>
                         <td class="cbtr-c">
+                            <?php if ($st['state'] === 'traced' || $st['state'] === 'over'): ?>
+                            <?php // Every unit on the line already has a batch, so there is
+                                  // nothing left to add. Remove a chip to change one. ?>
+                            <span class="cbtr-linedone"><i class="fa-solid fa-check" aria-hidden="true"></i> Done</span>
+                            <?php else: ?>
                             <button type="button" class="btn-sm btn-primary cbtr-assign"
                                     data-order="<?= (int)$o['id'] ?>"
                                     data-key="<?= $h($l['cart_key']) ?>"
@@ -341,12 +359,13 @@ require __DIR__ . '/_sidebar.php';
                                     data-short="<?= (int)($st['short'] > 0 ? $st['short'] : $l['qty']) ?>">
                                 <i class="fa-solid fa-plus" aria-hidden="true"></i> Batch
                             </button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
             </table>
-        </article>
+        </details>
     <?php endforeach; ?>
     </div>
     <?php endif; ?>
@@ -399,6 +418,21 @@ require __DIR__ . '/_sidebar.php';
         </div>
         <?php else: ?>
 
+        <?php
+            // Same over-shipping check as the table below, for the batch being traced.
+            $thisRun = null;
+            foreach ($batches as $b) {
+                if ($b['batch_code'] === $fBatch || ($b['external_batch'] && $b['external_batch'] === $fBatch)) { $thisRun = $b; break; }
+            }
+            if ($thisRun && (int)$thisRun['shipped'] > (int)$thisRun['output_qty']):
+        ?>
+        <div class="cbtr-note cbtr-note-bad">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <span><strong>Recheck tracking for this batch.</strong>
+            <?= (int)$thisRun['shipped'] ?> are linked to orders but only <?= (int)$thisRun['output_qty'] ?> were made,
+            so at least <?= (int)$thisRun['shipped'] - (int)$thisRun['output_qty'] ?> of the links below belong to another batch.</span>
+        </div>
+        <?php endif; ?>
         <div class="cbtr-recall-head glass-panel">
             <div>
                 <div class="cbtr-recall-batch"><?= $h($fBatch) ?></div>
@@ -462,6 +496,17 @@ require __DIR__ . '/_sidebar.php';
     <?php endif; ?>
 
     <h2 class="cbtr-h2">Every batch, and how much of it went out</h2>
+    <?php
+        $overShipCount = count(array_filter($batches, fn($b) => (int)$b['shipped'] > (int)$b['output_qty']));
+        if ($overShipCount > 0):
+    ?>
+    <div class="cbtr-note cbtr-note-bad">
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        <span><strong><?= $overShipCount ?> batch<?= $overShipCount === 1 ? '' : 'es' ?> shipped more than <?= $overShipCount === 1 ? 'it' : 'they' ?> made.</strong>
+        That cannot really happen, so some tubs are linked to the wrong batch. They are highlighted below —
+        trace each one, check its orders, and move the wrong links before relying on this for a recall.</span>
+    </div>
+    <?php endif; ?>
     <div class="table-wrapper">
         <table class="data-table">
             <thead><tr>
@@ -472,16 +517,29 @@ require __DIR__ . '/_sidebar.php';
             <tbody>
             <?php if (!$batches): ?>
                 <tr><td colspan="9" class="cbtr-muted">No production runs recorded yet.</td></tr>
-            <?php else: foreach ($batches as $b): ?>
-                <tr>
-                    <td class="cbtr-mono"><strong><?= $h($b['external_batch'] ?: '—') ?></strong></td>
+            <?php else: foreach ($batches as $b):
+                // More linked to orders than the run produced is impossible in
+                // reality, so one of the links is wrong — usually a tub put
+                // against the wrong batch. Flagged so it is rechecked before a
+                // recall relies on it.
+                $overShip = (int)$b['shipped'] > (int)$b['output_qty'];
+            ?>
+                <tr class="<?= $overShip ? 'cbtr-overship' : '' ?>">
+                    <td class="cbtr-mono"><strong><?= $h($b['external_batch'] ?: '—') ?></strong>
+                        <?php if ($overShip): ?>
+                        <div class="cbtr-overship-note">
+                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                            <?= (int)$b['shipped'] - (int)$b['output_qty'] ?> more shipped than made — recheck tracking
+                        </div>
+                        <?php endif; ?>
+                    </td>
                     <td class="cbtr-mono cbtr-small"><?= $h($b['batch_code']) ?></td>
                     <td><?= $h($b['product_name']) ?><?php if ($b['variant_name']): ?>
                         <span class="cbtr-size"><?= $h($b['variant_name']) ?></span><?php endif; ?></td>
                     <td class="cbtr-small"><?= $h(date('j M Y', strtotime((string)$b['produced_on']))) ?></td>
                     <td class="cbtr-small"><?= $b['best_before'] ? $h(date('j M Y', strtotime((string)$b['best_before']))) : '—' ?></td>
                     <td class="cbtr-c"><?= (int)$b['output_qty'] ?></td>
-                    <td class="cbtr-c"><strong><?= (int)$b['shipped'] ?></strong></td>
+                    <td class="cbtr-c"><strong class="<?= $overShip ? 'cbtr-overship-n' : '' ?>"><?= (int)$b['shipped'] ?></strong></td>
                     <td class="cbtr-c"><?= (int)$b['orders'] ?></td>
                     <td><a class="btn-sm btn-sm-outline"
                            href="<?= $h($qs(['view' => 'recall', 'batch' => $b['external_batch'] ?: $b['batch_code']])) ?>">Trace</a></td>

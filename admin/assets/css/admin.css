@@ -1008,6 +1008,20 @@ button.cbpf-submit-btn     { width: 100%; justify-content: center; font-size: 16
 .cbpf-preview-name    { font-size: 17px; margin-bottom: 6px; }
 .cbpf-preview-price   { font-size: 22px; font-weight: 800; font-family: var(--font-heading); color: var(--color-primary); margin-top: 4px; }
 
+/* ── Catalogue & product information: collapsible ───────── */
+.cbpf-spec-summary    { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; user-select: none; }
+.cbpf-spec-summary::-webkit-details-marker { display: none; }
+.cbpf-spec-summary::marker { content: ''; }
+.cbpf-spec-section .cbpf-spec-summary h3 { margin-bottom: 0; }
+.cbpf-spec-section[open] .cbpf-spec-summary { margin-bottom: 20px; }
+.cbpf-spec-summary:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; border-radius: var(--radius-sm); }
+.cbpf-spec-toggle     { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.cbpf-spec-toggle-text::after { content: 'Show'; }
+.cbpf-spec-section[open] .cbpf-spec-toggle-text::after { content: 'Hide'; }
+.cbpf-spec-toggle i   { transition: transform 0.2s ease; }
+.cbpf-spec-section[open] .cbpf-spec-toggle i { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .cbpf-spec-toggle i { transition: none; } }
+
 /* ── Variants / sizes ───────────────────────────────────── */
 .cbpf-variants-panel  { margin-top: 28px; }
 .form-section h3.cbpf-variants-heading { display: flex; align-items: center; gap: 10px; }
@@ -2280,6 +2294,44 @@ select.cbst-input { appearance: none; background-image:
 .cbtr-order.is-over    { border-left-color: #8b5cf6; }
 .cbtr-order-head  { display: flex; justify-content: space-between; align-items: baseline;
                     gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+
+/* Each order is a <details>: one line closed, the items when opened. */
+.cbtr-orders-bar  { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+                    flex-wrap: wrap; margin-bottom: 10px; font-size: 12.5px; }
+.cbtr-orders      { gap: 8px !important; }
+details.cbtr-order { padding: 0; }
+details.cbtr-order > .cbtr-order-head { cursor: pointer; list-style: none; margin: 0; padding: 13px 18px;
+                    align-items: center; user-select: none; }
+details.cbtr-order > .cbtr-order-head::-webkit-details-marker { display: none; }
+details.cbtr-order > .cbtr-order-head::marker { content: ''; }
+details.cbtr-order > .cbtr-order-head:hover { background: rgba(0,0,0,0.02); border-radius: 12px; }
+details.cbtr-order > .cbtr-order-head:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; border-radius: 12px; }
+details.cbtr-order[open] > .cbtr-order-head { border-bottom: 1px solid var(--border-light); border-radius: 12px 12px 0 0; }
+details.cbtr-order > :not(summary) { margin-left: 18px; margin-right: 18px; }
+details.cbtr-order[open] > .cbtr-cust { margin-top: 12px; }
+details.cbtr-order[open] > .cbtr-lines { margin-bottom: 14px; width: calc(100% - 36px); }
+.cbtr-order-sumleft { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; min-width: 0; }
+.cbtr-order-caret { font-size: 11px; color: var(--text-muted); margin-right: 10px; transition: transform .15s ease; }
+details.cbtr-order[open] .cbtr-order-caret { transform: rotate(90deg); }
+.cbtr-order-who   { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-left: 12px;
+                    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+.cbtr-linedone    { font-size: 12px; font-weight: 700; color: #047857; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .cbtr-order-caret { transition: none; } }
+@media (max-width: 620px) {
+    details.cbtr-order > .cbtr-order-head { padding: 12px 14px; }
+    details.cbtr-order > :not(summary) { margin-left: 12px; margin-right: 12px; }
+    details.cbtr-order[open] > .cbtr-lines { width: calc(100% - 24px); display: block; overflow-x: auto; }
+    .cbtr-order-who { flex-basis: 100%; margin: 4px 0 0 21px; max-width: none; }
+}
+
+/* A batch with more linked to orders than it made: some link is wrong. */
+.cbtr-note.cbtr-note-bad   { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.35); }
+.cbtr-note.cbtr-note-bad i { color: #dc2626; }
+tr.cbtr-overship td        { background: rgba(239,68,68,0.07); }
+tr.cbtr-overship td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
+.cbtr-overship-note        { font-family: var(--font-body, inherit); font-size: 11px; font-weight: 700;
+                             color: #b91c1c; margin-top: 3px; white-space: nowrap; }
+.cbtr-overship-n           { color: #b91c1c; }
 .cbtr-ordercode   { font-family: "Menlo", "Consolas", monospace; font-weight: 800; font-size: 14px; }
 .cbtr-order-when  { font-size: 12px; color: var(--text-muted); }
 .cbtr-chan        { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
@@ -2550,6 +2602,82 @@ select.cbst-input { appearance: none; background-image:
 @media (max-width: 900px) {
     .cbi-inv-totals-label   { font-size: 12.5px; }
     .cbi-inv-totals-value   { font-size: 14px; }
+}
+
+/* ── Invoice heading: live figures ──────────────────────────
+   Follow the search box, so the answer to "what does this customer owe"
+   sits under the heading instead of at the foot of a long table. */
+.cbi-inv-heading            { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cbi-inv-live               { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px;
+                              color: var(--text-muted); font-weight: 600; }
+.cbi-inv-live-item strong   { color: var(--text-primary); font-variant-numeric: tabular-nums; margin-left: 2px; }
+.cbi-inv-live-item strong.is-due   { color: #b91c1c; }
+.cbi-inv-live-item strong.is-clear { color: #047857; }
+
+/* ── Invoices on tablets and phones ─────────────────────────
+   Below 760px the eight-column table needed sideways scrolling to reach
+   the balance and the edit button. Each invoice becomes a card instead:
+   number and status on top, the money in the middle, actions at the foot,
+   every value labelled from the cell's data-label. */
+@media (max-width: 760px) {
+    .admin-wrapper.has-sidebar .cbi-inv-panel { padding: 16px; }
+    .admin-wrapper.has-sidebar .cbi-inv-header { align-items: flex-start; }
+    .admin-wrapper.has-sidebar .cbi-inv-title { font-size: 18px; }
+    .cbi-inv-header .cbi-btn-row { width: 100%; display: flex; gap: 8px; }
+    .cbi-inv-header .cbi-btn-row .cbi-inv-settings-btn { flex: 1 1 0; justify-content: center; padding: 10px 12px; }
+
+    .admin-wrapper.has-sidebar .cbi-inv-raise-form { flex-direction: column; align-items: stretch; padding: 12px; }
+    .admin-wrapper.has-sidebar .cbi-inv-order-search,
+    .admin-wrapper.has-sidebar .cbi-inv-order-select,
+    .cbi-inv-kind-filter,
+    .admin-wrapper.has-sidebar .cbi-inv-search-input { max-width: none; width: 100%; }
+    .admin-wrapper.has-sidebar .cbi-inv-create-btn { width: 100%; padding: 12px; }
+    .admin-wrapper.has-sidebar .cbi-inv-search-row { flex-wrap: wrap; }
+    .admin-wrapper.has-sidebar .cbi-inv-search-row .cbi-inv-search-input { flex: 1 1 200px; font-size: 16px; } /* 16px stops iOS zooming in */
+
+    .admin-wrapper.has-sidebar .cbi-inv-settings-panel { padding: 14px; }
+    .cbi-rep-table { min-width: 0 !important; }
+    .cbi-rep-table thead { display: none; }
+    .cbi-rep-table, .cbi-rep-table tbody, .cbi-rep-table tr, .cbi-rep-table td { display: block; width: 100%; }
+    .cbi-rep-table tr { border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 8px; }
+    .cbi-rep-table td { border: 0; padding: 3px 0; text-align: left !important; }
+
+    #invoicesTable, #invoicesTable tbody, #invoicesTable tfoot,
+    #invoicesTable tr, #invoicesTable td { display: block; width: 100%; }
+    #invoicesTable { min-width: 0 !important; }
+    #invoicesTable thead { display: none; }
+    .admin-wrapper.has-sidebar .table-wrapper:has(#invoicesTable) { overflow: visible; }
+
+    #invoicesTable .invoice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px;
+                                  background: var(--bg-surface, #fff); border: 1px solid var(--border-light);
+                                  border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px; }
+    #invoicesTable .invoice-row td { padding: 0; border: 0; text-align: left; font-size: 13.5px; min-width: 0; }
+    #invoicesTable .invoice-row td::before { content: attr(data-label); display: block; font-size: 10.5px;
+                                             font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+                                             color: var(--text-muted); margin-bottom: 1px; }
+    /* Number and status share the top line, unlabelled — they read as a title. */
+    #invoicesTable .invoice-row .cbi-inv-number-cell { grid-column: 1; grid-row: 1; font-size: 15px; }
+    #invoicesTable .invoice-row .cbi-inv-status-cell { grid-column: 2; grid-row: 1; text-align: right; }
+    #invoicesTable .invoice-row .cbi-inv-number-cell::before,
+    #invoicesTable .invoice-row .cbi-inv-status-cell::before,
+    #invoicesTable .invoice-row .cbi-inv-actions-cell::before { content: none; }
+    #invoicesTable .invoice-row .cbi-inv-to-cell { grid-column: 1 / -1; font-size: 14px; }
+    #invoicesTable .invoice-row .cbi-inv-total-cell,
+    #invoicesTable .invoice-row .cbi-inv-balance-cell { font-size: 15px; }
+    #invoicesTable .invoice-row .cbi-inv-actions-cell { grid-column: 1 / -1; display: flex; gap: 8px;
+                                                        border-top: 1px solid var(--border-light); padding-top: 10px; margin-top: 4px; }
+    #invoicesTable .invoice-row .cbi-inv-action-btn { flex: 1 1 0; text-align: center; padding: 10px; font-size: 14px; }
+
+    #invoicesTable tfoot .cbi-inv-totals-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px;
+                                               border: 2px solid var(--border-color); border-radius: var(--radius-sm);
+                                               background: var(--bg-surface-soft); padding: 12px 14px; }
+    #invoicesTable tfoot .cbi-inv-totals-row td { border: 0; padding: 0; background: none; }
+    #invoicesTable tfoot .cbi-inv-totals-label { grid-column: 1 / -1; }
+    #invoicesTable tfoot .cbi-inv-totals-value { text-align: left; }
+    #invoicesTable tfoot .cbi-inv-totals-value::before { content: attr(data-label); display: block; font-size: 10.5px;
+                                                         font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+                                                         color: var(--text-muted); }
+    #invoicesTable tfoot .cbi-inv-totals-spacer { display: none; }
 }
 
 /* ── Trade account identifiers ──────────────────────────────

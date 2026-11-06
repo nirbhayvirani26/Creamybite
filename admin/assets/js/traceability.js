@@ -3,6 +3,33 @@
 (function () {
     'use strict';
 
+    // ── Remember which orders are open ───────────────────────
+    // Linking a batch reloads the page; without this every order would
+    // fold shut again and the one being worked on would have to be found.
+    (function () {
+        var KEY = 'cbtrOpenOrders', open = [];
+        try { open = JSON.parse(sessionStorage.getItem(KEY) || '[]') || []; } catch (e) { open = []; }
+        document.querySelectorAll('details.cbtr-order[data-order-id]').forEach(function (d) {
+            var id = d.getAttribute('data-order-id');
+            if (open.indexOf(id) !== -1) { d.open = true; }
+            d.addEventListener('toggle', function () {
+                var i = open.indexOf(id);
+                if (d.open && i === -1) { open.push(id); }
+                if (!d.open && i !== -1) { open.splice(i, 1); }
+                try { sessionStorage.setItem(KEY, JSON.stringify(open.slice(-50))); } catch (e) {}
+            });
+        });
+        var all = document.getElementById('cbtrToggleAll');
+        if (all) {
+            all.addEventListener('click', function () {
+                var list = document.querySelectorAll('details.cbtr-order');
+                var anyClosed = Array.prototype.some.call(list, function (d) { return !d.open; });
+                list.forEach(function (d) { d.open = anyClosed; });
+                all.textContent = anyClosed ? 'Collapse all' : 'Expand all';
+            });
+        }
+    })();
+
     var modal = document.getElementById('cbtrModal');
     if (!modal) { return; }
 
@@ -34,8 +61,10 @@
             };
             itemEl.textContent = btn.getAttribute('data-label') || '';
             var short = parseInt(btn.getAttribute('data-short'), 10) || 1;
+            current.short = short;
             qtyEl.value = short;
-            hintEl.textContent = short > 0 ? short + ' still to account for on this line.' : '';
+            qtyEl.max = short;
+            hintEl.textContent = short + ' still to account for on this line.';
             notesEl.value = '';
             say('');
             runSel.innerHTML = '<option value="">Loading…</option>';
@@ -50,23 +79,28 @@
             fetch('handlers/traceability_handler.php', { method: 'POST', body: body })
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
+                    // The server only sends batches with good output still
+                    // unassigned, so a fully used batch never appears here.
                     if (!d || !d.success || !d.runs || !d.runs.length) {
-                        runSel.innerHTML = '<option value="">No batches recorded for this flavour</option>';
-                        say('Record the production run on the Production page first, then come back.', 'warn');
+                        runSel.innerHTML = '<option value="">No batches with tubs left to assign</option>';
+                        say('Every batch of this flavour is either fully assigned or not recorded yet. '
+                          + 'Record a new production run on the Production page, then come back.', 'warn');
                         return;
                     }
                     runSel.innerHTML = '';
                     d.runs.forEach(function (r) {
                         var o = document.createElement('option');
                         o.value = r.id;
+                        o.setAttribute('data-left', r.remaining);
                         var made = r.produced_on ? new Date(r.produced_on).toLocaleDateString('en-GB',
                                      { day: 'numeric', month: 'short', year: 'numeric' }) : '';
                         o.textContent = (r.external_batch || r.batch_code)
                                       + (r.variant_name ? '  ' + r.variant_name : '')
                                       + (made ? '  · made ' + made : '')
-                                      + (r.output_qty ? '  · ' + r.output_qty + ' made' : '');
+                                      + '  · ' + r.remaining + ' of ' + r.output_qty + ' left';
                         runSel.appendChild(o);
                     });
+                    fitQty();
                 })
                 .catch(function () {
                     runSel.innerHTML = '<option value="">Could not load batches</option>';
@@ -75,6 +109,21 @@
         });
     });
 
+    // ── Keep the quantity inside what the line and batch allow ──
+    // The most that can be linked is the smaller of what this line still
+    // needs and what the chosen batch still has.
+    function fitQty() {
+        if (!current) { return; }
+        var opt  = runSel.selectedOptions[0];
+        var left = opt ? parseInt(opt.getAttribute('data-left'), 10) : NaN;
+        var max  = isNaN(left) ? current.short : Math.min(current.short, left);
+        qtyEl.max = max;
+        if ((parseInt(qtyEl.value, 10) || 0) > max) { qtyEl.value = max; }
+        hintEl.textContent = current.short + ' still to account for on this line'
+            + (isNaN(left) ? '.' : '; ' + left + ' left in this batch. Up to ' + max + ' can be linked.');
+    }
+    runSel.addEventListener('change', fitQty);
+
     // ── Save the link ────────────────────────────────────────
     saveBtn.addEventListener('click', function () {
         if (!current) { return; }
@@ -82,6 +131,8 @@
         var qty   = parseInt(qtyEl.value, 10) || 0;
         if (!runId) { say('Choose which batch this came from.', 'warn'); return; }
         if (qty <= 0) { say('How many tubs came from that batch?', 'warn'); return; }
+        var max = parseInt(qtyEl.max, 10);
+        if (!isNaN(max) && qty > max) { say('Up to ' + max + ' can be linked from this batch to this line.', 'warn'); return; }
 
         saveBtn.disabled = true;
         say('Saving…');

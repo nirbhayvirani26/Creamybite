@@ -493,8 +493,16 @@ require __DIR__ . '/_sidebar.php';
                         $selectedAllergens = cbAllergenList($product['allergens'] ?? '');
                         $reviewedAt        = $product['allergen_reviewed_at'] ?? null;
                     ?>
-                    <div class="glass-panel form-section">
-                        <h3><i class="fa-solid fa-clipboard-list"></i> Catalogue &amp; Product Information</h3>
+                    <?php // Collapsed by default: these fields are filled in once per product
+          // and then rarely touched, so keeping them open pushed the Save
+          // button a long scroll below everything edited day to day.
+          // <details> needs no JavaScript, and fields inside a closed
+          // <details> are still submitted with the form. ?>
+                    <details class="glass-panel form-section cbpf-spec-section">
+                        <summary class="cbpf-spec-summary">
+                            <h3><i class="fa-solid fa-clipboard-list"></i> Catalogue &amp; Product Information</h3>
+                            <span class="cbpf-spec-toggle"><span class="cbpf-spec-toggle-text"></span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></span>
+                        </summary>
                         <p class="cbpf-spec-intro">
                             This is what appears on the downloadable catalogue and the allergen,
                             nutrition and storage sheets. Anything left blank is shown as
@@ -626,7 +634,7 @@ require __DIR__ . '/_sidebar.php';
                             </div>
                             <?php endforeach; ?>
                         </div>
-                    </div>
+                    </details>
 
                     <button type="submit" class="btn-primary cbpf-submit-btn">
                         <i class="fa-solid fa-<?= $isEdit ? 'floppy-disk' : 'plus' ?>"></i>

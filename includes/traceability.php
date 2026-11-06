@@ -162,14 +162,24 @@ if (!function_exists('cbTraceRunsFor')) {
     function cbTraceRunsFor(PDO $pdo, int $productId, int $variantId = 0, int $limit = 60): array
     {
         try {
+            // `assigned` is everything already linked to orders from this run;
+            // `remaining` is the good output (output_qty — rejects are counted
+            // separately and never included) still free to assign. A run
+            // with nothing left is not offered at all: picking it could only
+            // claim tubs that were already given to another customer.
             $st = $pdo->prepare(
-                "SELECT id, batch_code, external_batch, product_name, variant_name,
-                        variant_id, produced_on, best_before, output_qty, status
-                   FROM production_runs
-                  WHERE product_id = :pid
-                    AND status IN ('completed','in_progress','on_hold')
-                    AND (:vid = 0 OR variant_id IS NULL OR variant_id = :vid2)
-                  ORDER BY produced_on DESC, id DESC
+                "SELECT pr.id, pr.batch_code, pr.external_batch, pr.product_name, pr.variant_name,
+                        pr.variant_id, pr.produced_on, pr.best_before, pr.output_qty, pr.status,
+                        COALESCE(SUM(ob.qty), 0) AS assigned,
+                        pr.output_qty - COALESCE(SUM(ob.qty), 0) AS remaining
+                   FROM production_runs pr
+              LEFT JOIN order_batches ob ON ob.production_run_id = pr.id
+                  WHERE pr.product_id = :pid
+                    AND pr.status IN ('completed','in_progress','on_hold')
+                    AND (:vid = 0 OR pr.variant_id IS NULL OR pr.variant_id = :vid2)
+               GROUP BY pr.id
+                 HAVING remaining > 0
+                  ORDER BY pr.produced_on DESC, pr.id DESC
                   LIMIT :lim"
             );
             $st->bindValue('pid',  $productId, PDO::PARAM_INT);
@@ -193,6 +203,9 @@ if (!function_exists('cbTraceAssign')) {
      * trusted from the form: the run is the record of what was actually made,
      * and renaming a flavour next year must not rewrite what a recall says was
      * shipped.
+     *
+     * Refuses a quantity larger than what is still unassigned on the line or
+     * still unassigned from the batch's good output.
      *
      * Re-assigning the same batch to the same line updates the quantity rather
      * than adding a second row — the unique key makes that the only sane
@@ -234,17 +247,41 @@ if (!function_exists('cbTraceAssign')) {
             return ['ok' => false, 'message' => 'Batch ' . $r['batch_code'] . ' was scrapped, so nothing from it should have been sold. Check the batch first.'];
         }
 
-        // Over-assigning is allowed but never silent: a real split can be
-        // recorded wrongly and the total is the only thing that catches it.
+        // ── The line cannot take more than was sold on it ──────────
+        // Other batches already on this line, not counting this batch's own
+        // row (re-assigning the same batch replaces its quantity).
         $sum = $pdo->prepare(
             "SELECT COALESCE(SUM(qty),0) FROM order_batches
               WHERE order_id = :o AND cart_key = :k AND batch_code <> :b"
         );
         $sum->execute(['o' => $orderId, 'k' => $cartKey, 'b' => $r['batch_code']]);
-        $others  = (int)$sum->fetchColumn();
-        $warning = ($others + $qty) > (int)$line['qty']
-            ? ' Note: that is ' . (($others + $qty) - (int)$line['qty']) . ' more than the ' . $line['qty'] . ' sold on this line.'
-            : '';
+        $others   = (int)$sum->fetchColumn();
+        $lineLeft = (int)$line['qty'] - $others;
+        if ($qty > $lineLeft) {
+            return ['ok' => false, 'message' => $lineLeft > 0
+                ? 'Only ' . $lineLeft . ' of the ' . (int)$line['qty'] . ' sold on this line still need a batch.'
+                : 'All ' . (int)$line['qty'] . ' on this line already have a batch. Remove one first to change it.'];
+        }
+
+        // ── The batch cannot give out more than it made ────────────
+        // Good output only (output_qty; rejects are recorded apart). Every
+        // tub already linked to any other order or line counts against it —
+        // without this the same tubs could be handed to two customers and a
+        // recall would be counting stock that never existed.
+        $used = $pdo->prepare(
+            "SELECT COALESCE(SUM(qty),0) FROM order_batches
+              WHERE production_run_id = :run
+                AND NOT (order_id = :o AND cart_key = :k)"
+        );
+        $used->execute(['run' => (int)$r['id'], 'o' => $orderId, 'k' => $cartKey]);
+        $batchLeft = (int)$r['output_qty'] - (int)$used->fetchColumn();
+        $label     = $r['external_batch'] ?: $r['batch_code'];
+        if ($qty > $batchLeft) {
+            return ['ok' => false, 'message' => $batchLeft > 0
+                ? 'Batch ' . $label . ' only has ' . $batchLeft . ' left to assign (' . (int)$r['output_qty'] . ' made).'
+                : 'Every tub from batch ' . $label . ' is already assigned to an order. Pick another batch.'];
+        }
+        $warning = '';
 
         try {
             $pdo->prepare(
@@ -273,7 +310,6 @@ if (!function_exists('cbTraceAssign')) {
             return ['ok' => false, 'message' => 'Could not save that link.'];
         }
 
-        $label = $r['external_batch'] ?: $r['batch_code'];
         return ['ok' => true, 'message' => $qty . ' × ' . $line['product_name'] . ' linked to batch ' . $label . '.' . $warning];
     }
 }

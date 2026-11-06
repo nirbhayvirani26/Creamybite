@@ -837,12 +837,21 @@ $pageTitles = [
 
         <div class="glass-panel cbi-inv-panel">
             <div class="cbi-inv-header">
-                <h2 class="cbi-inv-title">
-                    <i class="fa-solid fa-file-invoice cbi-icon-primary"></i> Invoices
-                    <span class="cbi-inv-count">
-                        <?= count($invoices) ?> total<?= $invoiceOutstanding > 0 ? ' · £' . number_format($invoiceOutstanding, 2) . ' outstanding' : '' ?>
-                    </span>
-                </h2>
+                <div class="cbi-inv-heading">
+                    <h2 class="cbi-inv-title">
+                        <i class="fa-solid fa-file-invoice cbi-icon-primary"></i> Invoices
+                    </h2>
+                    <?php /* Live figures under the heading. PHP prints the whole-list
+                             figures so the line is right before any script runs;
+                             cbInvoiceTotals() then rewrites it to follow the search,
+                             so typing a customer's name shows their total and what
+                             they still owe right here, not only in the table footer. */ ?>
+                    <div class="cbi-inv-live" id="invLiveFigures" aria-live="polite">
+                        <span class="cbi-inv-live-item" id="invLiveCount"><?= (int)$invStats['count'] ?> invoice<?= $invStats['count'] === 1 ? '' : 's' ?></span>
+                        <span class="cbi-inv-live-item">Total <strong id="invLiveTotal">£<?= number_format($invStats['billed'], 2) ?></strong></span>
+                        <span class="cbi-inv-live-item">Outstanding <strong id="invLiveOwed" class="<?= $invStats['owed'] > 0.001 ? 'is-due' : 'is-clear' ?>">£<?= number_format($invStats['owed'], 2) ?></strong></span>
+                    </div>
+                </div>
                 <div class="cbi-btn-row">
                     <?php // "New invoice" lives in the topbar — not repeated here. ?>
                     <button type="button" class="btn-secondary cbi-inv-settings-btn" onclick="cbTogglePanel('salesRepPanel')">
@@ -1067,41 +1076,41 @@ $pageTitles = [
                                      being baked into an attribute. */ ?>
                             data-balance="<?= number_format($bal, 2, '.', '') ?>"
                             data-status="<?= htmlspecialchars($iv['status'], ENT_QUOTES) ?>">
-                            <td class="cbi-inv-number-cell">
+                            <td class="cbi-inv-number-cell" data-label="Invoice">
                                 <?= htmlspecialchars($iv['invoice_number']) ?>
                                 <?php if (!empty($iv['order_code'])): ?>
                                 <div class="cbi-inv-from-order">from <?= htmlspecialchars($iv['order_code']) ?></div>
                                 <?php endif; ?>
                             </td>
-                            <td class="cbi-inv-date-cell">
+                            <td class="cbi-inv-date-cell" data-label="Date">
                                 <?= date('d M Y', strtotime($iv['issue_date'])) ?>
                             </td>
-                            <td class="cbi-inv-to-cell"><?= htmlspecialchars($iv['to_name']) ?: '<span class="cbi-muted">—</span>' ?></td>
-                            <td class="cbi-inv-total-cell">£<?= number_format((float)$iv['total'], 2) ?></td>
+                            <td class="cbi-inv-to-cell" data-label="Bill to"><?= htmlspecialchars($iv['to_name']) ?: '<span class="cbi-muted">—</span>' ?></td>
+                            <td class="cbi-inv-total-cell" data-label="Total">£<?= number_format((float)$iv['total'], 2) ?></td>
                             <?php /* A void invoice has no balance to show. It is a cancelled
                                      sale, so the figure it was raised for is not money anyone
                                      owes — printing it here, in the red this column uses for a
                                      debt, put a £500 alarm next to a total that (correctly)
                                      did not include it. The Total column still shows what the
                                      invoice was raised for, because that did happen. */ ?>
-                            <td class="cbi-inv-balance-cell <?= $isVoid ? '' : ($bal > 0.001 ? 'is-due' : 'is-clear') ?>">
+                            <td data-label="Balance" class="cbi-inv-balance-cell <?= $isVoid ? '' : ($bal > 0.001 ? 'is-due' : 'is-clear') ?>">
                                 <?php if ($isVoid): ?>
                                     <span class="cbi-muted" title="Cancelled — nothing outstanding">&mdash;</span>
                                 <?php else: ?>
                                     £<?= number_format($bal, 2) ?>
                                 <?php endif; ?>
                             </td>
-                            <td class="cbi-inv-rep-cell">
+                            <td class="cbi-inv-rep-cell" data-label="Sold by">
                                 <?= $iv['rep_name'] !== null && $iv['rep_name'] !== ''
                                       ? htmlspecialchars($iv['rep_name'])
                                       : '<span class="cbi-muted">House</span>' ?>
                             </td>
-                            <td>
+                            <td class="cbi-inv-status-cell" data-label="Status">
                                 <span class="cbi-inv-status-badge <?= invoiceStatusClass($iv['status']) ?>">
                                     <?= $lbl ?>
                                 </span>
                             </td>
-                            <td class="cbi-actions-cell">
+                            <td class="cbi-actions-cell cbi-inv-actions-cell">
                                 <a href="invoice_view.php?id=<?= (int)$iv['id'] ?>" target="_blank" class="btn-sm cbi-inv-action-btn" title="Preview / print"><i class="fa-solid fa-print"></i></a>
                                 <a href="invoice_edit.php?id=<?= (int)$iv['id'] ?>" class="btn-sm btn-sm-success cbi-inv-action-btn" title="Edit"><i class="fa-solid fa-pen"></i></a>
                             </td>
@@ -1127,9 +1136,9 @@ $pageTitles = [
                                 <span id="invTotalsScope">Totals</span>
                                 <span id="invTotalsNote" class="cbi-inv-totals-note"></span>
                             </td>
-                            <td class="cbi-inv-totals-value" id="invTotalSum">—</td>
-                            <td class="cbi-inv-totals-value is-due" id="invBalanceSum">—</td>
-                            <td colspan="3"></td>
+                            <td class="cbi-inv-totals-value" data-label="Total" id="invTotalSum">—</td>
+                            <td class="cbi-inv-totals-value is-due" data-label="Outstanding" id="invBalanceSum">—</td>
+                            <td colspan="3" class="cbi-inv-totals-spacer"></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -4697,6 +4706,17 @@ function cbInvoiceTotals(isFiltered) {
         isFiltered ? `Totals — ${counted} matching invoice${counted === 1 ? '' : 's'}`
                    : `Totals — all ${counted} invoice${counted === 1 ? '' : 's'}`);
     set('invTotalsNote', voided ? `${voided} void invoice${voided === 1 ? '' : 's'} not counted` : '');
+
+    // Same figures, repeated under the heading so they are visible without
+    // scrolling to the bottom of a long list.
+    const all = table.querySelectorAll('.invoice-row:not([data-status="void"])').length;
+    set('invLiveCount', isFiltered
+        ? `${counted} of ${all} invoice${all === 1 ? '' : 's'}`
+        : `${counted} invoice${counted === 1 ? '' : 's'}`);
+    set('invLiveTotal', money(totalP));
+    set('invLiveOwed',  money(balanceP));
+    const owedEl = document.getElementById('invLiveOwed');
+    if (owedEl) { owedEl.classList.toggle('is-due', balanceP > 0); owedEl.classList.toggle('is-clear', balanceP <= 0); }
 
     // Nothing owed reads better in the ordinary colour than in the red the
     // column uses for money outstanding.
