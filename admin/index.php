@@ -1742,9 +1742,13 @@ $pageTitles = [
                 </div>
             </div>
 
-            <!-- Applications Table -->
-            <div class="table-wrapper">
-                <table class="data-table cbi-table-full" id="tradeTable">
+            <!-- Applications Table.
+                 The scrollbar above mirrors the table's own one at the bottom,
+                 so a wide table can be scrolled sideways without first going
+                 to the end of the list. Hidden when the table fits. -->
+            <div class="cbi-topscroll" data-topscroll-for="tradeTableWrap" aria-hidden="true"><div class="cbi-topscroll-inner"></div></div>
+            <div class="table-wrapper" id="tradeTableWrap">
+                <table class="data-table cbi-table-full cbi-trade-table" id="tradeTable">
                     <thead>
                         <tr>
                             <?php /* Ten columns did not fit the content area once the sidebar
@@ -1757,7 +1761,7 @@ $pageTitles = [
                             <th><i class="fa-solid fa-key" aria-hidden="true"></i> Password</th>
                             <th>Delivery Address</th>
                             <th>VAT &amp; Company No</th>
-                            <th class="inv-sort" onclick="sortTrade(6,'number',this)">Status <i class="fa-solid fa-sort"></i></th>
+                            <th class="inv-sort cbi-trade-status-th" onclick="sortTrade(6,'number',this)">Status <i class="fa-solid fa-sort"></i></th>
                             <th class="cbi-col-right">Actions</th>
                         </tr>
                     </thead>
@@ -1768,13 +1772,13 @@ $pageTitles = [
                             // applications that need a decision at the top instead of
                             // ordering them alphabetically.
                             if ($st === 'approved') {
-                                $stBadge = '<span class="cbi-trade-badge-approved"><i class="fa-solid fa-circle-check"></i> Approved</span>';
+                                $stBadge = '<span class="cbi-trade-badge-approved cbi-trade-badge-icon" title="Approved" aria-label="Approved"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>';
                                 $stRank  = 1;
                             } elseif ($st === 'rejected') {
-                                $stBadge = '<span class="cbi-trade-badge-rejected"><i class="fa-solid fa-circle-xmark"></i> Rejected</span>';
+                                $stBadge = '<span class="cbi-trade-badge-rejected cbi-trade-badge-icon" title="Rejected" aria-label="Rejected"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i></span>';
                                 $stRank  = 2;
                             } else {
-                                $stBadge = '<span class="cbi-trade-badge-pending"><i class="fa-solid fa-clock"></i> Pending Review</span>';
+                                $stBadge = '<span class="cbi-trade-badge-pending cbi-trade-badge-icon" title="Pending review" aria-label="Pending review"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>';
                                 $stRank  = 0;
                             }
                             $rawPass = !empty($tu['raw_password']) ? htmlspecialchars($tu['raw_password']) : null;
@@ -1838,24 +1842,24 @@ $pageTitles = [
                                     <span class="cbi-muted">None</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="cbi-nowrap">
+                            <td class="cbi-nowrap cbi-trade-status-cell">
                                 <?= $stBadge ?>
-                                <div class="cbi-stat-subnote">
-                                    Applied <?= date('d M Y', strtotime($tu['created_at'])) ?>
+                                <div class="cbi-stat-subnote" title="Applied <?= date('d M Y', strtotime($tu['created_at'])) ?>">
+                                    <?= date('j M y', strtotime($tu['created_at'])) ?>
                                 </div>
                             </td>
                             <td class="cbi-actions-cell">
                                 <div class="cbi-trade-actions">
-                                    <a href="trade_report.php?id=<?= (int)$tu['id'] ?>" class="btn-sm btn-sm-info cbi-trade-action-btn" title="Sales history, top products and order frequency">
-                                        <i class="fa-solid fa-chart-line"></i> Report
+                                    <a href="trade_report.php?id=<?= (int)$tu['id'] ?>" class="btn-sm btn-sm-info cbi-trade-action-btn" title="Report: sales history, top products and order frequency" aria-label="Report">
+                                        <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
                                     </a>
                                     <?php if ($st !== 'approved'): ?>
                                     <form method="post" action="index.php?tab=trade" class="cbi-inline-form" data-confirm="Approve <?= htmlspecialchars($tu['business_name'], ENT_QUOTES) ?> as a trade partner? They will get wholesale pricing immediately." data-confirm-title="Approve trade account?" data-confirm-tone="success" data-confirm-ok="Approve">
                                         <?= csrfField() ?>
                                         <input type="hidden" name="action" value="approve_trade">
                                         <input type="hidden" name="id" value="<?= (int)$tu['id'] ?>">
-                                        <button type="submit" class="btn-sm btn-sm-success cbi-trade-action-btn">
-                                            <i class="fa-solid fa-check"></i> Approve
+                                        <button type="submit" class="btn-sm btn-sm-success cbi-trade-action-btn" title="Approve" aria-label="Approve">
+                                            <i class="fa-solid fa-check" aria-hidden="true"></i>
                                         </button>
                                     </form>
                                     <?php endif; ?>
@@ -1864,8 +1868,8 @@ $pageTitles = [
                                         <?= csrfField() ?>
                                         <input type="hidden" name="action" value="reject_trade">
                                         <input type="hidden" name="id" value="<?= (int)$tu['id'] ?>">
-                                        <button type="submit" class="btn-sm btn-sm-danger cbi-trade-action-btn">
-                                            <i class="fa-solid fa-xmark"></i> Reject
+                                        <button type="submit" class="btn-sm btn-sm-danger cbi-trade-action-btn" title="Reject" aria-label="Reject">
+                                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                                         </button>
                                     </form>
                                     <?php endif; ?>
@@ -4592,6 +4596,29 @@ function sortTable(tableId, rowClass, col, type, th) {
 
 function sortInvoices(col, type, th) { sortTable('invoicesTable', 'invoice-row', col, type, th); }
 function sortTrade(col, type, th)    { sortTable('tradeTable',    'trade-row',   col, type, th); }
+
+// ── Scrollbar above a wide table ─────────────────────────────
+// A thin bar over the table that scrolls it sideways, kept in step with the
+// table's own scrollbar at the bottom. Only shown while the table is wider
+// than the screen.
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.cbi-topscroll[data-topscroll-for]').forEach(function (bar) {
+        const wrap  = document.getElementById(bar.getAttribute('data-topscroll-for'));
+        const inner = bar.querySelector('.cbi-topscroll-inner');
+        if (!wrap || !inner) return;
+        const fit = () => {
+            inner.style.width = wrap.scrollWidth + 'px';
+            bar.classList.toggle('is-on', wrap.scrollWidth > wrap.clientWidth + 1);
+            bar.scrollLeft = wrap.scrollLeft;
+        };
+        // Only write when the value differs, so each side's echo stops at once.
+        bar.addEventListener('scroll',  () => { if (wrap.scrollLeft !== bar.scrollLeft) wrap.scrollLeft = bar.scrollLeft; });
+        wrap.addEventListener('scroll', () => { if (bar.scrollLeft !== wrap.scrollLeft) bar.scrollLeft = wrap.scrollLeft; });
+        fit();
+        window.addEventListener('resize', fit);
+        if (window.ResizeObserver) { new ResizeObserver(fit).observe(wrap.querySelector('table') || wrap); }
+    });
+});
 
 // ── Trade account search ────────────────────────────────────
 // Matches the contact person as well as the store name: the admin often knows

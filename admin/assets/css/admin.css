@@ -2698,3 +2698,23 @@ tr.cbtr-overship td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
     .cbi-allergen-actions { width: 100%; }
     .cbi-allergen-actions .cbi-allergen-cta { flex: 1 1 100%; justify-content: center; }
 }
+
+/* ── Trade accounts: compact status and actions ─────────────
+   Status is an icon (the word is in its tooltip and for screen readers),
+   and the actions are icon buttons, so all eight columns fit beside the
+   sidebar instead of pushing Approve / Reject off the edge. */
+.admin-wrapper.has-sidebar .cbi-trade-badge-icon { padding: 0; width: 30px; height: 30px; justify-content: center; font-size: 15px; cursor: help; }
+.admin-wrapper.has-sidebar .cbi-trade-status-cell,
+.admin-wrapper.has-sidebar .cbi-trade-status-th { text-align: center; }
+.admin-wrapper.has-sidebar .cbi-trade-status-cell .cbi-stat-subnote { white-space: nowrap; }
+.admin-wrapper.has-sidebar .cbi-trade-table .cbi-trade-action-btn { width: 32px; height: 32px; padding: 0; justify-content: center; display: inline-flex; align-items: center; font-size: 13px; }
+.admin-wrapper.has-sidebar .cbi-trade-table .cbi-trade-actions { gap: 5px; }
+.admin-wrapper.has-sidebar .cbi-trade-table th,
+.admin-wrapper.has-sidebar .cbi-trade-table td { padding-left: 10px; padding-right: 10px; }
+
+/* ── Scrollbar above a wide table ───────────────────────────
+   Mirrors the table's bottom scrollbar (see the topscroll script in
+   admin/index.php). Hidden until the table is wider than its box. */
+.cbi-topscroll        { display: none; overflow-x: auto; overflow-y: hidden; height: 14px; margin-bottom: 4px; }
+.cbi-topscroll.is-on  { display: block; }
+.cbi-topscroll-inner  { height: 1px; }
