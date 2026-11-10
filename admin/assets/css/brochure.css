@@ -198,3 +198,42 @@
 @media screen and (max-width: 820px) {
     .cbbr-doc   { zoom: 0.46; gap: 40px; }
 }
+
+/* ── Toolbar extras ───────────────────────────────────────── */
+.cbbr-tool-form input[type="date"] { padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(92, 28, 34, 0.25); font: inherit; }
+.cbbr-tool-info { display: block; color: var(--text-secondary, #5E3D42); }
+
+/* ── Back page: trade terms ───────────────────────────────── */
+.cbbr-terms   { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin: -3mm 0 7mm; }
+.cbbr-term    { display: flex; gap: 3mm; align-items: flex-start; background: #FDF1D6; border-radius: 3.5mm; padding: 4mm; }
+.cbbr-term i  { font-size: 13pt; color: var(--color-secondary, #C78829); padding-top: 0.5mm; }
+.cbbr-term strong { display: block; font-family: var(--font-heading); font-size: 10.5pt; color: var(--color-primary); }
+.cbbr-term span   { font-size: 8.5pt; line-height: 1.4; color: var(--text-secondary, #5E3D42); }
+
+/* ── Specification table ──────────────────────────────────── */
+.cbbr-spec-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+.cbbr-spec-table th { text-align: left; font-size: 7.5pt; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted, #A38387);
+                      padding: 0 2.5mm 2mm; border-bottom: 0.4mm solid rgba(92, 28, 34, 0.2); }
+.cbbr-spec-table td { padding: 3mm 2.5mm; vertical-align: top; border-bottom: 0.25mm solid rgba(92, 28, 34, 0.1); line-height: 1.45;
+                      color: var(--text-secondary, #5E3D42); }
+.cbbr-spec-name     { font-weight: 800; color: var(--color-primary) !important; width: 34mm; }
+
+/* ── Trade order form ─────────────────────────────────────── */
+.cbbr-form-fields { display: grid; grid-template-columns: 2fr 1fr; gap: 3mm 5mm; margin-bottom: 4mm; }
+.cbbr-field       { border-bottom: 0.35mm solid rgba(92, 28, 34, 0.35); height: 11mm; position: relative; }
+.cbbr-field span  { position: absolute; left: 0; top: 0; font-size: 7pt; font-weight: 800; letter-spacing: .06em;
+                    text-transform: uppercase; color: var(--text-muted, #A38387); }
+.cbbr-form-terms  { margin: 0 0 4mm; font-size: 8.5pt; line-height: 1.5; color: var(--text-secondary, #5E3D42);
+                    background: #FDF1D6; border-radius: 3mm; padding: 3mm 4mm; }
+.cbbr-form-terms strong { color: var(--color-primary); }
+.cbbr-form-table  { width: 100%; border-collapse: collapse; font-size: 9pt; }
+.cbbr-form-table th { text-align: left; font-size: 7.5pt; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted, #A38387);
+                      padding: 0 2.5mm 2mm; border-bottom: 0.4mm solid rgba(92, 28, 34, 0.2); }
+.cbbr-form-table td { padding: 1.6mm 2.5mm; border-bottom: 0.25mm solid rgba(92, 28, 34, 0.08); height: 6.2mm; }
+.cbbr-form-table tr.cbbr-form-first td { border-top: 0.3mm solid rgba(92, 28, 34, 0.18); }
+.cbbr-form-name   { font-weight: 800; color: var(--color-primary); }
+.cbbr-form-case   { color: var(--text-secondary, #5E3D42); }
+.cbbr-num         { text-align: right !important; white-space: nowrap; }
+.cbbr-form-qty    { width: 24mm; text-align: center !important; }
+.cbbr-box         { display: inline-block; width: 16mm; height: 5.5mm; border: 0.35mm solid rgba(92, 28, 34, 0.45); border-radius: 1.2mm; background: #fff; vertical-align: middle; }
+.cbbr-form-sign   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6mm; margin-top: 8mm; }

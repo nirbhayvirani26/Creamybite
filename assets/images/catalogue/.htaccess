@@ -1,0 +1,9 @@
+# Defence in depth for the uploads directory: uploads are already validated by
+# mime type and given a safe extension, but never let a script run from here.
+#
+# NOTE: do not use "php_flag engine off" — it needs mod_php, and MAMP (and most
+# modern hosts) run PHP via CGI/FPM, so Apache rejects the directive and returns
+# 500 for EVERY file in this directory, including the images.
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|phps|cgi|pl|py|sh|htaccess)$">
+    Require all denied
+</FilesMatch>

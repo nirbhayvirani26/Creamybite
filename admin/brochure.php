@@ -129,6 +129,52 @@ $sizeLine = function (array $p, ?array $v) use ($prices, $money): array {
     return ['name' => $name, 'case' => $case, 'price' => $price];
 };
 
+// ── Trade terms ──────────────────────────────────────────────
+// The owner's own terms (set 10 Nov 2026). Printed in this catalogue only —
+// on the back page and the order form. By the owner's decision the cart and
+// checkout are NOT changed to match: they keep their own delivery minimum
+// from Delivery & Offers.
+$tradeMinimum = 200;
+$tradeTerms = [
+    ['fa-sterling-sign', 'Minimum trade order £' . number_format($tradeMinimum), 'Per order.'],
+    ['fa-hand-holding-dollar', 'Payment on delivery', 'Pay when your order is delivered.'],
+];
+
+// ── "Valid until" ────────────────────────────────────────────
+// A PDF lives on in inboxes long after prices change, so a priced copy says
+// how long its prices stand. Defaults to the end of the month after next.
+$validUntil = (string)($_GET['valid'] ?? '');
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $validUntil) || strtotime($validUntil) === false) {
+    $validUntil = date('Y-m-t', strtotime('first day of +2 months'));
+}
+$validLabel = date('j F Y', strtotime($validUntil));
+
+// ── Order form rows: one per size ────────────────────────────
+$formRows = [];
+foreach ($products as $p) {
+    $rows = $variants[(int)$p['id']] ?? [];
+    foreach ($rows ?: [null] as $v) {
+        $l = $sizeLine($p, $v);
+        $formRows[] = ['name' => $p['name'], 'size' => $l['name'] !== '' ? $l['name'] : 'Tub',
+                       'case' => $l['case'], 'price' => $l['price']];
+    }
+}
+// The first sheet also carries the customer's details, so it holds fewer rows.
+$formPages = [];
+if ($formRows) {
+    $formPages[] = array_slice($formRows, 0, 16);
+    foreach (array_chunk(array_slice($formRows, 16), 30) as $more) { $formPages[] = $more; }
+}
+
+// ── Specification rows ───────────────────────────────────────
+// Only flavours with ingredients or a shelf life recorded. If none have
+// either, the page is left out rather than printed full of blanks.
+$specRows = array_values(array_filter($products, fn($p) =>
+    trim((string)($p['ingredients'] ?? '')) !== '' || trim((string)($p['shelf_life'] ?? '')) !== ''));
+$specPages = $specRows ? array_chunk($specRows, 8) : [];
+
+$totalPages = 2 + count($pages) + count($specPages) + count($formPages) + 1;
+
 $year      = date('Y');
 $siteHost  = preg_replace('#^https?://#', '', rtrim(SITE_URL, '/'));
 $priceNote = [
@@ -161,16 +207,23 @@ $priceNote = [
             <option value="retail" <?= $prices === 'retail' ? 'selected' : '' ?>>Retail prices</option>
             <option value="trade"  <?= $prices === 'trade'  ? 'selected' : '' ?>>Trade prices — wholesale buyers only</option>
         </select>
+        <?php if ($prices !== 'none'): ?>
+        <label for="cbbrValid">Prices valid until</label>
+        <input type="date" id="cbbrValid" name="valid" value="<?= $h($validUntil) ?>" onchange="this.form.submit()">
+        <?php endif; ?>
         <noscript><button type="submit">Show</button></noscript>
     </form>
     <button type="button" class="cbbr-tool-print" onclick="window.print()">
         <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Print / Save as PDF
     </button>
     <span class="cbbr-tool-note">
-        <?= count($products) ?> flavour<?= count($products) === 1 ? '' : 's' ?> · <?= count($pages) + 3 ?> A4 pages.
+        <?= count($products) ?> flavour<?= count($products) === 1 ? '' : 's' ?> · <?= $totalPages ?> A4 pages.
         In the print window choose <strong>Save as PDF</strong>, paper <strong>A4</strong>, and tick <strong>Background graphics</strong>.
         <?php if ($missingImg): ?>
         <span class="cbbr-tool-warn"><?= $missingImg ?> without a photo — add one on the product to fill its card.</span>
+        <?php endif; ?>
+        <?php if (!$specPages): ?>
+        <span class="cbbr-tool-info">The ingredients &amp; shelf-life page appears once those are filled in on the products.</span>
         <?php endif; ?>
         <?php if ($prices === 'trade'): ?>
         <span class="cbbr-tool-warn">Trade prices are on this copy. Only send it to approved trade customers.</span>
@@ -201,7 +254,10 @@ $priceNote = [
         </div>
         <div class="cbbr-cover-foot">
             <span><?= count($products) ?> flavours<?php if ($categories): ?> · <?= $h(implode(' · ', $categories)) ?><?php endif; ?></span>
-            <span><?= $h($siteHost) ?></span>
+            <span>
+                <?= $prices !== 'none' ? 'Prices valid until ' . $h($validLabel) : 'Edition ' . $h(date('F Y')) ?>
+                · <?= $h($siteHost) ?>
+            </span>
         </div>
     </section>
 
@@ -214,7 +270,15 @@ $priceNote = [
 
         <div class="cbbr-story-grid">
             <div class="cbbr-story-photo">
-                <img src="<?= $h(rtrim(SITE_BASE, '/') . '/assets/images/about_story.jpg') ?>" alt="">
+                <?php
+                // Your own photo wins: drop story.jpg (or .png / .webp) into
+                // assets/images/catalogue/ and it replaces the About page photo.
+                $storyImg = 'assets/images/about_story.jpg';
+                foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+                    if (is_file(__DIR__ . '/../assets/images/catalogue/story.' . $ext)) { $storyImg = 'assets/images/catalogue/story.' . $ext; break; }
+                }
+                ?>
+                <img src="<?= $h(rtrim(SITE_BASE, '/') . '/' . $storyImg) ?>" alt="">
             </div>
             <div class="cbbr-story-text">
                 <h2 class="cbbr-h2">Made with love,<br>served with joy</h2>
@@ -285,7 +349,7 @@ $priceNote = [
             </span>
         </header>
         <?php if ($priceNote !== '' && $pi === 0): ?>
-        <p class="cbbr-price-note"><?= $h($priceNote) ?></p>
+        <p class="cbbr-price-note"><?= $h($priceNote) ?> Valid until <?= $h($validLabel) ?>.</p>
         <?php endif; ?>
 
         <div class="cbbr-grid">
@@ -368,7 +432,96 @@ $priceNote = [
     </section>
     <?php endforeach; ?>
 
-    <!-- ═══ 4. Ordering and contact ═══ -->
+    <?php $pageNo = 2 + count($pages); ?>
+
+    <!-- ═══ 4. Ingredients, storage & shelf life (only when recorded) ═══ -->
+    <?php foreach ($specPages as $si => $specChunk): $pageNo++; ?>
+    <section class="cbbr-sheet cbbr-spec">
+        <header class="cbbr-sheet-head">
+            <span class="cbbr-label">Product specification</span>
+            <span class="cbbr-sheet-brand">Ingredients · storage · shelf life</span>
+        </header>
+        <table class="cbbr-spec-table">
+            <thead><tr><th>Flavour</th><th>Ingredients</th><th>Shelf life</th><th>Storage</th></tr></thead>
+            <tbody>
+            <?php foreach ($specChunk as $p): ?>
+                <tr>
+                    <td class="cbbr-spec-name"><?= $h($p['name']) ?></td>
+                    <td><?= trim((string)$p['ingredients']) !== '' ? $h($p['ingredients']) : '<em>On request</em>' ?></td>
+                    <td><?= trim((string)$p['shelf_life']) !== '' ? $h($p['shelf_life']) : '<em>On request</em>' ?></td>
+                    <td><?= $h(cbStorageInstructions($p)) ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <footer class="cbbr-sheet-foot">
+            <span><?= $h(SHOP_NAME) ?> · <?= $h($siteHost) ?>/allergens</span>
+            <span>Page <?= $pageNo ?></span>
+        </footer>
+    </section>
+    <?php endforeach; ?>
+
+    <!-- ═══ 5. Trade order form ═══ -->
+    <?php foreach ($formPages as $fi => $formChunk): $pageNo++; ?>
+    <section class="cbbr-sheet cbbr-form">
+        <header class="cbbr-sheet-head">
+            <span class="cbbr-label">Trade order form<?= count($formPages) > 1 ? ' · ' . ($fi + 1) . ' of ' . count($formPages) : '' ?></span>
+            <span class="cbbr-sheet-brand">Send to <?= $h(SHOP_EMAIL) ?> or WhatsApp <?= $h(SHOP_PHONE) ?></span>
+        </header>
+
+        <?php if ($fi === 0): ?>
+        <div class="cbbr-form-fields">
+            <div class="cbbr-field cbbr-field-wide"><span>Business name</span></div>
+            <div class="cbbr-field"><span>Phone</span></div>
+            <div class="cbbr-field cbbr-field-wide"><span>Delivery address &amp; postcode</span></div>
+            <div class="cbbr-field"><span>Email</span></div>
+            <div class="cbbr-field"><span>Trade account no. (if any)</span></div>
+            <div class="cbbr-field"><span>Delivery date wanted</span></div>
+        </div>
+        <p class="cbbr-form-terms">
+            <?php foreach ($tradeTerms as $t): ?><strong><?= $h($t[1]) ?></strong> · <?php endforeach; ?>
+            Write the number of <strong>cases</strong> you want against each size.
+            <?php if ($prices !== 'none'): ?>Prices are per tub, valid until <?= $h($validLabel) ?>.<?php endif; ?>
+        </p>
+        <?php endif; ?>
+
+        <table class="cbbr-form-table">
+            <thead>
+                <tr>
+                    <th>Flavour</th><th>Size</th><th>Case</th>
+                    <?php if ($prices !== 'none'): ?><th class="cbbr-num"><?= $prices === 'trade' ? 'Trade' : 'Price' ?> / tub</th><?php endif; ?>
+                    <th class="cbbr-form-qty">Cases</th>
+                </tr>
+            </thead>
+            <tbody>
+            <?php $lastName = null; foreach ($formChunk as $r): ?>
+                <tr class="<?= $r['name'] !== $lastName ? 'cbbr-form-first' : '' ?>">
+                    <td class="cbbr-form-name"><?= $r['name'] !== $lastName ? $h($r['name']) : '' ?></td>
+                    <td><?= $h($r['size']) ?></td>
+                    <td class="cbbr-form-case"><?= $r['case'] !== '' ? $h($r['case']) : '—' ?></td>
+                    <?php if ($prices !== 'none'): ?><td class="cbbr-num"><?= $h($r['price']) ?></td><?php endif; ?>
+                    <td class="cbbr-form-qty"><span class="cbbr-box"></span></td>
+                </tr>
+            <?php $lastName = $r['name']; endforeach; ?>
+            </tbody>
+        </table>
+
+        <?php if ($fi === count($formPages) - 1): ?>
+        <div class="cbbr-form-sign">
+            <div class="cbbr-field"><span>Name</span></div>
+            <div class="cbbr-field"><span>Signature</span></div>
+            <div class="cbbr-field"><span>Date</span></div>
+        </div>
+        <?php endif; ?>
+
+        <footer class="cbbr-sheet-foot">
+            <span><?= $h(SHOP_NAME) ?> · <?= $h($siteHost) ?>/trade_register</span>
+            <span>Page <?= $pageNo ?></span>
+        </footer>
+    </section>
+    <?php endforeach; ?>
+
+    <!-- ═══ 6. Ordering and contact ═══ -->
     <section class="cbbr-sheet cbbr-back">
         <header class="cbbr-sheet-head">
             <span class="cbbr-label">Work with us</span>
@@ -395,6 +548,19 @@ $priceNote = [
                 <strong>Call or message us</strong>
                 <p>For samples, event orders and anything not on the menu.</p>
                 <span class="cbbr-way-link"><?= $h(SHOP_PHONE) ?></span>
+            </div>
+        </div>
+
+        <div class="cbbr-terms">
+            <?php foreach ($tradeTerms as $t): ?>
+            <div class="cbbr-term">
+                <i class="fa-solid <?= $h($t[0]) ?>" aria-hidden="true"></i>
+                <div><strong><?= $h($t[1]) ?></strong><span><?= $h($t[2]) ?></span></div>
+            </div>
+            <?php endforeach; ?>
+            <div class="cbbr-term">
+                <i class="fa-solid fa-snowflake" aria-hidden="true"></i>
+                <div><strong>Storage</strong><span><?= $h(CB_DEFAULT_STORAGE) ?></span></div>
             </div>
         </div>
 
