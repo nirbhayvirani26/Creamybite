@@ -175,6 +175,29 @@ $specPages = $specRows ? array_chunk($specRows, 8) : [];
 
 $totalPages = 2 + count($pages) + count($specPages) + count($formPages) + 1;
 
+// ── Owner's own cover and story photos ───────────────────────
+// Uploaded from the "Catalogue images" panel (handlers/brochure_handler.php)
+// into assets/images/catalogue/. The ?v= is the file's time, so replacing a
+// photo shows the new one at once instead of a cached copy.
+$cbbrPhoto = function (string $slot): ?array {
+    foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+        $file = __DIR__ . '/../assets/images/catalogue/' . $slot . '.' . $ext;
+        if (is_file($file)) {
+            $dim = @getimagesize($file);
+            return [
+                'url' => rtrim(SITE_BASE, '/') . '/assets/images/catalogue/' . $slot . '.' . $ext . '?v=' . filemtime($file),
+                'w'   => $dim ? (int)$dim[0] : 0,
+                'h'   => $dim ? (int)$dim[1] : 0,
+            ];
+        }
+    }
+    return null;
+};
+$coverPhoto = $cbbrPhoto('cover');
+$storyPhoto = $cbbrPhoto('story');
+$imgMsg = isset($_GET['img_msg']) ? mb_substr((string)$_GET['img_msg'], 0, 300) : '';
+$imgOk  = ($_GET['img_ok'] ?? '') === '1';
+
 $year      = date('Y');
 $siteHost  = preg_replace('#^https?://#', '', rtrim(SITE_URL, '/'));
 $priceNote = [
@@ -193,6 +216,7 @@ $priceNote = [
     <?php require __DIR__ . '/_app_head.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="<?= cbAsset('../assets/css/modal.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('assets/css/brochure.css') ?>">
 </head>
 <body class="cbbr-body">
@@ -231,6 +255,53 @@ $priceNote = [
     </span>
 </div>
 
+<!-- Screen-only: choose the cover and story photos. Never printed. -->
+<details class="cbbr-images"<?= $imgMsg !== '' ? ' open' : '' ?>>
+    <summary><i class="fa-solid fa-image" aria-hidden="true"></i> Catalogue images
+        <span class="cbbr-images-sum"><?= $coverPhoto ? 'Own cover photo' : 'Default cover' ?> · <?= $storyPhoto ? 'own story photo' : 'default story photo' ?></span>
+    </summary>
+    <?php if ($imgMsg !== ''): ?>
+    <p class="cbbr-images-msg <?= $imgOk ? 'is-ok' : 'is-bad' ?>"><?= $h($imgMsg) ?></p>
+    <?php endif; ?>
+    <div class="cbbr-images-grid">
+        <?php foreach ([
+            'cover' => ['Cover photo', $coverPhoto, 'Fills the big picture on the front page. Landscape or square works best. Without one, the cover shows a group of your tubs.', rtrim(SITE_BASE, '/') . '/assets/images/logo.png'],
+            'story' => ['Story photo', $storyPhoto, 'Sits beside "Our story". A kitchen, team or behind-the-scenes shot. Without one, the About page photo is used.', rtrim(SITE_BASE, '/') . '/assets/images/about_story.jpg'],
+        ] as $slot => [$title, $photo, $help, $fallback]): ?>
+        <div class="cbbr-image-slot">
+            <div class="cbbr-image-thumb<?= $photo ? '' : ' is-default' ?>">
+                <img src="<?= $h($photo ? $photo['url'] : $fallback) ?>" alt="">
+                <span><?= $photo ? $h($photo['w'] . '×' . $photo['h']) : 'Default' ?></span>
+            </div>
+            <div class="cbbr-image-body">
+                <strong><?= $h($title) ?></strong>
+                <p><?= $h($help) ?></p>
+                <form method="post" action="handlers/brochure_handler.php" enctype="multipart/form-data" class="cbbr-image-form">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="slot" value="<?= $h($slot) ?>">
+                    <input type="hidden" name="action" value="upload">
+                    <input type="hidden" name="prices" value="<?= $h($prices) ?>">
+                    <input type="hidden" name="valid" value="<?= $h($validUntil) ?>">
+                    <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+                    <button type="submit" class="cbbr-image-btn"><i class="fa-solid fa-upload" aria-hidden="true"></i> <?= $photo ? 'Replace' : 'Upload' ?></button>
+                </form>
+                <?php if ($photo): ?>
+                <form method="post" action="handlers/brochure_handler.php" class="cbbr-image-form"
+                      data-confirm="Remove the <?= $h(strtolower($title)) ?>? The catalogue goes back to its default picture." data-confirm-title="Remove photo?" data-confirm-tone="danger" data-confirm-ok="Remove">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="slot" value="<?= $h($slot) ?>">
+                    <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="prices" value="<?= $h($prices) ?>">
+                    <input type="hidden" name="valid" value="<?= $h($validUntil) ?>">
+                    <button type="submit" class="cbbr-image-btn is-remove"><i class="fa-solid fa-trash" aria-hidden="true"></i> Remove</button>
+                </form>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</details>
+
 <main class="cbbr-doc">
 
     <!-- ═══ 1. Cover ═══ -->
@@ -243,6 +314,11 @@ $priceNote = [
             <h1 class="cbbr-cover-title">Small-batch ice cream,<br>made to be remembered</h1>
             <p class="cbbr-cover-tag"><?= $h(SHOP_TAGLINE) ?></p>
         </div>
+        <?php if ($coverPhoto): ?>
+        <div class="cbbr-cover-photo">
+            <img src="<?= $h($coverPhoto['url']) ?>" alt="">
+        </div>
+        <?php else: ?>
         <div class="cbbr-cover-tubs">
             <?php
             $coverTubs = array_slice(array_values(array_filter($products, fn($p) => $p['_img'] !== '')), 0, 5);
@@ -252,6 +328,7 @@ $priceNote = [
             </figure>
             <?php endforeach; ?>
         </div>
+        <?php endif; ?>
         <div class="cbbr-cover-foot">
             <span><?= count($products) ?> flavours<?php if ($categories): ?> · <?= $h(implode(' · ', $categories)) ?><?php endif; ?></span>
             <span>
@@ -270,15 +347,7 @@ $priceNote = [
 
         <div class="cbbr-story-grid">
             <div class="cbbr-story-photo">
-                <?php
-                // Your own photo wins: drop story.jpg (or .png / .webp) into
-                // assets/images/catalogue/ and it replaces the About page photo.
-                $storyImg = 'assets/images/about_story.jpg';
-                foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
-                    if (is_file(__DIR__ . '/../assets/images/catalogue/story.' . $ext)) { $storyImg = 'assets/images/catalogue/story.' . $ext; break; }
-                }
-                ?>
-                <img src="<?= $h(rtrim(SITE_BASE, '/') . '/' . $storyImg) ?>" alt="">
+                <img src="<?= $h($storyPhoto ? $storyPhoto['url'] : rtrim(SITE_BASE, '/') . '/assets/images/about_story.jpg') ?>" alt="">
             </div>
             <div class="cbbr-story-text">
                 <h2 class="cbbr-h2">Made with love,<br>served with joy</h2>
@@ -592,6 +661,7 @@ $priceNote = [
     </section>
 </main>
 
+<script src="<?= cbAsset('../assets/js/modal.js') ?>"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // QR code to the online menu, drawn in the browser. If the library cannot
