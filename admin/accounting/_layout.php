@@ -53,8 +53,8 @@ function acctPageStart(string $current, string $title, string $subtitle = ''): v
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?php require __DIR__ . '/../_app_head.php'; ?>
     <title><?= htmlspecialchars($title) ?> – VAT &amp; Accounting</title>
-    <?php require __DIR__ . '/../../includes/favicon.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('../../assets/css/style.css') ?>">
     <?php // admin.css lives under admin/assets/, one level up from here. ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/admin.css') ?>">

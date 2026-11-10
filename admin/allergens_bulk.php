@@ -91,7 +91,7 @@ foreach ($products as $p) { if (cbAllergenReviewed($p)) { $confirmed++; } }
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Allergens – <?= SHOP_NAME ?> Admin</title>
-    <?php require __DIR__ . '/../includes/favicon.php'; ?>
+    <?php require __DIR__ . '/_app_head.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <?php // admin.css lives under admin/assets/, not the site-wide assets/ —
           // so it is NOT "../assets/css/admin.css" like the others. Getting

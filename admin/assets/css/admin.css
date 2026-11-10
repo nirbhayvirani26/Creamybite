@@ -2792,3 +2792,17 @@ tr.cbtr-overship td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
    bar is sticky too but had no z-index, so product names were painted on
    top of the Save button while scrolling. Keep the bar above the table. */
 .cbab-save-bar { z-index: 5; }
+
+/* ── Home-screen app: refresh button ────────────────────────
+   Added by admin/_app_head.php only when the admin runs from the phone's
+   home screen, which has no reload button of its own. */
+.cb-app-refresh            { display: inline-flex; align-items: center; justify-content: center;
+                             width: 36px; height: 36px; flex: 0 0 auto; border: none; background: none;
+                             color: var(--color-primary, #5C1D24); font-size: 17px; cursor: pointer;
+                             border-radius: 50%; }
+.cb-app-refresh:active     { background: rgba(92, 29, 36, 0.08); }
+.cb-app-refresh.is-floating { position: fixed; top: 10px; right: 10px; z-index: 300;
+                             background: var(--bg-surface, #fff); box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+.cb-app-refresh.is-spinning i { animation: cb-app-spin .8s linear infinite; }
+@keyframes cb-app-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cb-app-refresh.is-spinning i { animation: none; } }

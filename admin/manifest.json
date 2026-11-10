@@ -1,0 +1,17 @@
+{
+  "name": "Creamy Bite Admin",
+  "short_name": "CB Admin",
+  "description": "Orders, invoices, stock and traceability for Creamy Bite.",
+  "id": "./",
+  "start_url": "./index.php",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFF8F2",
+  "theme_color": "#5C1D24",
+  "icons": [
+    { "src": "assets/icons/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

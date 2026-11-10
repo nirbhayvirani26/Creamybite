@@ -534,8 +534,8 @@ if ($format === 'csv') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php require __DIR__ . '/_app_head.php'; ?>
 <title><?= ucfirst($type) ?> report – <?= SHOP_NAME ?></title>
-<?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('assets/css/reports-print.css') ?>">
 <?php // The toolbar icons below need Font Awesome; this page never loaded it.
       // The toolbar is display:none in print, so this only costs a screen load. ?>

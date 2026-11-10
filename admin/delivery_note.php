@@ -153,7 +153,7 @@ if (empty($order['trade_business_name']) && preg_match('/Store:\s*([^\]]+)/i', $
 <head>
     <meta charset="UTF-8">
     <title>Delivery Note & Invoice – <?= htmlspecialchars($order['order_code']) ?></title>
-    <?php require __DIR__ . '/../includes/favicon.php'; ?>
+    <?php require __DIR__ . '/_app_head.php'; ?>
     <!-- Shared .cbdn-* classes come from admin.css; this page's own print rules
          follow in delivery-note.css, so they win any equal-specificity tie. -->
     <link rel="stylesheet" href="<?= cbAsset('assets/css/admin.css') ?>">

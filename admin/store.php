@@ -437,7 +437,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Delivery &amp; Offers – <?= htmlspecialchars(SHOP_NAME) ?> Admin</title>
-    <?php require __DIR__ . '/../includes/favicon.php'; ?>
+    <?php require __DIR__ . '/_app_head.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('assets/css/admin.css') ?>">
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/components.css') ?>">

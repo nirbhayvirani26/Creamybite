@@ -39,8 +39,8 @@ $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <?php require __DIR__ . '/_app_head.php'; ?>
     <title><?= $h($pageTitle) ?> – <?= $h(SHOP_NAME) ?> Admin</title>
-    <?php require __DIR__ . '/../includes/favicon.php'; ?>
     <link rel="stylesheet" href="<?= cbAsset('../assets/css/style.css') ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?= cbAsset('assets/css/admin.css') ?>">
