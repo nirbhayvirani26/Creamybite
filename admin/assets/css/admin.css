@@ -2806,3 +2806,58 @@ tr.cbtr-overship td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
 .cb-app-refresh.is-spinning i { animation: cb-app-spin .8s linear infinite; }
 @keyframes cb-app-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .cb-app-refresh.is-spinning i { animation: none; } }
+
+/* ── Invoice editor on phones ───────────────────────────────
+   The seven-column line-items table was wider than its card, so on a
+   phone the whole editor slid sideways and the left edge was cut off.
+   Below 720px each line becomes a card: description across the top,
+   rate / qty / unit side by side, the rate note under them, and the
+   amount with a full-size Remove button at the foot. Labels come from
+   each cell's data-label, so lines added by "Add line" lay out the same. */
+.cbie-li-remove-text { display: none; }
+
+@media (max-width: 720px) {
+    .cbie-picker-search { min-width: 0; flex: 1 1 100%; }
+    .cbie-picker-qty    { flex: 1 1 90px; width: auto; }
+    .cbie-picker-bar > .btn-primary { flex: 2 1 140px; justify-content: center; }
+
+    #lineTable, #lineTable tbody, #lineTable tr, #lineTable td { display: block; width: 100%; box-sizing: border-box; }
+    #lineTable thead { display: none; }
+    #lineTable .line-row {
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 10px;
+        border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+        background: var(--bg-main); padding: 12px; margin-bottom: 10px;
+    }
+    #lineTable .line-row td { padding: 0; min-width: 0; }
+    #lineTable .line-row td[data-label]::before {
+        content: attr(data-label); display: block; margin-bottom: 3px;
+        font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+        color: var(--text-muted);
+    }
+    /* Placed by area, not source order: rate note comes before qty in
+       the markup, but on a card the three short numbers read best together. */
+    #lineTable .line-row { grid-template-areas: "desc desc desc" "rate qty unit" "note note note" "amt amt rm"; }
+    #lineTable .cbie-li-desc   { grid-area: desc; }
+    #lineTable .cbie-li-rate   { grid-area: rate; }
+    #lineTable .cbie-li-qty    { grid-area: qty; }
+    #lineTable .cbie-li-unit   { grid-area: unit; }
+    #lineTable .cbie-li-note   { grid-area: note; }
+    #lineTable .cbie-li-amount { grid-area: amt; align-self: center; text-align: left;
+                                 font-size: 17px; font-weight: 800; color: var(--color-primary); }
+    #lineTable .cbie-li-remove { grid-area: rm; align-self: end; padding: 0; text-align: right; }
+    #lineTable .line-row .form-control { width: 100%; max-width: none; min-width: 0; }
+    #lineTable .cbie-li-remove .btn-danger { width: 100%; padding: 9px 8px; font-size: 13px; justify-content: center; }
+    #lineTable .cbie-li-remove-text { display: inline; }
+    #lineTable .line-row input { font-size: 16px; }   /* 16px stops iOS zooming into the field */
+
+    /* Payments: same idea, so the remove button is reachable. */
+    .cbie-pay-table, .cbie-pay-table tbody, .cbie-pay-table tr, .cbie-pay-table td { display: block; width: 100%; box-sizing: border-box; }
+    .cbie-pay-table thead { display: none; }
+    .cbie-pay-table tr { display: grid; grid-template-columns: 1fr 1fr auto; gap: 4px 10px; align-items: center;
+                         border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+                         padding: 10px 12px; margin-bottom: 8px; }
+    .cbie-pay-table td { padding: 0 !important; min-width: 0; }
+    .cbie-pay-table td[data-label]::before { content: attr(data-label); display: block; font-size: 10.5px;
+        font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+    .cbie-pay-table .cbie-pay-remove { grid-column: 3; grid-row: 1 / span 2; }
+}

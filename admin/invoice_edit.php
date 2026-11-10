@@ -245,14 +245,14 @@ require __DIR__ . '/_sidebar.php';
                 <tbody id="lineBody">
                 <?php foreach ($inv['items'] as $it): ?>
                     <tr class="line-row">
-                        <td><input type="text"   name="item_description[]" class="form-control line-desc" list="productList" autocomplete="off" value="<?= htmlspecialchars($it['description']) ?>"></td>
-                        <td><input type="number" name="item_rate[]"        class="form-control line-rate" step="0.01" min="0" value="<?= htmlspecialchars(number_format((float)$it['rate'], 2, '.', '')) ?>"><small class="cbie-rate-hint"></small></td>
-                        <td><input type="text"   name="item_rate_note[]"   class="form-control" value="<?= htmlspecialchars($it['rate_note']) ?>" placeholder="e.g. don't have 1L Tub"></td>
-                        <td><input type="number" name="item_qty[]"         class="form-control line-qty" step="0.001" value="<?= htmlspecialchars(rtrim(rtrim(number_format((float)$it['qty'], 3, '.', ''), '0'), '.')) ?>"></td>
-                        <td><input type="text"   name="item_qty_unit[]"    class="form-control" value="<?= htmlspecialchars($it['qty_unit']) ?>" placeholder="Litre"></td>
-                        <td class="amt line-amount cbie-amount-cell">£<?= number_format((float)$it['amount'], 2) ?></td>
-                        <td class="cbie-cell-pad-top">
-                            <button type="button" class="btn-danger cbie-btn-mini" onclick="removeLine(this)"><i class="fa-solid fa-xmark"></i></button>
+                        <td class="cbie-li-desc" data-label="Description"><input type="text"   name="item_description[]" class="form-control line-desc" list="productList" autocomplete="off" value="<?= htmlspecialchars($it['description']) ?>"></td>
+                        <td class="cbie-li-rate" data-label="Rate"><input type="number" name="item_rate[]"        class="form-control line-rate" step="0.01" min="0" inputmode="decimal" value="<?= htmlspecialchars(number_format((float)$it['rate'], 2, '.', '')) ?>"><small class="cbie-rate-hint"></small></td>
+                        <td class="cbie-li-note" data-label="Rate note"><input type="text"   name="item_rate_note[]"   class="form-control" value="<?= htmlspecialchars($it['rate_note']) ?>" placeholder="e.g. don't have 1L Tub"></td>
+                        <td class="cbie-li-qty" data-label="Qty"><input type="number" name="item_qty[]"         class="form-control line-qty" step="0.001" inputmode="decimal" value="<?= htmlspecialchars(rtrim(rtrim(number_format((float)$it['qty'], 3, '.', ''), '0'), '.')) ?>"></td>
+                        <td class="cbie-li-unit" data-label="Unit"><input type="text"   name="item_qty_unit[]"    class="form-control" value="<?= htmlspecialchars($it['qty_unit']) ?>" placeholder="Litre"></td>
+                        <td class="amt line-amount cbie-amount-cell cbie-li-amount" data-label="Amount">£<?= number_format((float)$it['amount'], 2) ?></td>
+                        <td class="cbie-cell-pad-top cbie-li-remove">
+                            <button type="button" class="btn-danger cbie-btn-mini" onclick="removeLine(this)" aria-label="Remove line" title="Remove line"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span class="cbie-li-remove-text"> Remove</span></button>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -389,11 +389,11 @@ require __DIR__ . '/_sidebar.php';
             <tbody>
             <?php foreach ($inv['payments'] as $p): ?>
                 <tr>
-                    <td class="cbie-cell-pad-top cbie-pay-cell"><?= date('d/m/Y', strtotime($p['paid_on'])) ?></td>
-                    <td class="cbie-cell-pad-top cbie-pay-amount">£<?= number_format((float)$p['amount'], 2) ?></td>
-                    <td class="cbie-cell-pad-top cbie-pay-cell"><?= htmlspecialchars($p['method']) ?></td>
-                    <td class="cbie-cell-pad-top cbie-pay-cell"><?= htmlspecialchars($p['reference']) ?: '—' ?></td>
-                    <td>
+                    <td class="cbie-cell-pad-top cbie-pay-cell" data-label="Date"><?= date('d/m/Y', strtotime($p['paid_on'])) ?></td>
+                    <td class="cbie-cell-pad-top cbie-pay-amount" data-label="Amount">£<?= number_format((float)$p['amount'], 2) ?></td>
+                    <td class="cbie-cell-pad-top cbie-pay-cell" data-label="Method"><?= htmlspecialchars($p['method']) ?></td>
+                    <td class="cbie-cell-pad-top cbie-pay-cell" data-label="Reference"><?= htmlspecialchars($p['reference']) ?: '—' ?></td>
+                    <td class="cbie-pay-remove">
                         <form method="POST" action="handlers/invoice_handler.php" data-confirm="Remove this payment? The balance goes back up by that amount." data-confirm-title="Remove payment?" data-confirm-tone="danger" data-confirm-ok="Remove" class="cbie-form-flat">
         <?= csrfField() ?>
                             <input type="hidden" name="action" value="delete_payment">
@@ -742,13 +742,15 @@ function addLine() {
     const tr = document.createElement('tr');
     tr.className = 'line-row';
     tr.innerHTML =
-        '<td><input type="text"   name="item_description[]" class="form-control line-desc" list="productList" autocomplete="off"></td>' +
-        '<td><input type="number" name="item_rate[]" class="form-control line-rate" step="0.01" min="0" value="0.00"><small class="cbie-rate-hint"></small></td>' +
-        '<td><input type="text"   name="item_rate_note[]" class="form-control" placeholder="e.g. don\'t have 1L Tub"></td>' +
-        '<td><input type="number" name="item_qty[]" class="form-control line-qty" step="0.001" value="1"></td>' +
-        '<td><input type="text"   name="item_qty_unit[]" class="form-control" placeholder="Litre"></td>' +
-        '<td class="amt line-amount">£0.00</td>' +
-        '<td class="cbie-line-actions"><button type="button" class="btn-danger cbie-btn-xs" onclick="removeLine(this)"><i class="fa-solid fa-xmark"></i></button></td>';
+        // Same classes and labels as the rows PHP prints, so a line added here
+        // lays out as a card on a phone exactly like the saved ones.
+        '<td class="cbie-li-desc" data-label="Description"><input type="text"   name="item_description[]" class="form-control line-desc" list="productList" autocomplete="off"></td>' +
+        '<td class="cbie-li-rate" data-label="Rate"><input type="number" name="item_rate[]" class="form-control line-rate" step="0.01" min="0" inputmode="decimal" value="0.00"><small class="cbie-rate-hint"></small></td>' +
+        '<td class="cbie-li-note" data-label="Rate note"><input type="text"   name="item_rate_note[]" class="form-control" placeholder="e.g. don\'t have 1L Tub"></td>' +
+        '<td class="cbie-li-qty" data-label="Qty"><input type="number" name="item_qty[]" class="form-control line-qty" step="0.001" inputmode="decimal" value="1"></td>' +
+        '<td class="cbie-li-unit" data-label="Unit"><input type="text"   name="item_qty_unit[]" class="form-control" placeholder="Litre"></td>' +
+        '<td class="amt line-amount cbie-amount-cell cbie-li-amount" data-label="Amount">£0.00</td>' +
+        '<td class="cbie-line-actions cbie-li-remove"><button type="button" class="btn-danger cbie-btn-xs" onclick="removeLine(this)" aria-label="Remove line" title="Remove line"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span class="cbie-li-remove-text"> Remove</span></button></td>';
     tbody.appendChild(tr);
     tr.querySelector('input').focus();
     recalc();
