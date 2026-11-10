@@ -2861,3 +2861,11 @@ tr.cbtr-overship td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
         font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
     .cbie-pay-table .cbie-pay-remove { grid-column: 3; grid-row: 1 / span 2; }
 }
+
+/* Products tab: "Catalogue" beside "Add Product" in the topbar. Icon only
+   on a phone, where the topbar has room for one labelled button. */
+.admin-topbar .tb-actions .cbi-tb-catalogue { padding: 9px 16px; font-size: 13px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 620px) {
+    .admin-topbar .tb-actions .cbi-tb-catalogue { padding: 9px 11px; }
+    .cbi-tb-catalogue-text { display: none; }
+}

@@ -1,0 +1,200 @@
+/* ============================================================
+   Creamy Bite – product catalogue (admin/brochure.php)
+
+   Every .cbbr-sheet is one A4 page, 210 × 297 mm. On screen the sheets sit
+   on a grey desk like a print preview; in print each one is a page.
+
+   Brand: chocolate #5C1C22, gold #C78829, cream #FFF7EF, Ezra headings.
+   ============================================================ */
+
+@page { size: A4; margin: 0; }
+
+.cbbr-body {
+    margin: 0;
+    background: #E9E2DC;
+    color: var(--text-primary, #2C0D11);
+    font-family: var(--font-body, sans-serif);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* ── Screen toolbar ───────────────────────────────────────── */
+.cbbr-toolbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+    padding: 12px 20px;
+    background: #fff; border-bottom: 1px solid rgba(92, 28, 34, 0.12);
+    font-size: 13px;
+}
+.cbbr-tool-back   { color: var(--color-primary); font-weight: 700; text-decoration: none; }
+.cbbr-tool-form   { display: flex; align-items: center; gap: 8px; }
+.cbbr-tool-form label { font-weight: 700; }
+.cbbr-tool-form select { padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(92, 28, 34, 0.25); font: inherit; background: #fff; }
+.cbbr-tool-print  { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: none; border-radius: 999px;
+                    background: var(--color-primary); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.cbbr-tool-note   { flex: 1 1 320px; color: var(--text-secondary, #5E3D42); line-height: 1.5; }
+.cbbr-tool-warn   { display: block; color: #B45309; font-weight: 700; }
+
+/* ── Sheets ───────────────────────────────────────────────── */
+.cbbr-doc   { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 28px 12px 60px; }
+.cbbr-sheet {
+    position: relative; box-sizing: border-box;
+    width: 210mm; height: 297mm; overflow: hidden;
+    padding: 16mm 15mm 18mm;
+    background: #FFF9F3;
+    box-shadow: 0 6px 30px rgba(44, 13, 17, 0.18);
+    display: flex; flex-direction: column;
+}
+.cbbr-sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8mm;
+                   padding-bottom: 4mm; border-bottom: 0.4mm solid rgba(92, 28, 34, 0.15); }
+.cbbr-label      { font-family: var(--font-heading); font-weight: 800; font-size: 10pt; letter-spacing: .14em;
+                   text-transform: uppercase; color: var(--color-secondary, #C78829); }
+.cbbr-sheet-brand { font-size: 9pt; color: var(--text-muted, #A38387); font-weight: 600; }
+.cbbr-sheet-foot { position: absolute; left: 15mm; right: 15mm; bottom: 8mm; display: flex; justify-content: space-between;
+                   font-size: 8pt; color: var(--text-muted, #A38387); }
+
+.cbbr-h2 { font-family: var(--font-heading); font-weight: 900; font-size: 26pt; line-height: 1.05; margin: 0 0 6mm;
+           color: var(--color-primary, #5C1C22); }
+.cbbr-h3 { font-family: var(--font-heading); font-weight: 800; font-size: 12pt; margin: 7mm 0 3.5mm; color: var(--color-primary); }
+
+/* ── Cover ────────────────────────────────────────────────── */
+.cbbr-cover {
+    padding: 18mm 16mm;
+    background:
+        radial-gradient(circle at 80% 78%, rgba(199, 136, 41, 0.35) 0, transparent 45%),
+        linear-gradient(160deg, #6E2229 0%, #5C1C22 45%, #3A1015 100%);
+    color: #FFF7EF;
+}
+.cbbr-cover-top   { display: flex; justify-content: center; }
+.cbbr-cover-logo  { width: 120mm; height: auto; background: #FFF7EF; border-radius: 6mm; padding: 5mm 8mm; }
+.cbbr-cover-mid   { text-align: center; margin-top: 18mm; }
+.cbbr-cover-kicker { font-family: var(--font-heading); font-weight: 800; font-size: 11pt; letter-spacing: .28em;
+                     text-transform: uppercase; color: #E7B15A; margin: 0 0 5mm; }
+.cbbr-cover-title { font-family: var(--font-heading); font-weight: 900; font-size: 34pt; line-height: 1.05; margin: 0; color: #FFF7EF; }
+.cbbr-cover-tag   { font-size: 13pt; margin: 6mm 0 0; color: rgba(255, 247, 239, 0.8); font-style: italic; }
+
+.cbbr-cover-tubs  { position: relative; flex: 1 1 auto; margin: 10mm 0 6mm; }
+.cbbr-cover-tub   { position: absolute; margin: 0; width: 62mm; height: 62mm; border-radius: 50%;
+                    background: var(--tint-bg); box-shadow: 0 4mm 10mm rgba(0, 0, 0, 0.3);
+                    display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.cbbr-cover-tub img { width: 92%; height: 92%; object-fit: contain; mix-blend-mode: multiply; }
+.cbbr-cover-tub-0 { left: 50%; top: 4mm; transform: translateX(-50%); width: 76mm; height: 76mm; z-index: 3; }
+.cbbr-cover-tub-1 { left: 4mm;  top: 26mm; z-index: 2; }
+.cbbr-cover-tub-2 { right: 4mm; top: 26mm; z-index: 2; }
+.cbbr-cover-tub-3 { left: 30mm; top: 70mm; width: 50mm; height: 50mm; z-index: 1; }
+.cbbr-cover-tub-4 { right: 30mm; top: 70mm; width: 50mm; height: 50mm; z-index: 1; }
+.cbbr-cover-foot  { display: flex; justify-content: space-between; gap: 6mm; font-size: 10pt; font-weight: 600;
+                    color: rgba(255, 247, 239, 0.85); border-top: 0.4mm solid rgba(255, 247, 239, 0.25); padding-top: 4mm; }
+
+/* ── Story ────────────────────────────────────────────────── */
+.cbbr-story-grid  { display: grid; grid-template-columns: 70mm 1fr; gap: 8mm; align-items: start; }
+.cbbr-story-photo img { width: 100%; height: 74mm; object-fit: cover; border-radius: 5mm; display: block; }
+.cbbr-story-text p { font-size: 9.5pt; line-height: 1.55; margin: 0 0 3mm; color: var(--text-secondary, #5E3D42); }
+.cbbr-highlights  { list-style: none; padding: 0; margin: 3mm 0 0; display: flex; flex-wrap: wrap; gap: 2mm 5mm; }
+.cbbr-highlights li { font-weight: 700; font-size: 10.5pt; color: var(--color-primary); }
+.cbbr-highlights i { width: 7mm; color: var(--color-secondary, #C78829); }
+
+.cbbr-process      { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.cbbr-process-card { background: #fff; border: 0.3mm solid rgba(92, 28, 34, 0.1); border-radius: 4mm; padding: 4mm; }
+.cbbr-process-card i { font-size: 14pt; color: var(--color-secondary, #C78829); }
+.cbbr-process-card strong { display: block; margin: 2mm 0 1.5mm; font-family: var(--font-heading); font-size: 11pt; color: var(--color-primary); }
+.cbbr-process-card p { margin: 0; font-size: 9pt; line-height: 1.5; color: var(--text-secondary, #5E3D42); }
+
+.cbbr-glance     { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm 6mm; }
+.cbbr-glance-cat { border-left: 1mm solid var(--color-secondary, #C78829); padding: 1mm 0 1mm 3mm; }
+.cbbr-glance-cat strong { display: block; font-family: var(--font-heading); font-size: 10pt; color: var(--color-primary); }
+.cbbr-glance-cat span   { font-size: 8.5pt; line-height: 1.45; color: var(--text-secondary, #5E3D42); }
+
+/* ── Range: six cards a page ──────────────────────────────── */
+.cbbr-price-note { margin: -4mm 0 5mm; font-size: 8.5pt; color: var(--text-secondary, #5E3D42); font-style: italic; }
+.cbbr-grid  { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 76mm); gap: 6mm; }
+.cbbr-card  { display: grid; grid-template-columns: 41mm 1fr; border-radius: 4.5mm; overflow: hidden;
+              background: #fff; border: 0.3mm solid var(--tint-edge); break-inside: avoid; }
+.cbbr-card-photo { position: relative; background: var(--tint-bg); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+/* The photos have a wide white margin round the tubs. Scaling up trims it,
+   and multiply turns what is left of the white into the flavour tint. */
+.cbbr-card-photo img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; mix-blend-mode: multiply; transform: scale(1.22); }
+.cbbr-card-nophoto { font-size: 26pt; color: var(--tint-ink); opacity: .55; }
+.cbbr-card-cat   { position: absolute; left: 2mm; top: 2mm; right: 2mm; font-size: 6.5pt; font-weight: 800; letter-spacing: .08em;
+                   text-transform: uppercase; color: var(--tint-ink); }
+.cbbr-card-badge { position: absolute; left: 2mm; bottom: 2mm; padding: 0.8mm 2.2mm; border-radius: 999px; font-size: 6.5pt;
+                   font-weight: 800; background: var(--color-secondary, #C78829); color: #fff; }
+.cbbr-card-body  { padding: 4mm 4mm 3.5mm; display: flex; flex-direction: column; min-width: 0; }
+.cbbr-card-name  { font-family: var(--font-heading); font-weight: 800; font-size: 11pt; line-height: 1.15; margin: 0 0 2mm;
+                   color: var(--color-primary); }
+.cbbr-card-desc  { margin: 0 0 2.5mm; font-size: 8.5pt; line-height: 1.45; color: var(--text-secondary, #5E3D42);
+                   display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.cbbr-sizes      { list-style: none; margin: 0 0 2mm; padding: 0; display: flex; flex-direction: column; gap: 1mm; }
+.cbbr-sizes li   { display: flex; align-items: baseline; gap: 2mm; font-size: 8pt; padding: 1mm 2mm; border-radius: 2mm; background: var(--tint-bg); }
+.cbbr-size-name  { font-weight: 800; color: var(--tint-ink); }
+.cbbr-size-case  { color: var(--text-secondary, #5E3D42); }
+.cbbr-size-price { margin-left: auto; font-weight: 800; color: var(--color-primary); }
+.cbbr-allergens  { margin: auto 0 0; font-size: 7pt; line-height: 1.4; color: var(--text-secondary, #5E3D42); }
+.cbbr-allergens strong { color: var(--text-primary, #2C0D11); }
+
+/* Brand tiles in the spare slots of a part-full page. */
+.cbbr-filler   { border-radius: 4.5mm; padding: 7mm; display: flex; flex-direction: column; justify-content: center; gap: 2.5mm; }
+.cbbr-filler i { font-size: 18pt; }
+.cbbr-filler strong { font-family: var(--font-heading); font-weight: 900; font-size: 14pt; line-height: 1.15; }
+.cbbr-filler p { margin: 0; font-size: 9pt; line-height: 1.5; overflow-wrap: anywhere; }
+.cbbr-filler-0 { background: var(--color-primary, #5C1C22); color: #FFF7EF; }
+.cbbr-filler-0 i { color: #E7B15A; }
+.cbbr-filler-1 { background: #FDF1D6; color: var(--color-primary, #5C1C22); }
+.cbbr-filler-1 i { color: var(--color-secondary, #C78829); }
+.cbbr-filler-2 { background: #fff; color: var(--color-primary, #5C1C22); border: 0.3mm solid rgba(92, 28, 34, 0.12); }
+.cbbr-filler-2 i { color: var(--color-secondary, #C78829); }
+
+/* ── Back page ────────────────────────────────────────────── */
+.cbbr-ways  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; margin-bottom: 9mm; }
+.cbbr-way   { background: #fff; border: 0.3mm solid rgba(92, 28, 34, 0.1); border-radius: 4mm; padding: 5mm; }
+.cbbr-way i { font-size: 16pt; color: var(--color-secondary, #C78829); }
+.cbbr-way strong { display: block; margin: 2.5mm 0 1.5mm; font-family: var(--font-heading); font-size: 11pt; color: var(--color-primary); }
+.cbbr-way p { margin: 0 0 3mm; font-size: 9pt; line-height: 1.5; color: var(--text-secondary, #5E3D42); }
+.cbbr-way-link { font-size: 8.5pt; font-weight: 800; color: var(--color-primary); }
+
+.cbbr-contact { display: grid; grid-template-columns: 1fr 62mm; gap: 9mm; align-items: center;
+                background: var(--color-primary, #5C1C22); color: #FFF7EF; border-radius: 5mm; padding: 8mm; }
+.cbbr-contact-list p { margin: 0 0 3mm; font-size: 11pt; font-weight: 600; display: flex; gap: 3mm; }
+.cbbr-contact-list i { width: 6mm; color: #E7B15A; padding-top: 0.6mm; }
+.cbbr-address     { font-size: 10pt !important; font-weight: 500 !important; line-height: 1.45; }
+.cbbr-qr          { display: flex; flex-direction: column; align-items: center; gap: 3mm; font-size: 9pt; font-weight: 700; }
+.cbbr-qr-code     { width: 44mm; height: 44mm; background: #fff; border-radius: 3mm; padding: 3mm; box-sizing: content-box;
+                    display: flex; align-items: center; justify-content: center; }
+.cbbr-qr-code img,
+.cbbr-qr-code canvas { width: 44mm !important; height: 44mm !important; }
+.cbbr-allergy-notice { margin: 9mm 0 0; font-size: 8.5pt; line-height: 1.55; color: var(--text-secondary, #5E3D42);
+                       background: #FFF1DC; border-radius: 3mm; padding: 4mm 5mm; }
+
+/* ── Flavour tints ────────────────────────────────────────────
+   Picked from each tub photo's colour by cbbrTintClass() in brochure.php.
+   --tint-bg is the soft wash behind the photo (the tub's white backdrop
+   multiplies into it), --tint-ink the label colour, --tint-edge the card
+   border. h0…h11 are 30° hue steps starting at red. */
+.cbbr-tint-h0      { --tint-bg: #FBE3E3; --tint-ink: #9F1D1D; --tint-edge: #F4C3C3; }
+.cbbr-tint-h1      { --tint-bg: #FDEBDD; --tint-ink: #A2481B; --tint-edge: #F7CFAF; }
+.cbbr-tint-h2      { --tint-bg: #FDF1D6; --tint-ink: #93620C; --tint-edge: #F2DBA2; }
+.cbbr-tint-h3      { --tint-bg: #FAF6D3; --tint-ink: #7A6A09; --tint-edge: #ECE39A; }
+.cbbr-tint-h4      { --tint-bg: #EDF6D8; --tint-ink: #4D6B12; --tint-edge: #D2E6A9; }
+.cbbr-tint-h5      { --tint-bg: #E1F3E0; --tint-ink: #24692C; --tint-edge: #BCE1BA; }
+.cbbr-tint-h6      { --tint-bg: #DDF3EC; --tint-ink: #11694F; --tint-edge: #B3E2D2; }
+.cbbr-tint-h7      { --tint-bg: #DDF0F6; --tint-ink: #135E78; --tint-edge: #B2DCEA; }
+.cbbr-tint-h8      { --tint-bg: #E0E9FA; --tint-ink: #22488F; --tint-edge: #BACDF1; }
+.cbbr-tint-h9      { --tint-bg: #E8E3FA; --tint-ink: #4A2F99; --tint-edge: #CEC3F1; }
+.cbbr-tint-h10     { --tint-bg: #F3E1F6; --tint-ink: #7A2588; --tint-edge: #E3BDEA; }
+.cbbr-tint-h11     { --tint-bg: #FBE1EC; --tint-ink: #9A1E52; --tint-edge: #F2BED4; }
+.cbbr-tint-cocoa   { --tint-bg: #F1E4DC; --tint-ink: #6B3420; --tint-edge: #DFC5B6; }
+.cbbr-tint-neutral { --tint-bg: #F6EEE6; --tint-ink: #5C1C22; --tint-edge: #E7D8CB; }
+
+/* ── Print ────────────────────────────────────────────────── */
+@media print {
+    .cbbr-body    { background: none; }
+    .cbbr-toolbar { display: none !important; }
+    .cbbr-doc     { display: block; padding: 0; }
+    .cbbr-sheet   { box-shadow: none; margin: 0; break-after: page; page-break-after: always; }
+    .cbbr-sheet:last-child { break-after: auto; page-break-after: auto; }
+}
+
+/* ── Small screens: scale the sheets to fit, so the preview still reads. */
+@media screen and (max-width: 820px) {
+    .cbbr-doc   { zoom: 0.46; gap: 40px; }
+}

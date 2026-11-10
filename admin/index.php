@@ -697,6 +697,9 @@ $pageTitles = [
               // floating in the content area. ?>
         <div class="tb-actions">
             <?php if ($activeTab === 'products'): ?>
+            <a href="brochure.php" class="btn-secondary cbi-tb-catalogue" title="Print-ready catalogue of the whole range, to save as PDF">
+                <i class="fa-solid fa-book-open" aria-hidden="true"></i> <span class="cbi-tb-catalogue-text">Catalogue</span>
+            </a>
             <a href="product_form.php" class="btn-primary">
                 <i class="fa-solid fa-plus"></i> Add Product
             </a>
