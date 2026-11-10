@@ -31,7 +31,8 @@ $action = (string)($_POST['action'] ?? '');
 $back = 'brochure.php';
 $keep = [];
 if (in_array($_POST['prices'] ?? '', ['retail', 'trade'], true)) { $keep['prices'] = $_POST['prices']; }
-if (preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($_POST['valid'] ?? ''))) { $keep['valid'] = $_POST['valid']; }
+$pv = (string)($_POST['valid'] ?? '');
+if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $pv, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1])) { $keep['valid'] = $pv; }
 
 function cbbrBack(string $back, array $keep, string $msg, bool $ok): void
 {
@@ -81,9 +82,11 @@ if ($file['size'] > 10 * 1024 * 1024)   { cbbrBack($back, $keep, 'That photo is 
 
 // Too small prints as a blurry smudge on an A4 page. Warn, but still save:
 // it is the owner's call, and a small photo beats none.
+// Judged on the LONGER side: a wide banner of 2048×768 is plenty for a page,
+// and measuring its short side flagged it as too small.
 $dim  = @getimagesize($file['tmp_name']);
-$warn = ($dim && min($dim[0], $dim[1]) < 1000)
-      ? ' It is only ' . $dim[0] . '×' . $dim[1] . ' pixels, so it may look soft when printed — around 2000 pixels wide is ideal.'
+$warn = ($dim && max($dim[0], $dim[1]) < 1500)
+      ? ' It is only ' . $dim[0] . '×' . $dim[1] . ' pixels, so it may look soft when printed — about 2000 pixels on the longer side is ideal.'
       : '';
 
 if (!is_dir($DIR)) { mkdir($DIR, 0755, true); }

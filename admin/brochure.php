@@ -119,6 +119,12 @@ $money = static fn($v) => '£' . number_format((float)$v, 2);
 $sizeLine = function (array $p, ?array $v) use ($prices, $money): array {
     $name = $v ? (string)$v['name'] : '';
     $case = cbCaseSize($p, $v);
+    // "8 × 500ml" beside a size already called "500ml" says 500ml twice and
+    // wrapped onto two lines in the narrow cards. Shorten it to "case of 8".
+    if ($name !== '' && preg_match('/^(\d+)\s*[×xX*]\s*(.+)$/u', $case, $cm)
+        && mb_strtolower(trim($cm[2])) === mb_strtolower(trim($name))) {
+        $case = 'case of ' . $cm[1];
+    }
     $price = '';
     if ($prices === 'retail') {
         $price = $money($v ? $v['price'] : $p['price']);
@@ -144,7 +150,8 @@ $tradeTerms = [
 // A PDF lives on in inboxes long after prices change, so a priced copy says
 // how long its prices stand. Defaults to the end of the month after next.
 $validUntil = (string)($_GET['valid'] ?? '');
-if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $validUntil) || strtotime($validUntil) === false) {
+// checkdate, not strtotime: strtotime quietly turns 30 February into 2 March.
+if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $validUntil, $vm) || !checkdate((int)$vm[2], (int)$vm[3], (int)$vm[1])) {
     $validUntil = date('Y-m-t', strtotime('first day of +2 months'));
 }
 $validLabel = date('j F Y', strtotime($validUntil));
@@ -265,7 +272,7 @@ $priceNote = [
     <?php endif; ?>
     <div class="cbbr-images-grid">
         <?php foreach ([
-            'cover' => ['Cover photo', $coverPhoto, 'Fills the big picture on the front page. Landscape or square works best. Without one, the cover shows a group of your tubs.', rtrim(SITE_BASE, '/') . '/assets/images/logo.png'],
+            'cover' => ['Cover photo', $coverPhoto, 'The big picture on the front page. A square or slightly wide photo fills the frame; a wide banner is shown whole, never cropped. Without one, the cover shows a group of your tubs.', rtrim(SITE_BASE, '/') . '/assets/images/logo.png'],
             'story' => ['Story photo', $storyPhoto, 'Sits beside "Our story". A kitchen, team or behind-the-scenes shot. Without one, the About page photo is used.', rtrim(SITE_BASE, '/') . '/assets/images/about_story.jpg'],
         ] as $slot => [$title, $photo, $help, $fallback]): ?>
         <div class="cbbr-image-slot">
@@ -315,7 +322,13 @@ $priceNote = [
             <p class="cbbr-cover-tag"><?= $h(SHOP_TAGLINE) ?></p>
         </div>
         <?php if ($coverPhoto): ?>
-        <div class="cbbr-cover-photo">
+        <?php
+            // A wide banner (often with words on it) would lose its edges if
+            // cropped to fill the frame, so anything wider than about 1.6:1
+            // is shown whole instead; photos nearer square still fill it.
+            $coverWide = $coverPhoto['h'] > 0 && ($coverPhoto['w'] / $coverPhoto['h']) > 1.6;
+        ?>
+        <div class="cbbr-cover-photo<?= $coverWide ? ' is-wide' : '' ?>">
             <img src="<?= $h($coverPhoto['url']) ?>" alt="">
         </div>
         <?php else: ?>
