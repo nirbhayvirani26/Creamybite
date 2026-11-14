@@ -1,0 +1,26 @@
+/* ============================================================
+   Creamy Bite – "Your PDF is ready" box for the home-screen app
+   (admin/assets/js/app-print.js). Own file because the invoice view
+   and print pages do not load admin.css.
+   ============================================================ */
+.cb-pdf-overlay { position: fixed; inset: 0; z-index: 10000; display: none; align-items: center; justify-content: center;
+                  padding: 20px; background: rgba(44, 13, 17, 0.55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.cb-pdf-overlay.is-open { display: flex; }
+.cb-pdf-card    { width: 100%; max-width: 340px; background: #fff; border-radius: 18px; padding: 22px 20px 16px;
+                  display: flex; flex-direction: column; gap: 10px; text-align: center;
+                  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.cb-pdf-msg     { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: #2C0D11; line-height: 1.4; }
+.cb-pdf-btn     { display: block; width: 100%; box-sizing: border-box; padding: 13px 16px; border-radius: 12px;
+                  border: 1px solid rgba(92, 28, 34, 0.2); background: #fff; color: #5C1C22;
+                  font: 600 16px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-decoration: none; cursor: pointer; }
+.cb-pdf-btn.is-main  { background: #5C1C22; border-color: #5C1C22; color: #fff; }
+.cb-pdf-btn.is-quiet { border-color: transparent; color: #8a6a6e; }
+.cb-pdf-spin    { align-self: center; width: 34px; height: 34px; border-radius: 50%;
+                  border: 3px solid rgba(92, 28, 34, 0.15); border-top-color: #5C1C22; animation: cb-pdf-spin .8s linear infinite; }
+@keyframes cb-pdf-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cb-pdf-spin { animation-duration: 2.4s; } }
+@media print { .cb-pdf-overlay { display: none !important; } }
+
+/* The hidden A4-width copy of the page the PDF is drawn from. Off screen,
+   not display:none — a hidden iframe would have no layout to draw. */
+.cb-pdf-frame { position: fixed; left: -10000px; top: 0; border: 0; visibility: hidden; pointer-events: none; }

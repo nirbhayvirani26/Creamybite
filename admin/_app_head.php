@@ -36,6 +36,11 @@ $cbAppV      = @filemtime(__DIR__ . '/manifest.json') ?: 1;   // new icon/name r
 <?php // "default" keeps the clock and battery on their own strip above the page,
       // so nothing has to be moved out from under the iPhone's notch. ?>
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<?php // "Print / Save as PDF" for the home-screen app, where iOS ignores
+      // window.print(). Does nothing in a normal browser. Versioned by file
+      // time: Hostinger's CDN keeps scripts for a year otherwise. ?>
+<link rel="stylesheet" href="<?= htmlspecialchars($cbAdminBase . '/assets/css/app-print.css?v=' . (@filemtime(__DIR__ . '/assets/css/app-print.css') ?: 1)) ?>">
+<script src="<?= htmlspecialchars($cbAdminBase . '/assets/js/app-print.js?v=' . (@filemtime(__DIR__ . '/assets/js/app-print.js') ?: 1)) ?>" defer></script>
 <script>
 // Refresh button, only when the admin is opened from the home-screen icon.
 // That window has no address bar and no reload button, so without this
